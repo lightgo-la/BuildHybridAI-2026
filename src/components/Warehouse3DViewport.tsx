@@ -909,10 +909,11 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       }
     }
 
+    const dummy = new THREE.Object3D();
     const seenPostCoords = new Set<string>();
+    const postTransforms: Array<{ x: number; y: number; z: number; h: number }> = [];
     for (const col of colMap.values()) {
       const colPostH = col.maxTop + 0.18;
-      const colPostGeo = new THREE.BoxGeometry(0.06, colPostH, 0.06);
       const halfW = col.wM / 2 + 0.03;
       const halfL = col.lM / 2 + 0.03;
       const corners: Array<[number, number]> = [
@@ -925,40 +926,73 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         const key = `${px.toFixed(2)},${pz.toFixed(2)}_${colPostH.toFixed(2)}`;
         if (seenPostCoords.has(key)) continue;
         seenPostCoords.add(key);
-        const post = new THREE.Mesh(colPostGeo, rackFrameMat);
-        post.position.set(px, colPostH / 2, pz);
-        group.add(post);
+        postTransforms.push({ x: px, y: colPostH / 2, z: pz, h: colPostH });
       }
     }
 
-    // Golden Zone highlight per actual rack column (supports free-canvas moved racks!)
+    if (postTransforms.length > 0) {
+      const unitPostGeo = new THREE.BoxGeometry(0.06, 1, 0.06);
+      const instancedPosts = new THREE.InstancedMesh(
+        unitPostGeo,
+        rackFrameMat,
+        postTransforms.length
+      );
+      postTransforms.forEach((pt, idx) => {
+        dummy.position.set(pt.x, pt.y, pt.z);
+        dummy.scale.set(1, pt.h, 1);
+        dummy.updateMatrix();
+        instancedPosts.setMatrixAt(idx, dummy.matrix);
+      });
+      instancedPosts.instanceMatrix.needsUpdate = true;
+      group.add(instancedPosts);
+    }
+
+    // Golden Zone highlight per actual rack column via InstancedMesh (1 draw call for all columns!)
     let usedGoldenFrameMat = false;
     if (viewLayer === 'golden_zone' || viewLayer === 'slotting') {
       const bandHeight = Math.max(0.4, config.goldenZoneMaxM - config.goldenZoneMinM);
       const bandCenterY = config.goldenZoneMinM + bandHeight / 2;
-      const bandMat = new THREE.MeshBasicMaterial({
-        color: theme.scene.golden,
-        transparent: true,
-        opacity: viewLayer === 'golden_zone' ? 0.14 : 0.05,
-        depthWrite: false,
-      });
-      let usedBandMat = false;
-      for (const col of colMap.values()) {
-        if (col.maxTop < config.goldenZoneMinM) continue;
-        usedBandMat = true;
-        const colBandGeo = new THREE.BoxGeometry(
-          col.wM + 0.14,
-          bandHeight + 0.45,
-          col.lM + 0.14
+      const bandCols = [...colMap.values()].filter(
+        (col) => col.maxTop >= config.goldenZoneMinM
+      );
+      if (bandCols.length > 0) {
+        const bandMat = new THREE.MeshBasicMaterial({
+          color: theme.scene.golden,
+          transparent: true,
+          opacity: viewLayer === 'golden_zone' ? 0.14 : 0.05,
+          depthWrite: false,
+        });
+        const unitBandGeo = new THREE.BoxGeometry(1, 1, 1);
+        const instancedBands = new THREE.InstancedMesh(
+          unitBandGeo,
+          bandMat,
+          bandCols.length
         );
-        const band = new THREE.Mesh(colBandGeo, bandMat);
-        band.position.set(col.x, bandCenterY + 0.2, col.z);
-        group.add(band);
-      }
-      if (!usedBandMat) {
-        bandMat.dispose();
+        bandCols.forEach((col, idx) => {
+          dummy.position.set(col.x, bandCenterY + 0.2, col.z);
+          dummy.scale.set(col.wM + 0.14, bandHeight + 0.45, col.lM + 0.14);
+          dummy.updateMatrix();
+          instancedBands.setMatrixAt(idx, dummy.matrix);
+        });
+        instancedBands.instanceMatrix.needsUpdate = true;
+        group.add(instancedBands);
       }
     }
+
+    const regularShelfTransforms: Array<{
+      x: number;
+      y: number;
+      z: number;
+      w: number;
+      l: number;
+    }> = [];
+    const goldenShelfTransforms: Array<{
+      x: number;
+      y: number;
+      z: number;
+      w: number;
+      l: number;
+    }> = [];
 
     for (const alloc of allocations) {
       const { bin } = alloc;
@@ -967,16 +1001,24 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       const binH_m = bin.binHeightCm / 100;
       const levelVisible = levelFilter === 'all' || bin.level === levelFilter;
       const useGoldenShelf = bin.isGoldenZone && levelVisible;
-      if (useGoldenShelf) usedGoldenFrameMat = true;
-
-      const shelfGeo = new THREE.BoxGeometry(binW_m + 0.08, 0.035, binL_m + 0.06);
-      const shelfMesh = new THREE.Mesh(
-        shelfGeo,
-        useGoldenShelf ? goldenFrameMat : rackFrameMat
-      );
-      shelfMesh.position.set(bin.xMeters, bin.zMeters - 0.02, bin.yMeters);
-      shelfMesh.receiveShadow = true;
-      group.add(shelfMesh);
+      if (useGoldenShelf) {
+        usedGoldenFrameMat = true;
+        goldenShelfTransforms.push({
+          x: bin.xMeters,
+          y: bin.zMeters - 0.02,
+          z: bin.yMeters,
+          w: binW_m + 0.08,
+          l: binL_m + 0.06,
+        });
+      } else {
+        regularShelfTransforms.push({
+          x: bin.xMeters,
+          y: bin.zMeters - 0.02,
+          z: bin.yMeters,
+          w: binW_m + 0.08,
+          l: binL_m + 0.06,
+        });
+      }
 
       const binBoxGeo = new THREE.BoxGeometry(binW_m, binH_m, binL_m);
       let binMat: THREE.MeshBasicMaterial | THREE.MeshStandardMaterial;
@@ -1072,10 +1114,46 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       }
     }
 
+    if (regularShelfTransforms.length > 0) {
+      const unitShelfGeo = new THREE.BoxGeometry(1, 0.035, 1);
+      const instancedRegularShelves = new THREE.InstancedMesh(
+        unitShelfGeo,
+        rackFrameMat,
+        regularShelfTransforms.length
+      );
+      instancedRegularShelves.receiveShadow = true;
+      regularShelfTransforms.forEach((st, idx) => {
+        dummy.position.set(st.x, st.y, st.z);
+        dummy.scale.set(st.w, 1, st.l);
+        dummy.updateMatrix();
+        instancedRegularShelves.setMatrixAt(idx, dummy.matrix);
+      });
+      instancedRegularShelves.instanceMatrix.needsUpdate = true;
+      group.add(instancedRegularShelves);
+    }
+
+    if (goldenShelfTransforms.length > 0) {
+      const unitGoldenShelfGeo = new THREE.BoxGeometry(1, 0.035, 1);
+      const instancedGoldenShelves = new THREE.InstancedMesh(
+        unitGoldenShelfGeo,
+        goldenFrameMat,
+        goldenShelfTransforms.length
+      );
+      instancedGoldenShelves.receiveShadow = true;
+      goldenShelfTransforms.forEach((st, idx) => {
+        dummy.position.set(st.x, st.y, st.z);
+        dummy.scale.set(st.w, 1, st.l);
+        dummy.updateMatrix();
+        instancedGoldenShelves.setMatrixAt(idx, dummy.matrix);
+      });
+      instancedGoldenShelves.instanceMatrix.needsUpdate = true;
+      group.add(instancedGoldenShelves);
+    }
+
     if (!usedGoldenFrameMat) {
       goldenFrameMat.dispose();
     }
-    if (allocations.length === 0) {
+    if (postTransforms.length === 0 && regularShelfTransforms.length === 0) {
       rackFrameMat.dispose();
     }
 
@@ -1107,7 +1185,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       group.add(propMeshGroup);
     }
 
-    // Structural Obstacles / Pillars from Map Editor
+    // Structural Obstacles / Pillars from Map Editor (InstancedMesh - 1 draw call)
     if (config.obstacles && config.obstacles.length > 0) {
       const obsGeo = new THREE.BoxGeometry(0.7, postHeight, 0.7);
       const obsMat = new THREE.MeshStandardMaterial({
@@ -1116,12 +1194,20 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         emissiveIntensity: 0.25,
         roughness: 0.55,
       });
-      for (const obs of config.obstacles) {
-        const pillar = new THREE.Mesh(obsGeo, obsMat);
-        pillar.position.set(obs.xMeters, postHeight / 2, obs.yMeters);
-        pillar.castShadow = true;
-        group.add(pillar);
-      }
+      const instancedPillars = new THREE.InstancedMesh(
+        obsGeo,
+        obsMat,
+        config.obstacles.length
+      );
+      instancedPillars.castShadow = true;
+      config.obstacles.forEach((obs, idx) => {
+        dummy.position.set(obs.xMeters, postHeight / 2, obs.yMeters);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        instancedPillars.setMatrixAt(idx, dummy.matrix);
+      });
+      instancedPillars.instanceMatrix.needsUpdate = true;
+      group.add(instancedPillars);
     }
 
     if (pickRoute.length > 0) {

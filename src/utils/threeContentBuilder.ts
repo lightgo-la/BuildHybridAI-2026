@@ -339,8 +339,10 @@ export function createRichCargoGroup(
     itemGroup.add(edgeLines);
   }
 
+  const dummy = new THREE.Object3D();
+
   if (kind === 'bottle_crate') {
-    // 6 detailed 3D bottles (translucent body + colored cap) protruding from top
+    // 6 detailed 3D bottles (translucent body + colored cap) batched via InstancedMesh (2 draw calls instead of 12)
     const bodyR = Math.min(safeW, safeL) * 0.11;
     const bodyH = Math.min(0.055, safeH * 0.26);
     const bodyGeo = new THREE.CylinderGeometry(bodyR * 0.85, bodyR, bodyH, 12);
@@ -355,36 +357,50 @@ export function createRichCargoGroup(
 
     const xOffsets = [-safeW * 0.26, 0, safeW * 0.26];
     const zOffsets = [-safeL * 0.22, safeL * 0.22];
+    const bottleBodies = new THREE.InstancedMesh(bodyGeo, bodyMat, 6);
+    const bottleCaps = new THREE.InstancedMesh(capGeo, capMat, 6);
+    let idx = 0;
     for (const dx of xOffsets) {
       for (const dz of zOffsets) {
-        const bMesh = new THREE.Mesh(bodyGeo, bodyMat);
-        bMesh.position.set(dx, safeH / 2 + bodyH * 0.4, dz);
-        const cMesh = new THREE.Mesh(capGeo, capMat);
-        cMesh.position.set(dx, safeH / 2 + bodyH * 0.88, dz);
-        itemGroup.add(bMesh, cMesh);
+        dummy.position.set(dx, safeH / 2 + bodyH * 0.4, dz);
+        dummy.updateMatrix();
+        bottleBodies.setMatrixAt(idx, dummy.matrix);
+
+        dummy.position.set(dx, safeH / 2 + bodyH * 0.88, dz);
+        dummy.updateMatrix();
+        bottleCaps.setMatrixAt(idx, dummy.matrix);
+        idx++;
       }
     }
+    bottleBodies.instanceMatrix.needsUpdate = true;
+    bottleCaps.instanceMatrix.needsUpdate = true;
+    itemGroup.add(bottleBodies, bottleCaps);
   } else if (kind === 'heavy_pallet' || box.weightKg >= 15) {
-    // 3-runner wooden pallet base + twin tension straps
+    // 3-runner wooden pallet base + twin tension straps batched via InstancedMesh
     const runnerGeo = new THREE.BoxGeometry(safeW * 0.14, 0.028, safeL * 1.02);
     const deckGeo = new THREE.BoxGeometry(safeW * 1.03, 0.014, safeL * 1.03);
     const woodMat = new THREE.MeshStandardMaterial({ color: '#b45309', roughness: 0.75 });
-    for (const rx of [-safeW * 0.38, 0, safeW * 0.38]) {
-      const rMesh = new THREE.Mesh(runnerGeo, woodMat);
-      rMesh.position.set(rx, -safeH / 2 + 0.014, 0);
-      itemGroup.add(rMesh);
-    }
+    const runners = new THREE.InstancedMesh(runnerGeo, woodMat, 3);
+    [-safeW * 0.38, 0, safeW * 0.38].forEach((rx, idx) => {
+      dummy.position.set(rx, -safeH / 2 + 0.014, 0);
+      dummy.updateMatrix();
+      runners.setMatrixAt(idx, dummy.matrix);
+    });
+    runners.instanceMatrix.needsUpdate = true;
     const dMesh = new THREE.Mesh(deckGeo, woodMat);
     dMesh.position.set(0, -safeH / 2 + 0.028, 0);
-    itemGroup.add(dMesh);
+    itemGroup.add(runners, dMesh);
 
     const strapGeo = new THREE.BoxGeometry(0.018, safeH * 1.02, safeL * 1.025);
     const strapMat = new THREE.MeshStandardMaterial({ color: '#facc15', roughness: 0.4 });
-    for (const sx of [-safeW * 0.24, safeW * 0.24]) {
-      const strap = new THREE.Mesh(strapGeo, strapMat);
-      strap.position.set(sx, 0, 0);
-      itemGroup.add(strap);
-    }
+    const straps = new THREE.InstancedMesh(strapGeo, strapMat, 2);
+    [-safeW * 0.24, safeW * 0.24].forEach((sx, idx) => {
+      dummy.position.set(sx, 0, 0);
+      dummy.updateMatrix();
+      straps.setMatrixAt(idx, dummy.matrix);
+    });
+    straps.instanceMatrix.needsUpdate = true;
+    itemGroup.add(straps);
   } else if (kind === 'apparel_tote' || kind === 'food_container') {
     // Molded lid + 2 side snap-lock clip handles
     const lidGeo = new THREE.BoxGeometry(

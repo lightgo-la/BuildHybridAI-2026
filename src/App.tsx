@@ -66,7 +66,6 @@ import type {
   BinSpec,
   EquipmentMode,
   InteriorProp,
-  InteriorPropType,
   OptimizationPreset,
   PinnedCargoPlacement,
   RoomEnclosureStyle,
@@ -75,6 +74,8 @@ import type {
   WarehouseConfig,
   WarehouseScenario,
 } from './types/warehouse';
+import { useWarehouseShortcuts } from './hooks/useWarehouseShortcuts';
+import { useWarehouseTransforms } from './hooks/useWarehouseTransforms';
 import { Warehouse3DViewport } from './components/Warehouse3DViewport';
 import { KPIComparisonBar } from './components/KPIComparisonBar';
 import { HybridAICopilotPanel } from './components/HybridAICopilotPanel';
@@ -90,10 +91,7 @@ import {
 import { SimulationEditorPanel } from './components/SimulationEditorPanel';
 import { BinInspectorPanel } from './components/BinInspectorPanel';
 import { EverydayHomeView } from './components/EverydayHomeView';
-import {
-  INTERIOR_PROP_CATALOG,
-  InteriorStudioModal,
-} from './components/InteriorStudioModal';
+import { InteriorStudioModal } from './components/InteriorStudioModal';
 import {
   DEFAULT_SCENE_3D_BACKGROUND,
   SCENE_3D_PRESETS,
@@ -597,331 +595,6 @@ export function App() {
     if (alloc) setLeftTab('inspector');
   }, []);
 
-  const handleAddBin = useCallback(
-    (bin: BinSpec) => {
-      pushWorkspaceUndo();
-      setRemovedBinIds((prev) => prev.filter((id) => id !== bin.id));
-      setExtraBins((prev) => [...prev.filter((b) => b.id !== bin.id), bin]);
-      setSelectedBinId(bin.id);
-    },
-    [pushWorkspaceUndo]
-  );
-
-  const handleDeleteBin = useCallback(
-    (binId: string) => {
-      pushWorkspaceUndo();
-      setRemovedBinIds((prev) => (prev.includes(binId) ? prev : [...prev, binId]));
-      setExtraBins((prev) => prev.filter((b) => b.id !== binId));
-      setPinnedPlacements((prev) => prev.filter((p) => p.binId !== binId));
-      setSelectedBinId((curr) => (curr === binId ? null : curr));
-    },
-    [pushWorkspaceUndo]
-  );
-
-  const handlePinCargo = useCallback(
-    (binId: string, skuId: string, delta: number) => {
-      pushWorkspaceUndo();
-      setPinnedPlacements((prev) => {
-        const idx = prev.findIndex(
-          (p) => p.binId === binId && p.skuId === skuId
-        );
-        if (idx === -1) {
-          return delta > 0 ? [...prev, { binId, skuId, count: delta }] : prev;
-        }
-        const nextCount = prev[idx].count + delta;
-        if (nextCount <= 0) {
-          return prev.filter((_, i) => i !== idx);
-        }
-        return prev.map((p, i) =>
-          i === idx ? { ...p, count: nextCount } : p
-        );
-      });
-    },
-    [pushWorkspaceUndo]
-  );
-
-  const handleAddBinAbove = useCallback(
-    (alloc: BinAllocation) => {
-      const nextLevel = alloc.bin.level + 1;
-      const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75, 5.55];
-      const maxWeights = [1200, 750, 600, 420, 280, 200, 160, 140];
-      const zMeters =
-        levelHeights[nextLevel - 1] ??
-        Number(((nextLevel - 1) * 0.82 + 0.05).toFixed(2));
-      const newBin: BinSpec = {
-        ...alloc.bin,
-        id: `A${alloc.bin.aisle}-B${alloc.bin.bay}-Z${nextLevel}`,
-        level: nextLevel,
-        zMeters,
-        maxWeightKg: maxWeights[nextLevel - 1] ?? 150,
-        isGoldenZone:
-          zMeters >= config.goldenZoneMinM && zMeters <= config.goldenZoneMaxM,
-      };
-      handleAddBin(newBin);
-    },
-    [config.goldenZoneMinM, config.goldenZoneMaxM, handleAddBin]
-  );
-
-  const handleAddBinAtFloor = useCallback(
-    (x: number, z: number) => {
-      const aisleSpacing = config.aisleSpacingM ?? 3.4;
-      const baySpacing = config.baySpacingM ?? 1.45;
-      const aisle = Math.max(1, Math.round(x / aisleSpacing) + 1);
-      const bay = Math.max(1, Math.round((z - 1.8) / baySpacing) + 1);
-      const snappedX = Number(((aisle - 1) * aisleSpacing).toFixed(2));
-      const snappedY = Number(((bay - 1) * baySpacing + 1.8).toFixed(2));
-      const hasObstacle = (config.obstacles ?? []).some(
-        (o) =>
-          (o.aisle === aisle && o.bay === bay) ||
-          Math.hypot(o.xMeters - snappedX, o.yMeters - snappedY) < 0.45
-      );
-      if (hasObstacle) return;
-      const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75];
-      const maxWeights = [1200, 750, 600, 420, 280, 200, 160];
-
-      // Pick lowest unoccupied Z-level at this actual (snappedX, snappedY) floor coordinate
-      let targetLevel = 1;
-      while (
-        targetLevel <= 7 &&
-        bins.some(
-          (b) =>
-            Math.hypot(b.xMeters - snappedX, b.yMeters - snappedY) < 0.35 &&
-            b.level === targetLevel
-        )
-      ) {
-        targetLevel++;
-      }
-      const zMeters =
-        levelHeights[targetLevel - 1] ??
-        Number(((targetLevel - 1) * 0.82 + 0.05).toFixed(2));
-
-      let binId = `A${aisle}-B${bay}-Z${targetLevel}`;
-      if (
-        bins.some(
-          (b) =>
-            b.id === binId &&
-            Math.hypot(b.xMeters - snappedX, b.yMeters - snappedY) >= 0.35
-        )
-      ) {
-        binId = `C${bins.length + 1}-A${aisle}-B${bay}-Z${targetLevel}`;
-      }
-
-      const newBin: BinSpec = {
-        id: binId,
-        aisle,
-        bay,
-        level: targetLevel,
-        xMeters: snappedX,
-        yMeters: snappedY,
-        zMeters,
-        binLengthCm: config.binLengthCm ?? 120,
-        binWidthCm: config.binWidthCm ?? 90,
-        binHeightCm: config.binHeightCm ?? 70,
-        maxWeightKg: maxWeights[targetLevel - 1] ?? 150,
-        isGoldenZone:
-          zMeters >= config.goldenZoneMinM && zMeters <= config.goldenZoneMaxM,
-      };
-      handleAddBin(newBin);
-    },
-    [bins, config, handleAddBin]
-  );
-
-  const handleMoveRackColumn = useCallback(
-    (oldX: number, oldY: number, newX: number, newY: number) => {
-      pushWorkspaceUndo();
-      const aisleSp = Math.max(0.8, config.aisleSpacingM ?? 3.4);
-      const baySp = Math.max(0.6, config.baySpacingM ?? 1.45);
-      const newAisle = Math.max(1, Math.round(newX / aisleSp) + 1);
-      const newBay = Math.max(1, Math.round((newY - 1.8) / baySp) + 1);
-      const oldAisle = Math.max(1, Math.round(oldX / aisleSp) + 1);
-      const oldBay = Math.max(1, Math.round((oldY - 1.8) / baySp) + 1);
-
-      // Check if target (newX, newY) is already occupied by a different rack column; if so, swap their positions so columns never weld together!
-      const occupiedAtTarget = bins.some(
-        (b) =>
-          (Math.abs(b.xMeters - oldX) >= 0.05 ||
-            Math.abs(b.yMeters - oldY) >= 0.05) &&
-          Math.abs(b.xMeters - newX) < 0.35 &&
-          Math.abs(b.yMeters - newY) < 0.35
-      );
-      const nextBins = bins.map((b) => {
-        if (
-          Math.abs(b.xMeters - oldX) < 0.05 &&
-          Math.abs(b.yMeters - oldY) < 0.05
-        ) {
-          return {
-            ...b,
-            xMeters: newX,
-            yMeters: newY,
-            aisle: newAisle,
-            bay: newBay,
-          };
-        }
-        if (
-          occupiedAtTarget &&
-          Math.abs(b.xMeters - newX) < 0.35 &&
-          Math.abs(b.yMeters - newY) < 0.35
-        ) {
-          return {
-            ...b,
-            xMeters: oldX,
-            yMeters: oldY,
-            aisle: oldAisle,
-            bay: oldBay,
-          };
-        }
-        return b;
-      });
-      setCustomBinsOverride(nextBins);
-      setExtraBins([]);
-      setRemovedBinIds([]);
-    },
-    [bins, config.aisleSpacingM, config.baySpacingM, pushWorkspaceUndo]
-  );
-
-  // Move the ENTIRE template layout (all bins, obstacles, interior props, and depot) together in 3D
-  const handleTranslateWholeTemplate = useCallback(
-    (dx: number, dy: number) => {
-      if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
-      pushWorkspaceUndo();
-      const nextBins = bins.map((b) => ({
-        ...b,
-        xMeters: Number((b.xMeters + dx).toFixed(2)),
-        yMeters: Number((b.yMeters + dy).toFixed(2)),
-      }));
-      setCustomBinsOverride(nextBins);
-      setExtraBins([]);
-      setRemovedBinIds([]);
-
-      const aisleSp = config.aisleSpacingM ?? 3.4;
-      const curDepotX =
-        config.depotXMeters ??
-        ((Math.max(1, config.aisles) - 1) * aisleSp) / 2;
-      const curDepotY = config.depotYMeters ?? 0;
-
-      setConfigPatch((prev) => ({
-        ...prev,
-        depotXMeters: Number((curDepotX + dx).toFixed(2)),
-        depotYMeters: Number((curDepotY + dy).toFixed(2)),
-        obstacles: (prev.obstacles ?? config.obstacles ?? []).map((o) => ({
-          ...o,
-          xMeters: Number((o.xMeters + dx).toFixed(2)),
-          yMeters: Number((o.yMeters + dy).toFixed(2)),
-        })),
-        interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
-          (p) => ({
-            ...p,
-            xMeters: Number((p.xMeters + dx).toFixed(2)),
-            yMeters: Number((p.yMeters + dy).toFixed(2)),
-          })
-        ),
-      }));
-    },
-    [bins, config, pushWorkspaceUndo]
-  );
-
-  // Rotate the ENTIRE template layout 90 degrees around its centroid in 3D
-  const handleRotateWholeTemplate90 = useCallback(() => {
-    if (bins.length === 0) return;
-    pushWorkspaceUndo();
-    const xs = bins.map((b) => b.xMeters);
-    const ys = bins.map((b) => b.yMeters);
-    const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-    const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-    const rot = (x: number, y: number) => ({
-      nx: Number((cx - (y - cy)).toFixed(2)),
-      ny: Number((cy + (x - cx)).toFixed(2)),
-    });
-
-    const nextBins = bins.map((b) => {
-      const { nx, ny } = rot(b.xMeters, b.yMeters);
-      return {
-        ...b,
-        xMeters: nx,
-        yMeters: ny,
-        binLengthCm: b.binWidthCm,
-        binWidthCm: b.binLengthCm,
-      };
-    });
-    setCustomBinsOverride(nextBins);
-    setExtraBins([]);
-    setRemovedBinIds([]);
-
-    const aisleSp = config.aisleSpacingM ?? 3.4;
-    const curDepotX =
-      config.depotXMeters ?? ((Math.max(1, config.aisles) - 1) * aisleSp) / 2;
-    const curDepotY = config.depotYMeters ?? 0;
-    const rotDepot = rot(curDepotX, curDepotY);
-
-    setConfigPatch((prev) => ({
-      ...prev,
-      depotXMeters: rotDepot.nx,
-      depotYMeters: rotDepot.ny,
-      obstacles: (prev.obstacles ?? config.obstacles ?? []).map((o) => {
-        const ro = rot(o.xMeters, o.yMeters);
-        return { ...o, xMeters: ro.nx, yMeters: ro.ny };
-      }),
-      interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
-        (p) => {
-          const rp = rot(p.xMeters, p.yMeters);
-          return {
-            ...p,
-            xMeters: rp.nx,
-            yMeters: rp.ny,
-            rotationDeg: (p.rotationDeg + 90) % 360,
-          };
-        }
-      ),
-    }));
-  }, [bins, config, pushWorkspaceUndo]);
-
-  // Expand or compact the ENTIRE template's aisle/bay spacing in 3D
-  const handleScaleWholeTemplateSpacing = useCallback(
-    (factor: number) => {
-      if (bins.length === 0) return;
-      pushWorkspaceUndo();
-      const xs = bins.map((b) => b.xMeters);
-      const ys = bins.map((b) => b.yMeters);
-      const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
-      const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-      const sc = (x: number, y: number) => ({
-        nx: Number((cx + (x - cx) * factor).toFixed(2)),
-        ny: Number((cy + (y - cy) * factor).toFixed(2)),
-      });
-
-      const nextBins = bins.map((b) => {
-        const { nx, ny } = sc(b.xMeters, b.yMeters);
-        return { ...b, xMeters: nx, yMeters: ny };
-      });
-      setCustomBinsOverride(nextBins);
-      setExtraBins([]);
-      setRemovedBinIds([]);
-
-      setConfigPatch((prev) => ({
-        ...prev,
-        obstacles: (prev.obstacles ?? config.obstacles ?? []).map((o) => {
-          const ro = sc(o.xMeters, o.yMeters);
-          return { ...o, xMeters: ro.nx, yMeters: ro.ny };
-        }),
-        interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
-          (p) => {
-            const rp = sc(p.xMeters, p.yMeters);
-            return { ...p, xMeters: rp.nx, yMeters: rp.ny };
-          }
-        ),
-      }));
-    },
-    [bins, config, pushWorkspaceUndo]
-  );
-
-  // Center the ENTIRE template layout back to the default floor center
-  const handleCenterWholeTemplate = useCallback(() => {
-    if (bins.length === 0) return;
-    const minX = Math.min(...bins.map((b) => b.xMeters));
-    const minY = Math.min(...bins.map((b) => b.yMeters));
-    handleTranslateWholeTemplate(-minX, 1.8 - minY);
-  }, [bins, handleTranslateWholeTemplate]);
-
   const toggleLanguage = useCallback(() => {
     setLang((prev) => {
       const next: LangCode = prev === 'ko' ? 'en' : 'ko';
@@ -933,56 +606,6 @@ export function App() {
       return next;
     });
   }, []);
-
-  const handleCreateCustomHomeSpace = useCallback(
-    (params: {
-      floorWidthM: number;
-      floorDepthM: number;
-      levels: number;
-      shelfTier: 'small' | 'medium' | 'large';
-    }) => {
-      pushWorkspaceUndo();
-      const tierSpecs = {
-        small: { l: 75, w: 50, h: 42, aisleSp: 2.1, baySp: 1.0 },
-        medium: { l: 95, w: 65, h: 52, aisleSp: 2.5, baySp: 1.2 },
-        large: { l: 120, w: 90, h: 70, aisleSp: 3.4, baySp: 1.45 },
-      }[params.shelfTier];
-
-      const aisles = Math.max(
-        1,
-        Math.min(6, Math.floor((params.floorWidthM - 1.2) / tierSpecs.aisleSp) + 1)
-      );
-      const bays = Math.max(
-        2,
-        Math.min(9, Math.floor((params.floorDepthM - 2.2) / tierSpecs.baySp) + 1)
-      );
-      setConfigPatch({
-        aisles,
-        baysPerAisle: bays,
-        levels: params.levels,
-        aisleSpacingM: tierSpecs.aisleSp,
-        baySpacingM: tierSpecs.baySp,
-        binLengthCm: tierSpecs.l,
-        binWidthCm: tierSpecs.w,
-        binHeightCm: tierSpecs.h,
-        floorWidthM: params.floorWidthM,
-        floorDepthM: params.floorDepthM,
-        obstacles: [],
-        disabledBinIds: [],
-        interiorProps: [],
-        mapTag: `${params.floorWidthM}×${params.floorDepthM}m · Z${params.levels}`,
-      });
-      setCustomBinsOverride(null);
-      setExtraBins([]);
-      setRemovedBinIds([]);
-      setPinnedPlacements([]);
-      setSelectedBinId(null);
-      setSelectedPropId(null);
-      setCameraResetTick((n) => n + 1);
-      setAppView('workspace');
-    },
-    [pushWorkspaceUndo]
-  );
 
   const selectedProp: InteriorProp | null = useMemo(() => {
     if (!selectedPropId) return null;
@@ -1001,327 +624,71 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [shortcutToast]);
 
-  const handleAddInteriorProp = useCallback(
-    (type: InteriorPropType) => {
-      pushWorkspaceUndo();
-      const cat =
-        INTERIOR_PROP_CATALOG.find((c) => c.type === type) ??
-        INTERIOR_PROP_CATALOG[0];
-      const existing = config.interiorProps ?? [];
-      const offsetIdx = existing.length;
-      const newProp: InteriorProp = {
-        id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        type,
-        label: lang === 'ko' ? cat.nameKo : cat.nameEn,
-        xMeters: Number((-0.8 + (offsetIdx % 4) * 1.4).toFixed(2)),
-        yMeters: Number((0.4 + Math.floor(offsetIdx / 4) * 1.3).toFixed(2)),
-        rotationDeg: 0,
-        scale: 1.0,
-        color: cat.defaultColor,
-      };
-      setConfigPatch((prev) => ({
-        ...prev,
-        interiorProps: [...(prev.interiorProps ?? config.interiorProps ?? []), newProp],
-      }));
-      setSelectedPropId(newProp.id);
-      setSelectedBinId(null);
-      showToast(
-        lang === 'ko'
-          ? `🛋️ 3D 인테리어 추가됨: ${newProp.label} (드래그·방향키로 이동)`
-          : `🛋️ Added 3D Interior: ${newProp.label} (Drag or Arrow keys to move)`
-      );
-    },
-    [config.interiorProps, lang, pushWorkspaceUndo, showToast]
-  );
-
-  const handleUpdateInteriorProp = useCallback(
-    (id: string, patch: Partial<InteriorProp>) => {
-      pushWorkspaceUndo();
-      setConfigPatch((prev) => ({
-        ...prev,
-        interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
-          (p) => (p.id === id ? { ...p, ...patch } : p)
-        ),
-      }));
-    },
-    [config.interiorProps, pushWorkspaceUndo]
-  );
-
-  const handleDuplicateInteriorProp = useCallback(
-    (id: string) => {
-      const src = (config.interiorProps ?? []).find((p) => p.id === id);
-      if (!src) return;
-      pushWorkspaceUndo();
-      const copy: InteriorProp = {
-        ...src,
-        id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        xMeters: Number((src.xMeters + 0.75).toFixed(2)),
-        yMeters: Number((src.yMeters + 0.5).toFixed(2)),
-      };
-      setConfigPatch((prev) => ({
-        ...prev,
-        interiorProps: [...(prev.interiorProps ?? config.interiorProps ?? []), copy],
-      }));
-      setSelectedPropId(copy.id);
-    },
-    [config.interiorProps, pushWorkspaceUndo]
-  );
-
-  const handleDeleteInteriorProp = useCallback(
-    (id: string) => {
-      pushWorkspaceUndo();
-      setConfigPatch((prev) => ({
-        ...prev,
-        interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).filter(
-          (p) => p.id !== id
-        ),
-      }));
-      setSelectedPropId((curr) => (curr === id ? null : curr));
-    },
-    [config.interiorProps, pushWorkspaceUndo]
-  );
-
-  const handleAutoPopulateInterior = useCallback(() => {
-    pushWorkspaceUndo();
-    const aisleSp = config.aisleSpacingM ?? 3.4;
-    const baySp = config.baySpacingM ?? 1.45;
-    const maxX = (config.aisles - 1) * aisleSp;
-    const maxZ = 1.8 + (config.baysPerAisle - 1) * baySp;
-    const autoList: InteriorProp[] = [
-      {
-        id: `prop-auto-1-${Date.now()}`,
-        type: 'desk_work',
-        label: lang === 'ko' ? '책상 & 모니터 작업대' : 'Study & Packing Desk',
-        xMeters: Number((maxX + 1.8).toFixed(2)),
-        yMeters: 0.8,
-        rotationDeg: 270,
-        scale: 1,
-        color: '#b45309',
-      },
-      {
-        id: `prop-auto-2-${Date.now()}`,
-        type: 'sofa_lounge',
-        label: lang === 'ko' ? '패브릭 소파·휴식존' : 'Cozy Lounge Sofa',
-        xMeters: -1.4,
-        yMeters: Number((maxZ * 0.45).toFixed(2)),
-        rotationDeg: 90,
-        scale: 1,
-        color: '#6366f1',
-      },
-      {
-        id: `prop-auto-3-${Date.now()}`,
-        type: 'plant_pot',
-        label: lang === 'ko' ? '대형 인테리어 화분' : 'Indoor Monstera Plant',
-        xMeters: -1.3,
-        yMeters: 0.4,
-        rotationDeg: 0,
-        scale: 1.1,
-        color: '#10b981',
-      },
-      {
-        id: `prop-auto-4-${Date.now()}`,
-        type: 'door_entry',
-        label: lang === 'ko' ? '실내 출입문' : 'Room Entrance Door',
-        xMeters: -1.5,
-        yMeters: Number((maxZ - 0.5).toFixed(2)),
-        rotationDeg: 90,
-        scale: 1,
-        color: '#92400e',
-      },
-    ];
-    setConfigPatch((prev) => ({
-      ...prev,
-      roomEnclosure: 'three_walls',
-      interiorProps: autoList,
-    }));
-    setSelectedPropId(autoList[0].id);
-    showToast(
-      lang === 'ko'
-        ? '✨ 맞춤 3D 인테리어(책상·소파·화분·출입문·3면 룸)가 자동 배치되었습니다!'
-        : '✨ Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room)!'
-    );
-  }, [
-    config.aisleSpacingM,
-    config.aisles,
-    config.baySpacingM,
-    config.baysPerAisle,
+  const {
+    handleAddBin,
+    handleDeleteBin,
+    handlePinCargo,
+    handleAddBinAbove,
+    handleAddBinAtFloor,
+    handleMoveRackColumn,
+    handleTranslateWholeTemplate,
+    handleRotateWholeTemplate90,
+    handleScaleWholeTemplateSpacing,
+    handleCenterWholeTemplate,
+    handleCreateCustomHomeSpace,
+    handleAddInteriorProp,
+    handleUpdateInteriorProp,
+    handleDuplicateInteriorProp,
+    handleDeleteInteriorProp,
+    handleAutoPopulateInterior,
+  } = useWarehouseTransforms({
+    bins,
+    config,
     lang,
     pushWorkspaceUndo,
     showToast,
-  ]);
+    setConfigPatch,
+    setCustomBinsOverride,
+    setExtraBins,
+    setRemovedBinIds,
+    setPinnedPlacements,
+    setSelectedBinId,
+    setSelectedPropId,
+    setCameraResetTick,
+    setAppView,
+  });
 
-  // Global Keyboard Shortcuts System
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-
-      if ((e.ctrlKey || e.metaKey) && !mapEditorOpen) {
-        const lower = e.key.toLowerCase();
-        if (lower === 'z' && !e.shiftKey) {
-          e.preventDefault();
-          handleWorkspaceUndo();
-          showToast(lang === 'ko' ? '↩ 3D 편집 실행 취소 (Undo)' : '↩ Undo 3D Edit');
-          return;
-        }
-        if (lower === 'y' || (lower === 'z' && e.shiftKey)) {
-          e.preventDefault();
-          handleWorkspaceRedo();
-          showToast(lang === 'ko' ? '↪ 3D 편집 다시 실행 (Redo)' : '↪ Redo 3D Edit');
-          return;
-        }
-      }
-
-      if (e.ctrlKey || e.metaKey || e.altKey) return;
-
-      const key = e.key;
-      if (key === '1') {
-        setCameraPreset('iso');
-        showToast(lang === 'ko' ? '⌨️ [1] 3D 입체뷰 전환' : '⌨️ [1] 3D Isometric View');
-      } else if (key === '2') {
-        setCameraPreset('top');
-        showToast(lang === 'ko' ? '⌨️ [2] 2D 평면뷰 전환' : '⌨️ [2] 2D Top-Down View');
-      } else if (key === '3') {
-        setCameraPreset('elevation');
-        showToast(lang === 'ko' ? '⌨️ [3] Z축 정면뷰 전환' : '⌨️ [3] Z-Elevation View');
-      } else if (key === 'r' || key === 'R') {
-        setCameraPreset('iso');
-        setCameraResetTick((n) => n + 1);
-        showToast(lang === 'ko' ? '⌨️ [R] 3D 카메라 시점 초기화' : '⌨️ [R] Reset 3D Camera');
-      } else if (key === ' ') {
-        e.preventDefault();
-        setActiveLayout((prev) => {
-          const next = prev === 'optimized_3d' ? 'baseline_2d' : 'optimized_3d';
-          showToast(
-            next === 'optimized_3d'
-              ? lang === 'ko'
-                ? '⌨️ [Space] 3D 최적화 배치 적용'
-                : '⌨️ [Space] Switched to 3D Optimized'
-              : lang === 'ko'
-                ? '⌨️ [Space] 2D 일반 배치 비교'
-                : '⌨️ [Space] Switched to 2D Baseline'
-          );
-          return next;
-        });
-      } else if (key === 'm' || key === 'M') {
-        setDragMoveMode((prev) => {
-          const next = !prev;
-          showToast(
-            next
-              ? lang === 'ko'
-                ? '⌨️ [M] 3D 마우스 드래그 이동 모드: 켜짐'
-                : '⌨️ [M] 3D Mouse Drag-Move: ON'
-              : lang === 'ko'
-                ? '⌨️ [M] 3D 마우스 드래그 이동 모드: 꺼짐'
-                : '⌨️ [M] 3D Mouse Drag-Move: OFF'
-          );
-          return next;
-        });
-      } else if (key === 'i' || key === 'I') {
-        setInteriorInitialTab('interior');
-        setInteriorModalOpen((v) => !v);
-      } else if (key === 'b' || key === 'B') {
-        setSceneBgModalOpen((v) => !v);
-      } else if (key === 'e' || key === 'E') {
-        setMapEditorOpen((v) => !v);
-      } else if (key === 't' || key === 'T') {
-        setTemplateGalleryOpen((v) => !v);
-      } else if (key === 'c' || key === 'C') {
-        setCadModalOpen((v) => !v);
-      } else if (key === 'g' || key === 'G') {
-        setViewLayer((prev) => (prev === 'golden_zone' ? 'slotting' : 'golden_zone'));
-        showToast(lang === 'ko' ? '⌨️ [G] 골든존 강조 뷰 전환' : '⌨️ [G] Toggle Golden Zone View');
-      } else if (key === 'h' || key === 'H') {
-        setViewLayer((prev) => (prev === 'heatmap' ? 'slotting' : 'heatmap'));
-        showToast(lang === 'ko' ? '⌨️ [H] 피킹 빈도 히트맵 전환' : '⌨️ [H] Toggle 3D Heatmap');
-      } else if (key === 'w' || key === 'W') {
-        setAppView((prev) => (prev === 'home' ? 'workspace' : 'home'));
-      } else if (key === 'l' || key === 'L') {
-        toggleLanguage();
-      } else if (key === '?' || key === '/' || key === 'k' || key === 'K') {
-        setInteriorInitialTab('shortcuts');
-        setInteriorModalOpen((v) => !v);
-      } else if (key === '0') {
-        setLevelFilter('all');
-        showToast(lang === 'ko' ? '⌨️ [0] 전체 Z층 모두 표시' : '⌨️ [0] Show All Z-Levels');
-      } else if ((key === '+' || key === '=') && selectedBin) {
-        handleAddBinAbove(selectedBin);
-        showToast(lang === 'ko' ? `⌨️ [+] ${selectedBin.bin.id} 위 1단 추가` : `⌨️ [+] Added level above ${selectedBin.bin.id}`);
-      } else if (key === 'Delete' || key === 'Backspace') {
-        if (selectedProp) {
-          handleDeleteInteriorProp(selectedProp.id);
-          showToast(lang === 'ko' ? `⌨️ [Del] 인테리어 가구 삭제됨` : `⌨️ [Del] Deleted 3D Interior Prop`);
-        } else if (selectedBin) {
-          handleDeleteBin(selectedBin.bin.id);
-          showToast(lang === 'ko' ? `⌨️ [Del] ${selectedBin.bin.id} 칸 삭제됨` : `⌨️ [Del] Deleted Bin ${selectedBin.bin.id}`);
-        }
-      } else if (key === '[' && selectedProp) {
-        handleUpdateInteriorProp(selectedProp.id, {
-          rotationDeg: (selectedProp.rotationDeg + 315) % 360,
-        });
-      } else if (key === ']' && selectedProp) {
-        handleUpdateInteriorProp(selectedProp.id, {
-          rotationDeg: (selectedProp.rotationDeg + 45) % 360,
-        });
-      } else if (
-        key === 'ArrowLeft' ||
-        key === 'ArrowRight' ||
-        key === 'ArrowUp' ||
-        key === 'ArrowDown'
-      ) {
-        const dx = key === 'ArrowLeft' ? -0.25 : key === 'ArrowRight' ? 0.25 : 0;
-        const dy = key === 'ArrowUp' ? -0.25 : key === 'ArrowDown' ? 0.25 : 0;
-        if (selectedProp) {
-          e.preventDefault();
-          handleUpdateInteriorProp(selectedProp.id, {
-            xMeters: Number((selectedProp.xMeters + dx).toFixed(2)),
-            yMeters: Number((selectedProp.yMeters + dy).toFixed(2)),
-          });
-        } else if (dragMoveMode && dragScope === 'whole_template') {
-          e.preventDefault();
-          handleTranslateWholeTemplate(dx * 2, dy * 2);
-        } else if (selectedBin) {
-          e.preventDefault();
-          handleMoveRackColumn(
-            selectedBin.bin.xMeters,
-            selectedBin.bin.yMeters,
-            Number((selectedBin.bin.xMeters + dx).toFixed(2)),
-            Number((selectedBin.bin.yMeters + dy).toFixed(2))
-          );
-        } else {
-          e.preventDefault();
-          handleTranslateWholeTemplate(dx * 2, dy * 2);
-        }
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [
-    dragMoveMode,
-    dragScope,
-    handleAddBinAbove,
-    handleDeleteBin,
-    handleDeleteInteriorProp,
-    handleMoveRackColumn,
-    handleTranslateWholeTemplate,
-    handleUpdateInteriorProp,
-    handleWorkspaceRedo,
-    handleWorkspaceUndo,
+  useWarehouseShortcuts({
     lang,
     mapEditorOpen,
+    dragMoveMode,
+    dragScope,
     selectedBin,
     selectedProp,
     showToast,
     toggleLanguage,
-  ]);
+    handleWorkspaceUndo,
+    handleWorkspaceRedo,
+    handleAddBinAbove,
+    handleDeleteBin,
+    handleDeleteInteriorProp,
+    handleUpdateInteriorProp,
+    handleMoveRackColumn,
+    handleTranslateWholeTemplate,
+    setCameraPreset,
+    setCameraResetTick,
+    setActiveLayout,
+    setDragMoveMode,
+    setInteriorInitialTab,
+    setInteriorModalOpen,
+    setSceneBgModalOpen,
+    setMapEditorOpen,
+    setTemplateGalleryOpen,
+    setCadModalOpen,
+    setViewLayer,
+    setAppView,
+    setLevelFilter,
+  });
 
   const handleApplyFirebaseConfig = async (cfg: FirebaseRuntimeConfig) => {
     const nextState = await initFirebaseServices(cfg);
@@ -2738,6 +2105,38 @@ export function App() {
             lang={lang}
           />
         )}
+
+        {interiorModalOpen && (
+          <InteriorStudioModal
+            open={interiorModalOpen}
+            initialTab={interiorInitialTab}
+            onClose={() => setInteriorModalOpen(false)}
+            lang={lang}
+            interiorProps={config.interiorProps ?? []}
+            selectedPropId={selectedPropId}
+            roomEnclosure={config.roomEnclosure ?? 'cutaway_corner'}
+            wallColor={config.wallColor ?? '#b45309'}
+            onSelectProp={setSelectedPropId}
+            onAddProp={handleAddInteriorProp}
+            onUpdateProp={handleUpdateInteriorProp}
+            onDuplicateProp={handleDuplicateInteriorProp}
+            onDeleteProp={handleDeleteInteriorProp}
+            onClearProps={() => {
+              pushWorkspaceUndo();
+              setConfigPatch((prev) => ({ ...prev, interiorProps: [] }));
+              setSelectedPropId(null);
+            }}
+            onAutoPopulateInterior={handleAutoPopulateInterior}
+            onChangeRoomEnclosure={(style: RoomEnclosureStyle) => {
+              pushWorkspaceUndo();
+              setConfigPatch((prev) => ({ ...prev, roomEnclosure: style }));
+            }}
+            onChangeWallColor={(color: string) => {
+              pushWorkspaceUndo();
+              setConfigPatch((prev) => ({ ...prev, wallColor: color }));
+            }}
+          />
+        )}
       </Suspense>
 
       <DesignStudioMenu
@@ -2754,36 +2153,6 @@ export function App() {
         settings={sceneBg}
         onChange={setSceneBg}
         lang={lang}
-      />
-
-      <InteriorStudioModal
-        open={interiorModalOpen}
-        initialTab={interiorInitialTab}
-        onClose={() => setInteriorModalOpen(false)}
-        lang={lang}
-        interiorProps={config.interiorProps ?? []}
-        selectedPropId={selectedPropId}
-        roomEnclosure={config.roomEnclosure ?? 'cutaway_corner'}
-        wallColor={config.wallColor ?? '#b45309'}
-        onSelectProp={setSelectedPropId}
-        onAddProp={handleAddInteriorProp}
-        onUpdateProp={handleUpdateInteriorProp}
-        onDuplicateProp={handleDuplicateInteriorProp}
-        onDeleteProp={handleDeleteInteriorProp}
-        onClearProps={() => {
-          pushWorkspaceUndo();
-          setConfigPatch((prev) => ({ ...prev, interiorProps: [] }));
-          setSelectedPropId(null);
-        }}
-        onAutoPopulateInterior={handleAutoPopulateInterior}
-        onChangeRoomEnclosure={(style: RoomEnclosureStyle) => {
-          pushWorkspaceUndo();
-          setConfigPatch((prev) => ({ ...prev, roomEnclosure: style }));
-        }}
-        onChangeWallColor={(color: string) => {
-          pushWorkspaceUndo();
-          setConfigPatch((prev) => ({ ...prev, wallColor: color }));
-        }}
       />
     </div>
   );
