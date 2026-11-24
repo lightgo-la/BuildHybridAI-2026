@@ -374,7 +374,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
     [svgW, svgH, basePxPerM, maxWorldY, snapCoord]
   );
 
-  // Window-level smooth mouse drag & drop listener (never drops on fast mouse moves!)
   useEffect(() => {
     if (!open) return;
 

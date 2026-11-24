@@ -58,8 +58,8 @@ export interface Scene3DPreset {
 export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   {
     id: 'daylight-studio',
-    nameKo: '☀️ 밝은 데이라이트 스튜디오 (기본)',
-    nameEn: '☀️ Bright Daylight Studio (Default)',
+    nameKo: '밝은 데이라이트 스튜디오 (기본)',
+    nameEn: 'Bright Daylight Studio (Default)',
     badge: 'Bright',
     settings: {
       useThemeDefault: false,
@@ -78,8 +78,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'warm-home',
-    nameKo: '🏠 따뜻한 홈·우드 인테리어',
-    nameEn: '🏠 Warm Home & Wood Interior',
+    nameKo: '따뜻한 홈·우드 인테리어',
+    nameEn: 'Warm Home & Wood Interior',
     badge: 'Home',
     settings: {
       useThemeDefault: false,
@@ -98,8 +98,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'pure-white',
-    nameKo: '🏢 모던 화이트 갤러리 쇼룸',
-    nameEn: '🏢 Pure White Gallery Showroom',
+    nameKo: '모던 화이트 갤러리 쇼룸',
+    nameEn: 'Pure White Gallery Showroom',
     badge: 'Clean',
     settings: {
       useThemeDefault: false,
@@ -118,8 +118,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'ice-clean',
-    nameKo: '❄️ 아이스 클린룸 & 냉장 쇼케이스',
-    nameEn: '❄️ Crisp Ice Cleanroom & Fridge',
+    nameKo: '아이스 클린룸 & 냉장 쇼케이스',
+    nameEn: 'Crisp Ice Cleanroom & Fridge',
     badge: 'Cool',
     settings: {
       useThemeDefault: false,
@@ -138,8 +138,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'sky-atrium',
-    nameKo: '🌤️ 스카이 블루 아트리움',
-    nameEn: '🌤️ Sky Blue Daylight Atrium',
+    nameKo: '스카이 블루 아트리움',
+    nameEn: 'Sky Blue Daylight Atrium',
     badge: 'Sky',
     settings: {
       useThemeDefault: false,
@@ -158,8 +158,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'natural-sage',
-    nameKo: '🌿 내추럴 가든 & 자작나무',
-    nameEn: '🌿 Natural Sage & Birch Wood',
+    nameKo: '내추럴 가든 & 자작나무',
+    nameEn: 'Natural Sage & Birch Wood',
     badge: 'Nature',
     settings: {
       useThemeDefault: false,
@@ -178,8 +178,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'sunset-lounge',
-    nameKo: '🌅 선셋 골든 라운지',
-    nameEn: '🌅 Sunset Golden Lounge',
+    nameKo: '선셋 골든 라운지',
+    nameEn: 'Sunset Golden Lounge',
     badge: 'Warm',
     settings: {
       useThemeDefault: false,
@@ -198,8 +198,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'bright-factory',
-    nameKo: '🏭 밝은 스마트 팩토리 & 물류센터',
-    nameEn: '🏭 Bright Smart Logistics Center',
+    nameKo: '밝은 스마트 팩토리 & 물류센터',
+    nameEn: 'Bright Smart Logistics Center',
     badge: 'Pro',
     settings: {
       useThemeDefault: false,
@@ -218,8 +218,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'studio-lavender',
-    nameKo: '🟣 소프트 라벤더 크리에이티브 룸',
-    nameEn: '🟣 Soft Lavender Creative Studio',
+    nameKo: '소프트 라벤더 크리에이티브 룸',
+    nameEn: 'Soft Lavender Creative Studio',
     badge: 'Studio',
     settings: {
       useThemeDefault: false,
@@ -238,8 +238,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'bright-blueprint',
-    nameKo: '💠 브라이트 엔지니어링 블루프린트',
-    nameEn: '💠 Bright Engineering Blueprint',
+    nameKo: '브라이트 엔지니어링 블루프린트',
+    nameEn: 'Bright Engineering Blueprint',
     badge: 'CAD',
     settings: {
       useThemeDefault: false,
@@ -258,8 +258,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'cyber-night',
-    nameKo: '🌃 다크 네온 디지털 트윈',
-    nameEn: '🌃 Dark Neon Digital Twin',
+    nameKo: '다크 네온 디지털 트윈',
+    nameEn: 'Dark Neon Digital Twin',
     badge: 'Dark',
     settings: {
       useThemeDefault: false,
@@ -278,8 +278,8 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'sync-theme',
-    nameKo: '🎨 UI 디자인 테마 색상과 동기화',
-    nameEn: '🎨 Sync with Active UI Design Theme',
+    nameKo: 'UI 디자인 테마 색상과 동기화',
+    nameEn: 'Sync with Active UI Design Theme',
     badge: 'Auto',
     settings: {
       useThemeDefault: true,
@@ -514,22 +514,22 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                     [
                       'glossy_tile',
                       lang === 'ko'
-                        ? '✨ 밝은 쇼룸 타일'
-                        : '✨ Glossy Showroom Tile',
+                        ? '밝은 쇼룸 타일'
+                        : 'Glossy Showroom Tile',
                     ],
                     [
                       'warm_wood',
-                      lang === 'ko' ? '🪵 따뜻한 원목 마루' : '🪵 Warm Wood Floor',
+                      lang === 'ko' ? '따뜻한 원목 마루' : 'Warm Wood Floor',
                     ],
                     [
                       'clean_concrete',
                       lang === 'ko'
-                        ? '🏢 클린 매트 콘크리트'
-                        : '🏢 Clean Matte Concrete',
+                        ? '클린 매트 콘크리트'
+                        : 'Clean Matte Concrete',
                     ],
                     [
                       'blueprint_grid',
-                      lang === 'ko' ? '📐 CAD 블루프린트' : '📐 CAD Blueprint',
+                      lang === 'ko' ? 'CAD 블루프린트' : 'CAD Blueprint',
                     ],
                   ] as const
                 ).map(([styleId, label]) => (
@@ -687,38 +687,38 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                   [
                     'showBoxOutlines',
                     lang === 'ko'
-                      ? '📦 적재 박스 윤곽선 강조'
-                      : '📦 Crisp Carton Outlines',
+                      ? '적재 박스 윤곽선 강조'
+                      : 'Crisp Carton Outlines',
                   ],
                   [
                     'showRoomProps',
                     lang === 'ko'
-                      ? '🏠 공간별 3D 인테리어 소품'
-                      : '🏠 3D Room & Facility Props',
+                      ? '공간별 3D 인테리어 소품'
+                      : '3D Room & Facility Props',
                   ],
                   [
                     'showHeaderSign',
                     lang === 'ko'
-                      ? '🪧 3D 공간 상단 타이틀 보드'
-                      : '🪧 3D Space Header Sign',
+                      ? '3D 공간 상단 타이틀 보드'
+                      : '3D Space Header Sign',
                   ],
                   [
                     'showGrid',
                     lang === 'ko'
-                      ? '📏 바닥 1m 눈금 그리드'
-                      : '📏 1m Floor Grid Lines',
+                      ? '바닥 1m 눈금 그리드'
+                      : '1m Floor Grid Lines',
                   ],
                   [
                     'enableShadows',
                     lang === 'ko'
-                      ? '🌤️ 입체 그림자 렌더링'
-                      : '🌤️ Soft 3D Shadows',
+                      ? '입체 그림자 렌더링'
+                      : 'Soft 3D Shadows',
                   ],
                   [
                     'xrayBins',
                     lang === 'ko'
-                      ? '🔍 선반 X-Ray 반투명 투시'
-                      : '🔍 X-Ray Translucent Racks',
+                      ? '선반 X-Ray 반투명 투시'
+                      : 'X-Ray Translucent Racks',
                   ],
                 ] as const
               ).map(([field, label]) => (

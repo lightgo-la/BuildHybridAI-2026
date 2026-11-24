@@ -95,7 +95,6 @@ export const TEMPLATE_CATEGORY_LABELS: Record<TemplateCategory, string> = {
 };
 
 export const RAW_WAREHOUSE_TEMPLATES: WarehouseTemplate[] = [
-  // ================= PROFESSIONAL / LOGISTICS (12) =================
   {
     id: 'tpl-pro-01-highbay',
     persona: 'professional',
@@ -353,7 +352,6 @@ export const RAW_WAREHOUSE_TEMPLATES: WarehouseTemplate[] = [
     ]),
   },
 
-  // ================= EVERYDAY / HOME / HOBBY / SHOP (12) =================
   {
     id: 'tpl-life-13-pantry',
     persona: 'everyday',

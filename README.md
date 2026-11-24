@@ -8,8 +8,6 @@
 ![Hybrid AI Firebase](https://img.shields.io/badge/Hybrid%20AI-Firebase%20AI%20Logic%20v12-FFCA28?logo=firebase&logoColor=black)
 ![On-Device AI Gemini Nano](https://img.shields.io/badge/On--Device%20AI-Chrome%20Gemini%20Nano-4285F4?logo=googlechrome&logoColor=white)
 ![Language KO & EN](https://img.shields.io/badge/i18n-Korean%20%26%20English-10B981)
-![Built with Antigravity](https://img.shields.io/badge/Antigravity-Agentic%20AI%20IDE-7C3AED?logo=google&logoColor=white)
-![Antigravity CLI](https://img.shields.io/badge/Antigravity%20CLI-agy%20%2F%20Terminal-9333EA?logo=gnubash&logoColor=white)
 ![Hackathon BuildHybridAI 2026](https://img.shields.io/badge/Hackathon-%23BuildHybridAI%202026-FF6D00?logo=googledevelopers&logoColor=white)
 ![License Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache&logoColor=white)
 ![Release v1.0.0](https://img.shields.io/badge/Release-v1.0.0-8A2BE2)

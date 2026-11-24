@@ -1425,8 +1425,8 @@ export function App() {
                       setDragScope('whole_template');
                       showToast(
                         lang === 'ko'
-                          ? '🌐 전체 템플릿 3D 드래그 이동 켜짐: 마우스로 선반을 끌어 템플릿 전체를 이동하세요!'
-                          : '🌐 Whole-Template 3D Drag Move ON: Drag any rack in 3D to move the entire template!'
+                          ? '전체 템플릿 3D 드래그 이동 켜짐: 마우스로 선반을 끌어 템플릿 전체를 이동하세요.'
+                          : 'Whole-Template 3D Drag Move ON: Drag any rack in 3D to move the entire template.'
                       );
                     }
                   }}
@@ -1444,11 +1444,11 @@ export function App() {
                   <Move className="h-3 w-3" />
                   {lang === 'ko'
                     ? dragMoveMode && dragScope === 'whole_template'
-                      ? '🌐 전체 템플릿 드래그 중 ✓'
-                      : '🌐 전체 템플릿 드래그 이동'
+                      ? '전체 템플릿 드래그 중'
+                      : '전체 템플릿 드래그 이동'
                     : dragMoveMode && dragScope === 'whole_template'
-                      ? '🌐 Whole Template Drag: ON'
-                      : '🌐 Move Whole Template'}
+                      ? 'Whole Template Drag: ON'
+                      : 'Move Whole Template'}
                 </button>
                 <button
                   type="button"
@@ -1460,8 +1460,8 @@ export function App() {
                       setDragScope('column');
                       showToast(
                         lang === 'ko'
-                          ? '📦 개별 선반 기둥 3D 드래그 이동 켜짐'
-                          : '📦 Single Rack Column 3D Drag Move ON'
+                          ? '개별 선반 기둥 3D 드래그 이동 켜짐'
+                          : 'Single Rack Column 3D Drag Move ON'
                       );
                     }
                   }}
@@ -1518,8 +1518,8 @@ export function App() {
                     handleRotateWholeTemplate90();
                     showToast(
                       lang === 'ko'
-                        ? '↻ 전체 템플릿 90° 회전 완료'
-                        : '↻ Rotated Whole Template 90°'
+                        ? '전체 템플릿 90° 회전 완료'
+                        : 'Rotated Whole Template 90°'
                     );
                   }}
                   className="inline-flex items-center gap-0.5 rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 text-emerald-300 hover:border-emerald-400"
@@ -1601,8 +1601,8 @@ export function App() {
                     handleWorkspaceUndo();
                     showToast(
                       lang === 'ko'
-                        ? '↩ 3D 편집 실행 취소 (Undo)'
-                        : '↩ Undo 3D Edit'
+                        ? '3D 편집 실행 취소 (Undo)'
+                        : 'Undo 3D Edit'
                     );
                   }}
                   className="inline-flex items-center gap-1 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
@@ -1618,8 +1618,8 @@ export function App() {
                     handleWorkspaceRedo();
                     showToast(
                       lang === 'ko'
-                        ? '↪ 3D 편집 다시 실행 (Redo)'
-                        : '↪ Redo 3D Edit'
+                        ? '3D 편집 다시 실행 (Redo)'
+                        : 'Redo 3D Edit'
                     );
                   }}
                   className="inline-flex items-center gap-1 border-l border-slate-700 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
@@ -1703,7 +1703,7 @@ export function App() {
             {selectedProp && (
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-emerald-400/60 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span className="font-bold text-emerald-300">
-                  🛋️ {selectedProp.label}
+                  {selectedProp.label}
                 </span>
                 <button
                   type="button"
@@ -2000,8 +2000,8 @@ export function App() {
               setLeftTab('inspector');
               showToast(
                 lang === 'ko'
-                  ? `🎯 AI 추천 선반 [${binId}] 포커스됨`
-                  : `🎯 Focused AI Recommended Bin [${binId}]`
+                  ? `추천 선반 [${binId}] 포커스됨`
+                  : `Focused Recommended Bin [${binId}]`
               );
             }}
             lang={lang}

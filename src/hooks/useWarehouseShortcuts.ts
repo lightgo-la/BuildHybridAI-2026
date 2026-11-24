@@ -93,7 +93,7 @@ export function useWarehouseShortcuts({
           e.preventDefault();
           handleWorkspaceUndo();
           showToast(
-            lang === 'ko' ? '↩ 3D 편집 실행 취소 (Undo)' : '↩ Undo 3D Edit'
+            lang === 'ko' ? '3D 편집 실행 취소 (Undo)' : 'Undo 3D Edit'
           );
           return;
         }
@@ -101,7 +101,7 @@ export function useWarehouseShortcuts({
           e.preventDefault();
           handleWorkspaceRedo();
           showToast(
-            lang === 'ko' ? '↪ 3D 편집 다시 실행 (Redo)' : '↪ Redo 3D Edit'
+            lang === 'ko' ? '3D 편집 다시 실행 (Redo)' : 'Redo 3D Edit'
           );
           return;
         }
@@ -113,23 +113,23 @@ export function useWarehouseShortcuts({
       if (key === '1') {
         setCameraPreset('iso');
         showToast(
-          lang === 'ko' ? '⌨️ [1] 3D 입체뷰 전환' : '⌨️ [1] 3D Isometric View'
+          lang === 'ko' ? '[1] 3D 입체뷰 전환' : '[1] 3D Isometric View'
         );
       } else if (key === '2') {
         setCameraPreset('top');
         showToast(
-          lang === 'ko' ? '⌨️ [2] 2D 평면뷰 전환' : '⌨️ [2] 2D Top-Down View'
+          lang === 'ko' ? '[2] 2D 평면뷰 전환' : '[2] 2D Top-Down View'
         );
       } else if (key === '3') {
         setCameraPreset('elevation');
         showToast(
-          lang === 'ko' ? '⌨️ [3] Z축 정면뷰 전환' : '⌨️ [3] Z-Elevation View'
+          lang === 'ko' ? '[3] Z축 정면뷰 전환' : '[3] Z-Elevation View'
         );
       } else if (key === 'r' || key === 'R') {
         setCameraPreset('iso');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '⌨️ [R] 3D 카메라 시점 초기화' : '⌨️ [R] Reset 3D Camera'
+          lang === 'ko' ? '[R] 3D 카메라 시점 초기화' : '[R] Reset 3D Camera'
         );
       } else if (key === ' ') {
         e.preventDefault();
@@ -138,11 +138,11 @@ export function useWarehouseShortcuts({
           showToast(
             next === 'optimized_3d'
               ? lang === 'ko'
-                ? '⌨️ [Space] 3D 최적화 배치 적용'
-                : '⌨️ [Space] Switched to 3D Optimized'
+                ? '[Space] 3D 최적화 배치 적용'
+                : '[Space] Switched to 3D Optimized'
               : lang === 'ko'
-                ? '⌨️ [Space] 2D 일반 배치 비교'
-                : '⌨️ [Space] Switched to 2D Baseline'
+                ? '[Space] 2D 일반 배치 비교'
+                : '[Space] Switched to 2D Baseline'
           );
           return next;
         });
@@ -152,11 +152,11 @@ export function useWarehouseShortcuts({
           showToast(
             next
               ? lang === 'ko'
-                ? '⌨️ [M] 3D 마우스 드래그 이동 모드: 켜짐'
-                : '⌨️ [M] 3D Mouse Drag-Move: ON'
+                ? '[M] 3D 마우스 드래그 이동 모드: 켜짐'
+                : '[M] 3D Mouse Drag-Move: ON'
               : lang === 'ko'
-                ? '⌨️ [M] 3D 마우스 드래그 이동 모드: 꺼짐'
-                : '⌨️ [M] 3D Mouse Drag-Move: OFF'
+                ? '[M] 3D 마우스 드래그 이동 모드: 꺼짐'
+                : '[M] 3D Mouse Drag-Move: OFF'
           );
           return next;
         });
@@ -177,15 +177,15 @@ export function useWarehouseShortcuts({
         );
         showToast(
           lang === 'ko'
-            ? '⌨️ [G] 골든존 강조 뷰 전환'
-            : '⌨️ [G] Toggle Golden Zone View'
+            ? '[G] 골든존 강조 뷰 전환'
+            : '[G] Toggle Golden Zone View'
         );
       } else if (key === 'h' || key === 'H') {
         setViewLayer((prev) => (prev === 'heatmap' ? 'slotting' : 'heatmap'));
         showToast(
           lang === 'ko'
-            ? '⌨️ [H] 피킹 빈도 히트맵 전환'
-            : '⌨️ [H] Toggle 3D Heatmap'
+            ? '[H] 피킹 빈도 히트맵 전환'
+            : '[H] Toggle 3D Heatmap'
         );
       } else if (key === 'w' || key === 'W') {
         setAppView((prev) => (prev === 'home' ? 'workspace' : 'home'));
@@ -197,29 +197,29 @@ export function useWarehouseShortcuts({
       } else if (key === '0') {
         setLevelFilter('all');
         showToast(
-          lang === 'ko' ? '⌨️ [0] 전체 Z층 모두 표시' : '⌨️ [0] Show All Z-Levels'
+          lang === 'ko' ? '[0] 전체 Z층 모두 표시' : '[0] Show All Z-Levels'
         );
       } else if ((key === '+' || key === '=') && selectedBin) {
         handleAddBinAbove(selectedBin);
         showToast(
           lang === 'ko'
-            ? `⌨️ [+] ${selectedBin.bin.id} 위 1단 추가`
-            : `⌨️ [+] Added level above ${selectedBin.bin.id}`
+            ? `[+] ${selectedBin.bin.id} 위 1단 추가`
+            : `[+] Added level above ${selectedBin.bin.id}`
         );
       } else if (key === 'Delete' || key === 'Backspace') {
         if (selectedProp) {
           handleDeleteInteriorProp(selectedProp.id);
           showToast(
             lang === 'ko'
-              ? `⌨️ [Del] 인테리어 가구 삭제됨`
-              : `⌨️ [Del] Deleted 3D Interior Prop`
+              ? `[Del] 인테리어 가구 삭제됨`
+              : `[Del] Deleted 3D Interior Prop`
           );
         } else if (selectedBin) {
           handleDeleteBin(selectedBin.bin.id);
           showToast(
             lang === 'ko'
-              ? `⌨️ [Del] ${selectedBin.bin.id} 칸 삭제됨`
-              : `⌨️ [Del] Deleted Bin ${selectedBin.bin.id}`
+              ? `[Del] ${selectedBin.bin.id} 칸 삭제됨`
+              : `[Del] Deleted Bin ${selectedBin.bin.id}`
           );
         }
       } else if (key === '[' && selectedProp) {

@@ -45,7 +45,7 @@ interface HybridAICopilotPanelProps {
 
 const buildQuickPrompts = (config: WarehouseConfig, lang: LangCode) => [
   {
-    label: lang === 'ko' ? '✨ 공간 더 잘 쓰는 법 추천' : '✨ Space Efficiency Tips',
+    label: lang === 'ko' ? '공간 활용 개선 추천' : 'Space Efficiency Tips',
     mode: 'prefer_on_device' as HybridModeChoice,
     lite: true,
     prompt:
@@ -54,7 +54,7 @@ const buildQuickPrompts = (config: WarehouseConfig, lang: LangCode) => [
         : `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage. Give 3 simple, actionable tips to fit more items and speed up picking.`,
   },
   {
-    label: lang === 'ko' ? '🛡️ 무거운 물건 / 안전 점검' : '🛡️ Safety & Load Audit',
+    label: lang === 'ko' ? '중량물 / 안전 점검' : 'Safety & Load Audit',
     mode: 'prefer_on_device' as HybridModeChoice,
     lite: false,
     prompt:
@@ -63,7 +63,7 @@ const buildQuickPrompts = (config: WarehouseConfig, lang: LangCode) => [
         : 'Check for any heavy items placed too high, aisle pick congestion, or honeycombing waste, and list exact bin improvements.',
   },
   {
-    label: lang === 'ko' ? '🔒 오프라인 내 기기 AI 분석' : '🔒 Offline On-Device Audit',
+    label: lang === 'ko' ? '오프라인 온디바이스 분석' : 'Offline On-Device Audit',
     mode: 'only_on_device' as HybridModeChoice,
     lite: true,
     prompt:
@@ -319,8 +319,8 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                     <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-800/80 pt-2">
                       <span className="text-[10px] font-semibold text-slate-400">
                         {lang === 'ko'
-                          ? '🎯 3D 선반 바로가기:'
-                          : '🎯 Focus Bin in 3D:'}
+                          ? '3D 선반 바로가기:'
+                          : 'Focus Bin in 3D:'}
                       </span>
                       {item.answer.recommendedBinIds.slice(0, 6).map((binId) => (
                         <button

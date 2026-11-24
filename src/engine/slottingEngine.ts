@@ -142,11 +142,6 @@ function hasPhysicalSupport(
   return supportedArea >= baseArea * 0.7;
 }
 
-/**
- * Attempts 3D placement inside a bin using candidate anchor points (corner-first heuristic)
- * with optional 6-axis rotation, best-fit orientation selection, physical bottom-support validation,
- * heavy-on-light crush guard, and fragile protection.
- */
 function tryPackIntoBin(
   alloc: BinAllocation,
   sku: SKUItem,
@@ -604,10 +599,6 @@ function applyPinnedPlacements(
   return { remainingSkus, unplacedPinned };
 }
 
-/**
- * Legacy 2D Slotting: assigns SKUs front-to-back by X/Y aisle proximity without
- * Z-axis Golden Zone awareness, weight-level safety enforcement, or 3D rotation fit.
- */
 export function runBaseline2DSlotting(
   bins: BinSpec[],
   skus: SKUItem[],
@@ -677,13 +668,6 @@ export function runBaseline2DSlotting(
   );
 }
 
-/**
- * 3D Warehouse Slotting Optimization:
- * - Z-Axis Golden Zone (0.8m-1.65m) for fast Class-A picks
- * - Heavy items anchored to Z1/Z2 (zero heavy-on-top violations)
- * - 3D Bin Packing with rotation & multi-SKU divider co-location
- * - Chebyshev/Reach-Truck cycle time & aisle congestion balancing
- */
 export function runOptimized3DSlotting(
   bins: BinSpec[],
   skus: SKUItem[],
@@ -758,7 +742,6 @@ export function runOptimized3DSlotting(
         );
         const allowCoPack = config.allowRotationAndCoPack ?? true;
 
-        // 1. Golden Zone Alignment for A-class & light B-class
         if (sku.abcClass === 'A') {
           if (bin.isGoldenZone) score += goldenBonusA;
           else if (bin.level === 1 && sku.weightKg > heavyCutoffKg) score += 110;
@@ -767,32 +750,27 @@ export function runOptimized3DSlotting(
           if (bin.isGoldenZone) score += 45;
           else if (bin.level === 4) score += 25;
         } else {
-          // Class C belongs to upper reserve levels (Z4+) to free Golden Zone
           if (bin.level >= 4 && sku.weightKg <= 12) score += 75;
           if (bin.isGoldenZone) score -= 55;
         }
 
-        // 2. Heavy items strongly prefer Z1
         if (sku.weightKg > heavyCutoffKg && bin.level === 1) {
           score += preset === 'safety' ? 135 : 95;
         }
 
-        // 3. Cycle Time (Chebyshev or Reach Truck)
         score -= cycleSec * (sku.abcClass === 'A' ? cycleMultA : 1.4);
 
-        // 4. 3D Bin Packing consolidation bonus (avoid honeycombing, keep same SKU or compact co-pack)
         if (alloc.boxes.length > 0) {
           const sameSkuCount = alloc.boxes.filter((b) => b.skuId === sku.id).length;
           if (sameSkuCount > 0) {
-            score += sameSkuBonus; // keep SKU units together when cubic space allows
+            score += sameSkuBonus;
           } else if (allowCoPack && alloc.cubicUtilizationPct < coPackMaxUtil) {
-            score += coPackBonus; // divider co-location to eliminate honeycombing
+            score += coPackBonus;
           } else if (!allowCoPack) {
             return { alloc, score: -Infinity };
           }
         }
 
-        // 5. Congestion balancing: penalize overloading a single bin/aisle with too many picks
         score -= alloc.dailyPickLoad * (preset === 'density' ? 0.25 : 0.45);
 
         return { alloc, score };

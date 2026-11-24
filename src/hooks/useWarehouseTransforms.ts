@@ -488,8 +488,8 @@ export function useWarehouseTransforms({
       setSelectedBinId(null);
       showToast(
         lang === 'ko'
-          ? `🛋️ 3D 인테리어 추가됨: ${newProp.label} (드래그·방향키로 이동)`
-          : `🛋️ Added 3D Interior: ${newProp.label} (Drag or Arrow keys to move)`
+          ? `3D 인테리어 추가됨: ${newProp.label}`
+          : `Added 3D Interior: ${newProp.label}`
       );
     },
     [
@@ -606,8 +606,8 @@ export function useWarehouseTransforms({
     setSelectedPropId(autoList[0].id);
     showToast(
       lang === 'ko'
-        ? '✨ 맞춤 3D 인테리어(책상·소파·화분·출입문·3면 룸)가 자동 배치되었습니다!'
-        : '✨ Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room)!'
+        ? '맞춤 3D 인테리어(책상·소파·화분·출입문·3면 룸)가 자동 배치되었습니다.'
+        : 'Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room).'
     );
   }, [
     config.aisleSpacingM,

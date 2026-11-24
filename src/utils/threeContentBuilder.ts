@@ -342,7 +342,6 @@ export function createRichCargoGroup(
   const dummy = new THREE.Object3D();
 
   if (kind === 'bottle_crate') {
-    // 6 detailed 3D bottles (translucent body + colored cap) batched via InstancedMesh (2 draw calls instead of 12)
     const bodyR = Math.min(safeW, safeL) * 0.11;
     const bodyH = Math.min(0.055, safeH * 0.26);
     const bodyGeo = new THREE.CylinderGeometry(bodyR * 0.85, bodyR, bodyH, 12);
@@ -376,7 +375,6 @@ export function createRichCargoGroup(
     bottleCaps.instanceMatrix.needsUpdate = true;
     itemGroup.add(bottleBodies, bottleCaps);
   } else if (kind === 'heavy_pallet' || box.weightKg >= 15) {
-    // 3-runner wooden pallet base + twin tension straps batched via InstancedMesh
     const runnerGeo = new THREE.BoxGeometry(safeW * 0.14, 0.028, safeL * 1.02);
     const deckGeo = new THREE.BoxGeometry(safeW * 1.03, 0.014, safeL * 1.03);
     const woodMat = new THREE.MeshStandardMaterial({ color: '#b45309', roughness: 0.75 });
@@ -402,7 +400,6 @@ export function createRichCargoGroup(
     straps.instanceMatrix.needsUpdate = true;
     itemGroup.add(straps);
   } else if (kind === 'apparel_tote' || kind === 'food_container') {
-    // Molded lid + 2 side snap-lock clip handles
     const lidGeo = new THREE.BoxGeometry(
       safeW * 1.04,
       Math.min(0.028, safeH * 0.13),
@@ -424,7 +421,6 @@ export function createRichCargoGroup(
       itemGroup.add(clip);
     }
   } else if (kind === 'tool_camp_case') {
-    // Rugged top handle arch + twin metallic latches
     const handleGeo = new THREE.BoxGeometry(safeW * 0.36, 0.025, 0.035);
     const metalMat = new THREE.MeshStandardMaterial({
       color: '#e2e8f0',
@@ -529,7 +525,6 @@ export function buildTemplateEnvironmentProps(params: {
       tag
     );
 
-  // 1. 3D Space Title Signboard
   if (showHeaderSign) {
     const signW = Math.min(8.5, Math.max(4.2, bounds.width * 0.55));
     const signH = signW * 0.19;
@@ -550,7 +545,6 @@ export function buildTemplateEnvironmentProps(params: {
     return propGroup;
   }
 
-  // 2. Cutaway Architectural Back & Side Room Walls (supports cutaway_corner, three_walls, glass_room, open_floor)
   const wallH = maxRackTop + 0.55;
   const backWallW = Math.max(4, bounds.maxX - bounds.minX - 0.6);
   const sideWallD = Math.max(4, bounds.maxZ - bounds.minZ - 0.6);
@@ -589,10 +583,8 @@ export function buildTemplateEnvironmentProps(params: {
     }
   }
 
-  // Safe side offset so furniture/vehicles never overlap the center of I/O Depot
   const sidePropX = depotX + 2.35;
 
-  // 2b. 3D Aisle Floor Marker Plates (A1..An) & Z-Level Height Ruler Tower (anchored to actual bounds so they move with Whole-Template 3D drag!)
   const aisleSp = config.aisleSpacingM ?? 3.4;
   const frontMarkerZ = bounds.minZ + 1.05;
   const baseAisleX = bounds.minX + 1.2;
@@ -622,7 +614,7 @@ export function buildTemplateEnvironmentProps(params: {
     const isGz = zm >= config.goldenZoneMinM && zm <= config.goldenZoneMaxM;
     const lvlTex = getHeaderBannerTexture(
       `Z${lvl} · ${zm.toFixed(2)}m`,
-      isGz ? 'GOLDEN ZONE ★' : `LEVEL ${lvl}`,
+      isGz ? 'GOLDEN ZONE' : `LEVEL ${lvl}`,
       isGz ? '#10b981' : accentColor
     );
     const badgeGeo = new THREE.BoxGeometry(0.75, 0.22, 0.04);
@@ -632,7 +624,6 @@ export function buildTemplateEnvironmentProps(params: {
     propGroup.add(badge);
   }
 
-  // 3. Detailed Template-Specific 3D Props
   if (/fridge|cold|냉장고/.test(tag)) {
     const doorGeo = new THREE.BoxGeometry(backWallW * 0.48, wallH * 0.92, 0.05);
     const glassMat = new THREE.MeshStandardMaterial({
@@ -848,10 +839,6 @@ export function buildTemplateEnvironmentProps(params: {
   return propGroup;
 }
 
-/**
- * Builds an interactive 3D interior furniture / appliance / door / window mesh
- * that users can click, drag, rotate, scale, recolor, and delete directly in 3D.
- */
 export function createInteriorPropMesh(
   prop: InteriorProp,
   isSelected: boolean

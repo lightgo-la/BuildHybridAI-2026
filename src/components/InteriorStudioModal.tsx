@@ -257,8 +257,8 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
             >
               <Home className="h-3.5 w-3.5" />
               {lang === 'ko'
-                ? `🛋️ 3D 공간 인테리어 & 가구 편집 (${interiorProps.length})`
-                : `🛋️ 3D Space Interior & Props (${interiorProps.length})`}
+                ? `3D 공간 인테리어 & 가구 편집 (${interiorProps.length})`
+                : `3D Space Interior & Props (${interiorProps.length})`}
             </button>
             <button
               type="button"
@@ -271,8 +271,8 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
             >
               <Keyboard className="h-3.5 w-3.5" />
               {lang === 'ko'
-                ? '⌨️ 단축키 전체 가이드'
-                : '⌨️ Keyboard Shortcuts Guide'}
+                ? '단축키 전체 가이드'
+                : 'Keyboard Shortcuts Guide'}
             </button>
           </div>
 
@@ -302,8 +302,8 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   {lang === 'ko'
-                    ? '✨ 현재 공간 맞춤 인테리어 자동 배치'
-                    : '✨ Auto-Populate Matching Room Interior'}
+                    ? '현재 공간 맞춤 인테리어 자동 배치'
+                    : 'Auto-Populate Matching Room Interior'}
                 </button>
               </div>
 
@@ -312,19 +312,19 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                   [
                     [
                       'cutaway_corner',
-                      lang === 'ko' ? '📐 ㄱ자 컷어웨이 룸' : '📐 L-Cutaway Room',
+                      lang === 'ko' ? 'ㄱ자 컷어웨이 룸' : 'L-Cutaway Room',
                     ],
                     [
                       'three_walls',
-                      lang === 'ko' ? '🏠 ㄷ자 3면 실내 룸' : '🏠 3-Wall Room',
+                      lang === 'ko' ? 'ㄷ자 3면 실내 룸' : '3-Wall Room',
                     ],
                     [
                       'glass_room',
-                      lang === 'ko' ? '🪟 통유리 쇼룸 벽면' : '🪟 Glass Showroom',
+                      lang === 'ko' ? '통유리 쇼룸 벽면' : 'Glass Showroom',
                     ],
                     [
                       'open_floor',
-                      lang === 'ko' ? '⬜ 벽 없음 (오픈형)' : '⬜ Open Floor',
+                      lang === 'ko' ? '벽 없음 (오픈형)' : 'Open Floor',
                     ],
                   ] as const
                 ).map(([styleId, label]) => (

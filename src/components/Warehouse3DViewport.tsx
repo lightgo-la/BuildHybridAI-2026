@@ -362,7 +362,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         const grabFloorX = hasFloorHit ? floorHitVec.x : 0;
         const grabFloorZ = hasFloorHit ? floorHitVec.z : 0;
 
-        // 0. If Whole-Template Drag Mode is active (or Shift+Drag in dragMoveMode), drag the ENTIRE template live at 60fps!
         if (
           dragMoveModeRef.current &&
           (dragScopeRef.current === 'whole_template' || e.shiftKey)
@@ -392,7 +391,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        // 1. Check if clicking a 3D Interior Furniture Prop (always directly draggable with live 3D movement & zero parallax jump!)
         const propTargets = Array.from(propHitMeshesRef.current.keys());
         const propHits = raycaster.intersectObjects(propTargets, false);
         if (propHits.length > 0 && hasFloorHit) {
@@ -423,7 +421,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        // 2. If dragMoveMode is active, check 3D Rack Columns (using delta from grabFloorX/Z so upper shelves never parallax-jump!)
         if (dragMoveModeRef.current && hasFloorHit) {
           const targets = Array.from(hitMeshesRef.current.keys());
           const hits = raycaster.intersectObjects(targets, false);
@@ -485,7 +482,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           active3DDrag.newY = snapZ;
 
           if (active3DDrag.kind === 'whole_template') {
-            // Live 60fps translation of the entire 3D template across the fixed floor grid!
             dynamicGroup.position.set(
               snapX - active3DDrag.oldX,
               0,
@@ -495,7 +491,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             active3DDrag.kind === 'prop' &&
             active3DDrag.propObject
           ) {
-            // Live 60fps movement of the actual 3D furniture prop mesh!
             active3DDrag.propObject.position.set(snapX, 0, snapZ);
           } else {
             dragGhost.position.set(snapX, 1.8, snapZ);
@@ -845,8 +840,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       controls.target.set(centerX, Math.max(1.6, config.levels * 0.4), centerZ);
     }
     controls.update();
-    // Note: Only re-frame camera on explicit preset change or cameraResetTick (map switch / Reset button),
-    // NEVER on centerX/centerZ changes during 3D drag-move!
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraPreset, cameraResetTick]);
 
