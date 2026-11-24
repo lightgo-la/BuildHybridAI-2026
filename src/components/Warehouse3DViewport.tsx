@@ -22,11 +22,16 @@ import {
 import type { ViewportContextState } from './ViewportContextMenu';
 
 const skyTextureCache = new Map<string, THREE.CanvasTexture>();
+const MAX_SKY_TEXTURES = 32;
 
 function getSkyGradientTexture(topColor: string, horizonColor: string): THREE.CanvasTexture {
   const key = `${topColor}_${horizonColor}`;
   const existing = skyTextureCache.get(key);
-  if (existing) return existing;
+  if (existing) {
+    skyTextureCache.delete(key);
+    skyTextureCache.set(key, existing);
+    return existing;
+  }
 
   const canvas = document.createElement('canvas');
   canvas.width = 64;
@@ -41,6 +46,13 @@ function getSkyGradientTexture(topColor: string, horizonColor: string): THREE.Ca
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.needsUpdate = true;
+  if (skyTextureCache.size >= MAX_SKY_TEXTURES) {
+    const oldestKey = skyTextureCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      skyTextureCache.get(oldestKey)?.dispose();
+      skyTextureCache.delete(oldestKey);
+    }
+  }
   skyTextureCache.set(key, tex);
   return tex;
 }
@@ -442,6 +454,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       }
     };
 
+    let hoverRafId = 0;
+
     const onPointerMove = (e: PointerEvent) => {
       const rect = renderer.domElement.getBoundingClientRect();
       if (
@@ -455,9 +469,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       }
       pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
 
       if (active3DDrag) {
+        raycaster.setFromCamera(pointer, camera);
         if (raycaster.ray.intersectPlane(floorPlane, floorHitVec)) {
           const deltaX = floorHitVec.x - active3DDrag.grabFloorX;
           const deltaZ = floorHitVec.z - active3DDrag.grabFloorZ;
@@ -490,16 +504,24 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         return;
       }
 
-      const targets = Array.from(hitMeshesRef.current.keys());
-      const hits = raycaster.intersectObjects(targets, false);
-      if (hits.length > 0) {
-        const hitAlloc = hitMeshesRef.current.get(hits[0].object) ?? null;
-        setHoveredBin((prev) =>
-          prev?.bin.id === hitAlloc?.bin.id ? prev : hitAlloc
-        );
-      } else {
-        setHoveredBin((prev) => (prev === null ? null : null));
-      }
+      // Skip hover raycasting while orbiting/panning camera with mouse buttons held down
+      if (e.buttons !== 0) return;
+      if (hoverRafId) return;
+
+      hoverRafId = requestAnimationFrame(() => {
+        hoverRafId = 0;
+        raycaster.setFromCamera(pointer, camera);
+        const targets = Array.from(hitMeshesRef.current.keys());
+        const hits = raycaster.intersectObjects(targets, false);
+        if (hits.length > 0) {
+          const hitAlloc = hitMeshesRef.current.get(hits[0].object) ?? null;
+          setHoveredBin((prev) =>
+            prev?.bin.id === hitAlloc?.bin.id ? prev : hitAlloc
+          );
+        } else {
+          setHoveredBin((prev) => (prev === null ? null : null));
+        }
+      });
     };
 
     const onPointerUp = (e: PointerEvent) => {
@@ -644,6 +666,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
     return () => {
       cancelAnimationFrame(rafId);
+      if (hoverRafId) cancelAnimationFrame(hoverRafId);
       resizeObserver.disconnect();
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
@@ -683,7 +706,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     }
     if (rendererRef.current) {
       rendererRef.current.toneMappingExposure = sceneBg.exposure;
-      rendererRef.current.shadowMap.enabled = sceneBg.enableShadows;
+      if (rendererRef.current.shadowMap.enabled !== sceneBg.enableShadows) {
+        rendererRef.current.shadowMap.enabled = sceneBg.enableShadows;
+        rendererRef.current.shadowMap.needsUpdate = true;
+      }
     }
     if (ambientLightRef.current) {
       ambientLightRef.current.intensity = sceneBg.ambientIntensity;
@@ -906,6 +932,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     }
 
     // Golden Zone highlight per actual rack column (supports free-canvas moved racks!)
+    let usedGoldenFrameMat = false;
     if (viewLayer === 'golden_zone' || viewLayer === 'slotting') {
       const bandHeight = Math.max(0.4, config.goldenZoneMaxM - config.goldenZoneMinM);
       const bandCenterY = config.goldenZoneMinM + bandHeight / 2;
@@ -915,8 +942,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         opacity: viewLayer === 'golden_zone' ? 0.14 : 0.05,
         depthWrite: false,
       });
+      let usedBandMat = false;
       for (const col of colMap.values()) {
         if (col.maxTop < config.goldenZoneMinM) continue;
+        usedBandMat = true;
         const colBandGeo = new THREE.BoxGeometry(
           col.wM + 0.14,
           bandHeight + 0.45,
@@ -926,6 +955,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         band.position.set(col.x, bandCenterY + 0.2, col.z);
         group.add(band);
       }
+      if (!usedBandMat) {
+        bandMat.dispose();
+      }
     }
 
     for (const alloc of allocations) {
@@ -934,11 +966,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       const binL_m = bin.binLengthCm / 100;
       const binH_m = bin.binHeightCm / 100;
       const levelVisible = levelFilter === 'all' || bin.level === levelFilter;
+      const useGoldenShelf = bin.isGoldenZone && levelVisible;
+      if (useGoldenShelf) usedGoldenFrameMat = true;
 
       const shelfGeo = new THREE.BoxGeometry(binW_m + 0.08, 0.035, binL_m + 0.06);
       const shelfMesh = new THREE.Mesh(
         shelfGeo,
-        bin.isGoldenZone && levelVisible ? goldenFrameMat : rackFrameMat
+        useGoldenShelf ? goldenFrameMat : rackFrameMat
       );
       shelfMesh.position.set(bin.xMeters, bin.zMeters - 0.02, bin.yMeters);
       shelfMesh.receiveShadow = true;
@@ -1038,6 +1072,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       }
     }
 
+    if (!usedGoldenFrameMat) {
+      goldenFrameMat.dispose();
+    }
+    if (allocations.length === 0) {
+      rackFrameMat.dispose();
+    }
+
     // Template-Specific 3D Room Architecture, Environment Props & Space Signboard
     const templateProps = buildTemplateEnvironmentProps({
       scenarioName,
@@ -1084,21 +1125,41 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     }
 
     if (pickRoute.length > 0) {
+      const corridorZ = Math.min(depotZ + 0.75, 0.85);
       const points: THREE.Vector3[] = [new THREE.Vector3(depotX, 0.35, depotZ)];
+      let curX = depotX;
+      let curZ = depotZ;
+
+      const appendCorridorTransition = (nextX: number, nextZ: number) => {
+        if (Math.abs(nextX - curX) >= 0.35) {
+          if (curZ > corridorZ + 0.1) {
+            points.push(new THREE.Vector3(curX, 0.35, corridorZ));
+          }
+          if (nextZ > corridorZ + 0.1 || curZ > corridorZ + 0.1) {
+            points.push(new THREE.Vector3(nextX, 0.35, corridorZ));
+          }
+        }
+      };
+
       for (const wp of pickRoute) {
+        appendCorridorTransition(wp.xMeters, wp.yMeters);
         if (config.equipmentMode === 'asrs_crane') {
           points.push(new THREE.Vector3(wp.xMeters, wp.zMeters + 0.35, wp.yMeters));
         } else {
           points.push(new THREE.Vector3(wp.xMeters, 0.35, wp.yMeters));
           points.push(new THREE.Vector3(wp.xMeters, wp.zMeters + 0.35, wp.yMeters));
+          points.push(new THREE.Vector3(wp.xMeters, 0.35, wp.yMeters));
         }
+        curX = wp.xMeters;
+        curZ = wp.yMeters;
       }
+      appendCorridorTransition(depotX, depotZ);
       points.push(new THREE.Vector3(depotX, 0.35, depotZ));
 
-      const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.12);
+      const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.08);
       routeCurveRef.current = curve;
 
-      const tubeGeo = new THREE.TubeGeometry(curve, 96, 0.045, 8, false);
+      const tubeGeo = new THREE.TubeGeometry(curve, 120, 0.045, 8, false);
       const tubeMat = new THREE.MeshBasicMaterial({
         color: theme.scene.route,
         transparent: true,

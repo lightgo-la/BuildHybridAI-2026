@@ -39,6 +39,7 @@ interface HybridAICopilotPanelProps {
     mode: HybridModeChoice;
   } | null;
   onLastInferenceSource?: (source: string) => void;
+  onFocusBinId?: (binId: string) => void;
   lang?: LangCode;
 }
 
@@ -81,6 +82,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
   selectedBin,
   externalPromptRequest,
   onLastInferenceSource,
+  onFocusBinId,
   lang = 'ko',
 }) => {
   const [modeChoice, setModeChoice] =
@@ -289,6 +291,11 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                   <Cloud className="h-2.5 w-2.5" />
                   IN_CLOUD ({item.answer.modelName})
                 </span>
+              ) : item.answer.inferenceSource === 'local_engine' ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-300">
+                  <Cpu className="h-2.5 w-2.5" />
+                  LOCAL_ENGINE (On-Device Heuristic)
+                </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 font-semibold text-rose-300">
                   NOT EXECUTED
@@ -302,8 +309,31 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                 {item.answer.error}
               </div>
             ) : (
-              <div className="whitespace-pre-wrap leading-relaxed text-slate-200">
-                {item.answer.text}
+              <div className="space-y-2">
+                <div className="whitespace-pre-wrap leading-relaxed text-slate-200">
+                  {item.answer.text}
+                </div>
+                {onFocusBinId &&
+                  item.answer.recommendedBinIds &&
+                  item.answer.recommendedBinIds.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-800/80 pt-2">
+                      <span className="text-[10px] font-semibold text-slate-400">
+                        {lang === 'ko'
+                          ? '🎯 3D 선반 바로가기:'
+                          : '🎯 Focus Bin in 3D:'}
+                      </span>
+                      {item.answer.recommendedBinIds.slice(0, 6).map((binId) => (
+                        <button
+                          key={binId}
+                          type="button"
+                          onClick={() => onFocusBinId(binId)}
+                          className="rounded-md border border-cyan-500/40 bg-cyan-500/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-cyan-300 transition hover:bg-cyan-500/30"
+                        >
+                          {binId}
+                        </button>
+                      ))}
+                    </div>
+                  )}
               </div>
             )}
           </div>

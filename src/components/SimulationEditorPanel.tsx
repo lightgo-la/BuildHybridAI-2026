@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
+  AlertTriangle,
+  Download,
+  FileSpreadsheet,
   Grid,
   Minus,
   Package,
@@ -7,6 +10,7 @@ import {
   Plus,
   RotateCcw,
   Trash2,
+  Upload,
 } from 'lucide-react';
 import { type LangCode } from '../i18n/translations';
 import type {
@@ -14,8 +18,14 @@ import type {
   BinSpec,
   PinnedCargoPlacement,
   SKUItem,
+  SlottingResult,
   WarehouseConfig,
 } from '../types/warehouse';
+import {
+  exportSkusToCSV,
+  exportSlottingResultToCSV,
+  parseSkusFromCSV,
+} from '../utils/csvExporter';
 
 interface SimulationEditorPanelProps {
   config: WarehouseConfig;
@@ -25,6 +35,8 @@ interface SimulationEditorPanelProps {
   skus: SKUItem[];
   pinnedPlacements: PinnedCargoPlacement[];
   selectedBinId: string | null;
+  scenarioName?: string;
+  activeResult?: SlottingResult;
   onUpdateConfig: (patch: Partial<WarehouseConfig>) => void;
   onAddBin: (bin: BinSpec) => void;
   onDeleteBin: (binId: string) => void;
@@ -64,6 +76,8 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   skus,
   pinnedPlacements,
   selectedBinId,
+  scenarioName = 'CubiSlot 3D',
+  activeResult,
   onUpdateConfig,
   onAddBin,
   onDeleteBin,
@@ -104,10 +118,31 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
     setHeightCm((prev) => Math.max(10, Math.min(maxH, prev)));
   }, [config.baysPerAisle, maxL, maxW, maxH]);
 
+  const parseInputInt = (raw: string, fallback: number, min: number, max: number) => {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, Math.round(n)));
+  };
+
+  const parseInputFloat = (raw: string, fallback: number, min: number, max: number) => {
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, n));
+  };
+
   const handleAddCustomBin = (e: React.FormEvent) => {
     e.preventDefault();
     const aisleSpacing = config.aisleSpacingM ?? 3.4;
     const baySpacing = config.baySpacingM ?? 1.45;
+    const xMeters = Number(((newAisle - 1) * aisleSpacing).toFixed(2));
+    const yMeters = Number(((newBay - 1) * baySpacing + 1.8).toFixed(2));
+    const hasObstacle = (config.obstacles ?? []).some(
+      (o) =>
+        (o.aisle === newAisle && o.bay === newBay) ||
+        Math.hypot(o.xMeters - xMeters, o.yMeters - yMeters) < 0.45
+    );
+    if (hasObstacle) return;
+
     const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95];
     const zMeters =
       levelHeights[newLevel - 1] ?? Number(((newLevel - 1) * 0.82 + 0.05).toFixed(2));
@@ -117,8 +152,8 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
       aisle: newAisle,
       bay: newBay,
       level: newLevel,
-      xMeters: Number(((newAisle - 1) * aisleSpacing).toFixed(2)),
-      yMeters: Number(((newBay - 1) * baySpacing + 1.8).toFixed(2)),
+      xMeters,
+      yMeters,
       zMeters,
       binLengthCm: config.binLengthCm ?? 120,
       binWidthCm: config.binWidthCm ?? 90,
@@ -337,7 +372,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   min={1}
                   max={10}
                   value={newAisle}
-                  onChange={(e) => setNewAisle(Number(e.target.value))}
+                  onChange={(e) =>
+                    setNewAisle(parseInputInt(e.target.value, newAisle, 1, 10))
+                  }
                   className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                 />
               </div>
@@ -348,7 +385,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   min={1}
                   max={14}
                   value={newBay}
-                  onChange={(e) => setNewBay(Number(e.target.value))}
+                  onChange={(e) =>
+                    setNewBay(parseInputInt(e.target.value, newBay, 1, 14))
+                  }
                   className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                 />
               </div>
@@ -359,7 +398,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   min={1}
                   max={8}
                   value={newLevel}
-                  onChange={(e) => setNewLevel(Number(e.target.value))}
+                  onChange={(e) =>
+                    setNewLevel(parseInputInt(e.target.value, newLevel, 1, 8))
+                  }
                   className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                 />
               </div>
@@ -370,7 +411,11 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   min={100}
                   max={2000}
                   value={newMaxWeight}
-                  onChange={(e) => setNewMaxWeight(Number(e.target.value))}
+                  onChange={(e) =>
+                    setNewMaxWeight(
+                      parseInputInt(e.target.value, newMaxWeight, 100, 2000)
+                    )
+                  }
                   className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                 />
               </div>
@@ -404,6 +449,105 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
         </div>
       ) : (
         <div className="space-y-3">
+          {/* Unplaced Cargo Warning Alert (if capacity or weight constraints overflow) */}
+          {activeResult &&
+            activeResult.unplacedUnits > 0 &&
+            activeResult.unplacedItems &&
+            activeResult.unplacedItems.length > 0 && (
+              <div className="rounded-xl border border-amber-500/40 bg-amber-950/30 p-2.5 text-[11px] text-amber-200">
+                <div className="flex items-center gap-1.5 font-semibold text-amber-300">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    {lang === 'ko'
+                      ? `미적재 물품 ${activeResult.unplacedUnits}개 발생 (공간 또는 안전 하중 초과)`
+                      : `${activeResult.unplacedUnits} units could not be placed (Volume / Weight limit)`}
+                  </span>
+                </div>
+                <div className="mt-1.5 space-y-1 text-[10px]">
+                  {activeResult.unplacedItems.map((u) => (
+                    <div
+                      key={u.skuId}
+                      className="flex items-center justify-between rounded bg-slate-950/60 px-2 py-0.5"
+                    >
+                      <span className="font-mono font-semibold text-white">
+                        {u.skuCode} ({u.name.slice(0, 12)}) ×{u.count}
+                      </span>
+                      <span className="text-amber-300/90">
+                        {u.reason === 'weight_or_safety_limit'
+                          ? lang === 'ko'
+                            ? 'Z1~Z2 하중/안전층 부족'
+                            : 'Z1-Z2 weight/safety limit'
+                          : lang === 'ko'
+                            ? '선반 부피 부족'
+                            : 'Bin volume full'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          {/* CSV Import / Export Bar for Real Warehouse Master Data */}
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
+            <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold text-slate-400">
+              <span className="inline-flex items-center gap-1">
+                <FileSpreadsheet className="h-3 w-3 text-emerald-400" />
+                {lang === 'ko'
+                  ? '실무 CSV 데이터 가져오기 / 내보내기'
+                  : 'CSV Master Data Import / Export'}
+              </span>
+              <span className="text-slate-500">{skus.length} SKUs</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+              <label className="inline-flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 font-medium text-cyan-300 hover:border-cyan-400">
+                <Upload className="h-3 w-3" />
+                {lang === 'ko' ? 'SKU CSV 업로드' : 'Import CSV'}
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const imported = parseSkusFromCSV(String(reader.result ?? ''), {
+                        maxL,
+                        maxW,
+                        maxH,
+                      });
+                      if (imported.length > 0) {
+                        onChangeSkus(imported);
+                      }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => exportSkusToCSV(skus, scenarioName)}
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 font-medium text-slate-200 hover:border-cyan-400"
+              >
+                <Download className="h-3 w-3 text-cyan-400" />
+                {lang === 'ko' ? 'SKU 목록 CSV' : 'Export SKUs'}
+              </button>
+              {activeResult && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    exportSlottingResultToCSV(activeResult, scenarioName)
+                  }
+                  className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2 py-1.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+                >
+                  <Download className="h-3 w-3" />
+                  {lang === 'ko' ? '적재결과 CSV' : 'Slotting CSV'}
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* 1-Click Quick Item Chips (No typing required) */}
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
             <div className="mb-1.5 text-[10px] font-semibold text-slate-400">
@@ -474,7 +618,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               <input
                 type="number"
                 value={dailyPicks}
-                onChange={(e) => setDailyPicks(Number(e.target.value))}
+                onChange={(e) =>
+                  setDailyPicks(parseInputInt(e.target.value, dailyPicks, 1, 5000))
+                }
                 className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
               />
             </div>
@@ -484,7 +630,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 type="number"
                 step="0.5"
                 value={weightKg}
-                onChange={(e) => setWeightKg(Number(e.target.value))}
+                onChange={(e) =>
+                  setWeightKg(parseInputFloat(e.target.value, weightKg, 0.2, 500))
+                }
                 className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
               />
             </div>
@@ -494,7 +642,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 type="number"
                 max={maxL}
                 value={lengthCm}
-                onChange={(e) => setLengthCm(Number(e.target.value))}
+                onChange={(e) =>
+                  setLengthCm(parseInputInt(e.target.value, lengthCm, 8, maxL))
+                }
                 className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
               />
             </div>
@@ -504,7 +654,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 type="number"
                 max={maxW}
                 value={widthCm}
-                onChange={(e) => setWidthCm(Number(e.target.value))}
+                onChange={(e) =>
+                  setWidthCm(parseInputInt(e.target.value, widthCm, 8, maxW))
+                }
                 className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
               />
             </div>
@@ -515,13 +667,17 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   type="number"
                   max={maxH}
                   value={heightCm}
-                  onChange={(e) => setHeightCm(Number(e.target.value))}
+                  onChange={(e) =>
+                    setHeightCm(parseInputInt(e.target.value, heightCm, 8, maxH))
+                  }
                   className="w-1/2 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                 />
                 <input
                   type="number"
                   value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  onChange={(e) =>
+                    setQuantity(parseInputInt(e.target.value, quantity, 1, 60))
+                  }
                   className="w-1/2 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                 />
               </div>

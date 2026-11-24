@@ -132,6 +132,20 @@ const FLOOR_SIZE_PRESETS = [
   { label: 'XL (26×20m)', w: 26, d: 20 },
 ];
 
+function safeNum(
+  raw: string,
+  fallback: number,
+  min?: number,
+  max?: number
+): number {
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return fallback;
+  let val = parsed;
+  if (min !== undefined) val = Math.max(min, val);
+  if (max !== undefined) val = Math.min(max, val);
+  return val;
+}
+
 function groupBinsToCanvasRacks(bins: BinSpec[]): CanvasRackNode[] {
   const byPos = new Map<string, BinSpec[]>();
   for (const b of bins) {
@@ -932,7 +946,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     max={8}
                     value={aisles}
                     onChange={(e) =>
-                      setAisles(Math.max(1, Math.min(8, Number(e.target.value))))
+                      setAisles(Math.round(safeNum(e.target.value, aisles, 1, 8)))
                     }
                     className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1"
                   />
@@ -946,7 +960,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     value={baysPerAisle}
                     onChange={(e) =>
                       setBaysPerAisle(
-                        Math.max(1, Math.min(10, Number(e.target.value)))
+                        Math.round(safeNum(e.target.value, baysPerAisle, 1, 10))
                       )
                     }
                     className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1"
@@ -960,7 +974,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     max={6}
                     value={levels}
                     onChange={(e) => {
-                      const nextL = Math.max(1, Math.min(6, Number(e.target.value)));
+                      const nextL = Math.round(
+                        safeNum(e.target.value, levels, 1, 6)
+                      );
                       setLevels(nextL);
                       setRacks((prev) => prev.map((r) => ({ ...r, levels: nextL })));
                     }}
@@ -980,7 +996,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     max={200}
                     value={binLengthCm}
                     onChange={(e) => {
-                      const val = Math.max(45, Number(e.target.value));
+                      const val = Math.round(
+                        safeNum(e.target.value, binLengthCm, 45, 200)
+                      );
                       setBinLengthCm(val);
                       setRacks((prev) => prev.map((r) => ({ ...r, binLengthCm: val })));
                     }}
@@ -997,7 +1015,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     max={160}
                     value={binWidthCm}
                     onChange={(e) => {
-                      const val = Math.max(35, Number(e.target.value));
+                      const val = Math.round(
+                        safeNum(e.target.value, binWidthCm, 35, 160)
+                      );
                       setBinWidthCm(val);
                       setRacks((prev) => prev.map((r) => ({ ...r, binWidthCm: val })));
                     }}
@@ -1014,7 +1034,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     max={120}
                     value={binHeightCm}
                     onChange={(e) => {
-                      const val = Math.max(30, Number(e.target.value));
+                      const val = Math.round(
+                        safeNum(e.target.value, binHeightCm, 30, 120)
+                      );
                       setBinHeightCm(val);
                       setRacks((prev) => prev.map((r) => ({ ...r, binHeightCm: val })));
                     }}
@@ -1154,7 +1176,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         step={0.25}
                         value={primarySelectedRack.xMeters}
                         onChange={(e) => {
-                          const val = Number(e.target.value);
+                          const val = safeNum(
+                            e.target.value,
+                            primarySelectedRack.xMeters,
+                            -4,
+                            45
+                          );
                           setRacks((prev) =>
                             prev.map((r) =>
                               r.key === primarySelectedRack.key
@@ -1175,7 +1202,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         step={0.25}
                         value={primarySelectedRack.yMeters}
                         onChange={(e) => {
-                          const val = Number(e.target.value);
+                          const val = safeNum(
+                            e.target.value,
+                            primarySelectedRack.yMeters,
+                            -4,
+                            45
+                          );
                           setRacks((prev) =>
                             prev.map((r) =>
                               r.key === primarySelectedRack.key
@@ -1197,9 +1229,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         max={6}
                         value={primarySelectedRack.levels}
                         onChange={(e) => {
-                          const val = Math.max(
-                            1,
-                            Math.min(6, Number(e.target.value))
+                          const val = Math.round(
+                            safeNum(
+                              e.target.value,
+                              primarySelectedRack.levels,
+                              1,
+                              6
+                            )
                           );
                           setRacks((prev) =>
                             prev.map((r) =>
@@ -1224,7 +1260,14 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         max={220}
                         value={primarySelectedRack.binLengthCm}
                         onChange={(e) => {
-                          const val = Math.max(40, Number(e.target.value));
+                          const val = Math.round(
+                            safeNum(
+                              e.target.value,
+                              primarySelectedRack.binLengthCm,
+                              40,
+                              220
+                            )
+                          );
                           setRacks((prev) =>
                             prev.map((r) =>
                               r.key === primarySelectedRack.key
@@ -1246,7 +1289,14 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         max={180}
                         value={primarySelectedRack.binWidthCm}
                         onChange={(e) => {
-                          const val = Math.max(35, Number(e.target.value));
+                          const val = Math.round(
+                            safeNum(
+                              e.target.value,
+                              primarySelectedRack.binWidthCm,
+                              35,
+                              180
+                            )
+                          );
                           setRacks((prev) =>
                             prev.map((r) =>
                               r.key === primarySelectedRack.key
@@ -1268,7 +1318,14 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         max={140}
                         value={primarySelectedRack.binHeightCm}
                         onChange={(e) => {
-                          const val = Math.max(30, Number(e.target.value));
+                          const val = Math.round(
+                            safeNum(
+                              e.target.value,
+                              primarySelectedRack.binHeightCm,
+                              30,
+                              140
+                            )
+                          );
                           setRacks((prev) =>
                             prev.map((r) =>
                               r.key === primarySelectedRack.key

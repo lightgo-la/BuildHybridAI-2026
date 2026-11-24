@@ -16,6 +16,39 @@ export type CargoVisualKind =
 
 const textureCache = new Map<string, THREE.CanvasTexture>();
 const bannerCache = new Map<string, THREE.CanvasTexture>();
+const MAX_CARGO_TEXTURES = 128;
+const MAX_BANNER_TEXTURES = 64;
+
+function getLruTexture(
+  cache: Map<string, THREE.CanvasTexture>,
+  key: string
+): THREE.CanvasTexture | undefined {
+  const existing = cache.get(key);
+  if (!existing) return undefined;
+  // Refresh LRU order
+  cache.delete(key);
+  cache.set(key, existing);
+  return existing;
+}
+
+function setLruTexture(
+  cache: Map<string, THREE.CanvasTexture>,
+  key: string,
+  tex: THREE.CanvasTexture,
+  maxSize: number
+): void {
+  if (cache.has(key)) {
+    cache.delete(key);
+  } else if (cache.size >= maxSize) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) {
+      const oldestTex = cache.get(oldestKey);
+      oldestTex?.dispose();
+      cache.delete(oldestKey);
+    }
+  }
+  cache.set(key, tex);
+}
 
 export function classifyCargoVisual(box: PackedBox): CargoVisualKind {
   const token = `${box.skuCode} ${box.name}`.toUpperCase();
@@ -182,7 +215,7 @@ export function getCargoLabelTexture(
 ): THREE.CanvasTexture {
   const kind = classifyCargoVisual(box);
   const key = `v2_${box.skuCode}_${box.name}_${box.color}_${box.abcClass}_${box.fragile}_${safetyViolation}_${kind}`;
-  const cached = textureCache.get(key);
+  const cached = getLruTexture(textureCache, key);
   if (cached) return cached;
 
   const canvas = document.createElement('canvas');
@@ -266,7 +299,7 @@ export function getCargoLabelTexture(
   const tex = new THREE.CanvasTexture(canvas);
   tex.anisotropy = 4;
   tex.needsUpdate = true;
-  textureCache.set(key, tex);
+  setLruTexture(textureCache, key, tex, MAX_CARGO_TEXTURES);
   return tex;
 }
 
@@ -410,7 +443,7 @@ function getHeaderBannerTexture(
   accentColor: string
 ): THREE.CanvasTexture {
   const key = `v2_${title}_${subtitle}_${accentColor}`;
-  const cached = bannerCache.get(key);
+  const cached = getLruTexture(bannerCache, key);
   if (cached) return cached;
 
   const canvas = document.createElement('canvas');
@@ -437,7 +470,7 @@ function getHeaderBannerTexture(
 
   const tex = new THREE.CanvasTexture(canvas);
   tex.needsUpdate = true;
-  bannerCache.set(key, tex);
+  setLruTexture(bannerCache, key, tex, MAX_BANNER_TEXTURES);
   return tex;
 }
 

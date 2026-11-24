@@ -21,6 +21,35 @@ function escapeXml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+function buildOrthogonalPlanRoute2D(
+  pickRoute: Array<{ xMeters: number; yMeters: number }>,
+  depotX: number,
+  depotY: number
+): Array<{ x: number; y: number }> {
+  const corridorY = Math.min(depotY + 0.75, 0.85);
+  const pts: Array<{ x: number; y: number }> = [{ x: depotX, y: depotY }];
+  let curX = depotX;
+  let curY = depotY;
+
+  const pushTransition = (nextX: number, nextY: number) => {
+    if (Math.abs(nextX - curX) >= 0.35) {
+      if (curY > corridorY + 0.1) {
+        pts.push({ x: curX, y: corridorY });
+      }
+      pts.push({ x: nextX, y: corridorY });
+    }
+    pts.push({ x: nextX, y: nextY });
+    curX = nextX;
+    curY = nextY;
+  };
+
+  for (const wp of pickRoute) {
+    pushTransition(wp.xMeters, wp.yMeters);
+  }
+  pushTransition(depotX, depotY);
+  return pts;
+}
+
 function getBounds(allocations: BinAllocation[], config: WarehouseConfig) {
   const aisleSpacingM = config.aisleSpacingM ?? 3.4;
   const depotX =
@@ -339,13 +368,9 @@ export function generateWarehouseDXF(
     }
   }
 
-  // 4. 2D Pick Route Polyline
+  // 4. 2D Pick Route Polyline (Orthogonal Aisle-Corridor Routing)
   if (options.includePickRoute && pickRoute.length > 0) {
-    const pts = [
-      { x: depotX, y: depotY },
-      ...pickRoute.map((wp) => ({ x: wp.xMeters, y: wp.yMeters })),
-      { x: depotX, y: depotY },
-    ];
+    const pts = buildOrthogonalPlanRoute2D(pickRoute, depotX, depotY);
     for (let i = 0; i < pts.length - 1; i++) {
       entities.push(
         dxfLine('PICK_ROUTE', 2, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y)
@@ -607,13 +632,10 @@ export function generateWarehouseSVG(
     }
   }
 
-  // Pick Route
+  // Pick Route (Orthogonal Aisle-Corridor Routing)
   if (options.includePickRoute && pickRoute.length > 0) {
-    const polyPts = [
-      `${px(depotX)},${py(depotY)}`,
-      ...pickRoute.map((wp) => `${px(wp.xMeters)},${py(wp.yMeters)}`),
-      `${px(depotX)},${py(depotY)}`,
-    ].join(' ');
+    const orthoPts = buildOrthogonalPlanRoute2D(pickRoute, depotX, depotY);
+    const polyPts = orthoPts.map((pt) => `${px(pt.x)},${py(pt.y)}`).join(' ');
     parts.push(
       `<polyline points="${polyPts}" fill="none" stroke="#facc15" stroke-width="2" stroke-dasharray="5,3"/>`
     );

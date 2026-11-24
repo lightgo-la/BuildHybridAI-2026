@@ -1,4 +1,13 @@
-import { type CSSProperties, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type CSSProperties,
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Boxes,
   Camera,
@@ -20,6 +29,7 @@ import {
   Pin,
   Play,
   Plus,
+  Redo2,
   RotateCcw,
   RotateCw,
   Ruler,
@@ -28,6 +38,7 @@ import {
   Sun,
   Trash2,
   Truck,
+  Undo2,
 } from 'lucide-react';
 import { DESIGN_THEMES } from './data/designThemes';
 import { SAMPLE_SCENARIOS } from './data/sampleScenarios';
@@ -67,7 +78,6 @@ import type {
 import { Warehouse3DViewport } from './components/Warehouse3DViewport';
 import { KPIComparisonBar } from './components/KPIComparisonBar';
 import { HybridAICopilotPanel } from './components/HybridAICopilotPanel';
-import { FirebaseSetupModal } from './components/FirebaseSetupModal';
 import {
   GOLDEN_ZONE_PRESETS,
   SpaceOptimizerPanel,
@@ -77,9 +87,6 @@ import {
   type DesignLayoutSettings,
   DesignStudioMenu,
 } from './components/DesignStudioMenu';
-import { CadPreviewModal } from './components/CadPreviewModal';
-import { MapEditorModal } from './components/MapEditorModal';
-import { TemplateGalleryModal } from './components/TemplateGalleryModal';
 import { SimulationEditorPanel } from './components/SimulationEditorPanel';
 import { BinInspectorPanel } from './components/BinInspectorPanel';
 import { EverydayHomeView } from './components/EverydayHomeView';
@@ -97,6 +104,36 @@ import {
   ViewportContextMenu,
   type ViewportContextState,
 } from './components/ViewportContextMenu';
+
+const CadPreviewModal = lazy(() =>
+  import('./components/CadPreviewModal').then((m) => ({
+    default: m.CadPreviewModal,
+  }))
+);
+const MapEditorModal = lazy(() =>
+  import('./components/MapEditorModal').then((m) => ({
+    default: m.MapEditorModal,
+  }))
+);
+const TemplateGalleryModal = lazy(() =>
+  import('./components/TemplateGalleryModal').then((m) => ({
+    default: m.TemplateGalleryModal,
+  }))
+);
+const FirebaseSetupModal = lazy(() =>
+  import('./components/FirebaseSetupModal').then((m) => ({
+    default: m.FirebaseSetupModal,
+  }))
+);
+
+interface WorkspaceHistorySnapshot {
+  skus: SKUItem[];
+  configPatch: Partial<WarehouseConfig>;
+  customBinsOverride: BinSpec[] | null;
+  extraBins: BinSpec[];
+  removedBinIds: string[];
+  pinnedPlacements: PinnedCargoPlacement[];
+}
 
 const DESIGN_STORAGE_KEY = 'cubislot_design_layout_v1';
 const CUSTOM_MAPS_KEY = 'cubislot_custom_maps_v1';
@@ -179,6 +216,104 @@ export function App() {
   const [pinnedPlacements, setPinnedPlacements] = useState<
     PinnedCargoPlacement[]
   >([]);
+  const [undoStack, setUndoStack] = useState<WorkspaceHistorySnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<WorkspaceHistorySnapshot[]>([]);
+  const lastUndoPushMsRef = useRef<number>(0);
+
+  const pushWorkspaceUndo = useCallback(() => {
+    const now = performance.now();
+    // Coalesce rapid continuous edits (e.g. color picker drag or held arrow keys) within 350ms
+    if (now - lastUndoPushMsRef.current < 350) {
+      lastUndoPushMsRef.current = now;
+      return;
+    }
+    lastUndoPushMsRef.current = now;
+    setUndoStack((prev) => [
+      ...prev.slice(-24),
+      {
+        skus,
+        configPatch,
+        customBinsOverride,
+        extraBins,
+        removedBinIds,
+        pinnedPlacements,
+      },
+    ]);
+    setRedoStack([]);
+  }, [
+    skus,
+    configPatch,
+    customBinsOverride,
+    extraBins,
+    removedBinIds,
+    pinnedPlacements,
+  ]);
+
+  const handleWorkspaceUndo = useCallback(() => {
+    lastUndoPushMsRef.current = 0;
+    setUndoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setRedoStack((r) => [
+        ...r.slice(-24),
+        {
+          skus,
+          configPatch,
+          customBinsOverride,
+          extraBins,
+          removedBinIds,
+          pinnedPlacements,
+        },
+      ]);
+      setSkus(last.skus);
+      setConfigPatch(last.configPatch);
+      setCustomBinsOverride(last.customBinsOverride);
+      setExtraBins(last.extraBins);
+      setRemovedBinIds(last.removedBinIds);
+      setPinnedPlacements(last.pinnedPlacements);
+      return prev.slice(0, -1);
+    });
+  }, [
+    skus,
+    configPatch,
+    customBinsOverride,
+    extraBins,
+    removedBinIds,
+    pinnedPlacements,
+  ]);
+
+  const handleWorkspaceRedo = useCallback(() => {
+    lastUndoPushMsRef.current = 0;
+    setRedoStack((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      setUndoStack((u) => [
+        ...u.slice(-24),
+        {
+          skus,
+          configPatch,
+          customBinsOverride,
+          extraBins,
+          removedBinIds,
+          pinnedPlacements,
+        },
+      ]);
+      setSkus(last.skus);
+      setConfigPatch(last.configPatch);
+      setCustomBinsOverride(last.customBinsOverride);
+      setExtraBins(last.extraBins);
+      setRemovedBinIds(last.removedBinIds);
+      setPinnedPlacements(last.pinnedPlacements);
+      return prev.slice(0, -1);
+    });
+  }, [
+    skus,
+    configPatch,
+    customBinsOverride,
+    extraBins,
+    removedBinIds,
+    pinnedPlacements,
+  ]);
 
   const [equipmentMode, setEquipmentMode] = useState<EquipmentMode>(
     activeScenario.config.equipmentMode
@@ -276,8 +411,8 @@ export function App() {
     appCheckMode: 'unconfigured',
     remoteConfig: null,
     remoteParams: {
-      cloudModelName: 'gemini-3.8-flash',
-      liteModelName: 'gemini-3.5-flash-lite',
+      cloudModelName: 'gemini-2.5-flash',
+      liteModelName: 'gemini-2.5-flash-lite',
       onDeviceMaxSkus: 8,
       goldenZoneMinM: 0.8,
       goldenZoneMaxM: 1.65,
@@ -314,6 +449,8 @@ export function App() {
     setExtraBins([]);
     setRemovedBinIds([]);
     setPinnedPlacements([]);
+    setUndoStack([]);
+    setRedoStack([]);
     setEquipmentMode(found.config.equipmentMode);
     setLevelFilter('all');
     setSelectedBinId(null);
@@ -460,21 +597,30 @@ export function App() {
     if (alloc) setLeftTab('inspector');
   }, []);
 
-  const handleAddBin = useCallback((bin: BinSpec) => {
-    setRemovedBinIds((prev) => prev.filter((id) => id !== bin.id));
-    setExtraBins((prev) => [...prev.filter((b) => b.id !== bin.id), bin]);
-    setSelectedBinId(bin.id);
-  }, []);
+  const handleAddBin = useCallback(
+    (bin: BinSpec) => {
+      pushWorkspaceUndo();
+      setRemovedBinIds((prev) => prev.filter((id) => id !== bin.id));
+      setExtraBins((prev) => [...prev.filter((b) => b.id !== bin.id), bin]);
+      setSelectedBinId(bin.id);
+    },
+    [pushWorkspaceUndo]
+  );
 
-  const handleDeleteBin = useCallback((binId: string) => {
-    setRemovedBinIds((prev) => (prev.includes(binId) ? prev : [...prev, binId]));
-    setExtraBins((prev) => prev.filter((b) => b.id !== binId));
-    setPinnedPlacements((prev) => prev.filter((p) => p.binId !== binId));
-    setSelectedBinId((curr) => (curr === binId ? null : curr));
-  }, []);
+  const handleDeleteBin = useCallback(
+    (binId: string) => {
+      pushWorkspaceUndo();
+      setRemovedBinIds((prev) => (prev.includes(binId) ? prev : [...prev, binId]));
+      setExtraBins((prev) => prev.filter((b) => b.id !== binId));
+      setPinnedPlacements((prev) => prev.filter((p) => p.binId !== binId));
+      setSelectedBinId((curr) => (curr === binId ? null : curr));
+    },
+    [pushWorkspaceUndo]
+  );
 
   const handlePinCargo = useCallback(
     (binId: string, skuId: string, delta: number) => {
+      pushWorkspaceUndo();
       setPinnedPlacements((prev) => {
         const idx = prev.findIndex(
           (p) => p.binId === binId && p.skuId === skuId
@@ -491,7 +637,7 @@ export function App() {
         );
       });
     },
-    []
+    [pushWorkspaceUndo]
   );
 
   const handleAddBinAbove = useCallback(
@@ -522,20 +668,26 @@ export function App() {
       const baySpacing = config.baySpacingM ?? 1.45;
       const aisle = Math.max(1, Math.round(x / aisleSpacing) + 1);
       const bay = Math.max(1, Math.round((z - 1.8) / baySpacing) + 1);
-      const hasObstacle = (config.obstacles ?? []).some(
-        (o) => o.aisle === aisle && o.bay === bay
-      );
-      if (hasObstacle) return;
       const snappedX = Number(((aisle - 1) * aisleSpacing).toFixed(2));
       const snappedY = Number(((bay - 1) * baySpacing + 1.8).toFixed(2));
+      const hasObstacle = (config.obstacles ?? []).some(
+        (o) =>
+          (o.aisle === aisle && o.bay === bay) ||
+          Math.hypot(o.xMeters - snappedX, o.yMeters - snappedY) < 0.45
+      );
+      if (hasObstacle) return;
       const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75];
       const maxWeights = [1200, 750, 600, 420, 280, 200, 160];
 
-      // Pick lowest unoccupied Z-level at this (aisle, bay) column
+      // Pick lowest unoccupied Z-level at this actual (snappedX, snappedY) floor coordinate
       let targetLevel = 1;
       while (
         targetLevel <= 7 &&
-        bins.some((b) => b.aisle === aisle && b.bay === bay && b.level === targetLevel)
+        bins.some(
+          (b) =>
+            Math.hypot(b.xMeters - snappedX, b.yMeters - snappedY) < 0.35 &&
+            b.level === targetLevel
+        )
       ) {
         targetLevel++;
       }
@@ -543,8 +695,19 @@ export function App() {
         levelHeights[targetLevel - 1] ??
         Number(((targetLevel - 1) * 0.82 + 0.05).toFixed(2));
 
+      let binId = `A${aisle}-B${bay}-Z${targetLevel}`;
+      if (
+        bins.some(
+          (b) =>
+            b.id === binId &&
+            Math.hypot(b.xMeters - snappedX, b.yMeters - snappedY) >= 0.35
+        )
+      ) {
+        binId = `C${bins.length + 1}-A${aisle}-B${bay}-Z${targetLevel}`;
+      }
+
       const newBin: BinSpec = {
-        id: `A${aisle}-B${bay}-Z${targetLevel}`,
+        id: binId,
         aisle,
         bay,
         level: targetLevel,
@@ -565,6 +728,14 @@ export function App() {
 
   const handleMoveRackColumn = useCallback(
     (oldX: number, oldY: number, newX: number, newY: number) => {
+      pushWorkspaceUndo();
+      const aisleSp = Math.max(0.8, config.aisleSpacingM ?? 3.4);
+      const baySp = Math.max(0.6, config.baySpacingM ?? 1.45);
+      const newAisle = Math.max(1, Math.round(newX / aisleSp) + 1);
+      const newBay = Math.max(1, Math.round((newY - 1.8) / baySp) + 1);
+      const oldAisle = Math.max(1, Math.round(oldX / aisleSp) + 1);
+      const oldBay = Math.max(1, Math.round((oldY - 1.8) / baySp) + 1);
+
       // Check if target (newX, newY) is already occupied by a different rack column; if so, swap their positions so columns never weld together!
       const occupiedAtTarget = bins.some(
         (b) =>
@@ -578,14 +749,26 @@ export function App() {
           Math.abs(b.xMeters - oldX) < 0.05 &&
           Math.abs(b.yMeters - oldY) < 0.05
         ) {
-          return { ...b, xMeters: newX, yMeters: newY };
+          return {
+            ...b,
+            xMeters: newX,
+            yMeters: newY,
+            aisle: newAisle,
+            bay: newBay,
+          };
         }
         if (
           occupiedAtTarget &&
           Math.abs(b.xMeters - newX) < 0.35 &&
           Math.abs(b.yMeters - newY) < 0.35
         ) {
-          return { ...b, xMeters: oldX, yMeters: oldY };
+          return {
+            ...b,
+            xMeters: oldX,
+            yMeters: oldY,
+            aisle: oldAisle,
+            bay: oldBay,
+          };
         }
         return b;
       });
@@ -593,13 +776,14 @@ export function App() {
       setExtraBins([]);
       setRemovedBinIds([]);
     },
-    [bins]
+    [bins, config.aisleSpacingM, config.baySpacingM, pushWorkspaceUndo]
   );
 
   // Move the ENTIRE template layout (all bins, obstacles, interior props, and depot) together in 3D
   const handleTranslateWholeTemplate = useCallback(
     (dx: number, dy: number) => {
       if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
+      pushWorkspaceUndo();
       const nextBins = bins.map((b) => ({
         ...b,
         xMeters: Number((b.xMeters + dx).toFixed(2)),
@@ -633,12 +817,13 @@ export function App() {
         ),
       }));
     },
-    [bins, config]
+    [bins, config, pushWorkspaceUndo]
   );
 
   // Rotate the ENTIRE template layout 90 degrees around its centroid in 3D
   const handleRotateWholeTemplate90 = useCallback(() => {
     if (bins.length === 0) return;
+    pushWorkspaceUndo();
     const xs = bins.map((b) => b.xMeters);
     const ys = bins.map((b) => b.yMeters);
     const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
@@ -688,12 +873,13 @@ export function App() {
         }
       ),
     }));
-  }, [bins, config]);
+  }, [bins, config, pushWorkspaceUndo]);
 
   // Expand or compact the ENTIRE template's aisle/bay spacing in 3D
   const handleScaleWholeTemplateSpacing = useCallback(
     (factor: number) => {
       if (bins.length === 0) return;
+      pushWorkspaceUndo();
       const xs = bins.map((b) => b.xMeters);
       const ys = bins.map((b) => b.yMeters);
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
@@ -725,7 +911,7 @@ export function App() {
         ),
       }));
     },
-    [bins, config]
+    [bins, config, pushWorkspaceUndo]
   );
 
   // Center the ENTIRE template layout back to the default floor center
@@ -755,6 +941,7 @@ export function App() {
       levels: number;
       shelfTier: 'small' | 'medium' | 'large';
     }) => {
+      pushWorkspaceUndo();
       const tierSpecs = {
         small: { l: 75, w: 50, h: 42, aisleSp: 2.1, baySp: 1.0 },
         medium: { l: 95, w: 65, h: 52, aisleSp: 2.5, baySp: 1.2 },
@@ -782,6 +969,7 @@ export function App() {
         floorDepthM: params.floorDepthM,
         obstacles: [],
         disabledBinIds: [],
+        interiorProps: [],
         mapTag: `${params.floorWidthM}×${params.floorDepthM}m · Z${params.levels}`,
       });
       setCustomBinsOverride(null);
@@ -789,10 +977,11 @@ export function App() {
       setRemovedBinIds([]);
       setPinnedPlacements([]);
       setSelectedBinId(null);
+      setSelectedPropId(null);
       setCameraResetTick((n) => n + 1);
       setAppView('workspace');
     },
-    []
+    [pushWorkspaceUndo]
   );
 
   const selectedProp: InteriorProp | null = useMemo(() => {
@@ -814,6 +1003,7 @@ export function App() {
 
   const handleAddInteriorProp = useCallback(
     (type: InteriorPropType) => {
+      pushWorkspaceUndo();
       const cat =
         INTERIOR_PROP_CATALOG.find((c) => c.type === type) ??
         INTERIOR_PROP_CATALOG[0];
@@ -841,11 +1031,12 @@ export function App() {
           : `🛋️ Added 3D Interior: ${newProp.label} (Drag or Arrow keys to move)`
       );
     },
-    [config.interiorProps, lang, showToast]
+    [config.interiorProps, lang, pushWorkspaceUndo, showToast]
   );
 
   const handleUpdateInteriorProp = useCallback(
     (id: string, patch: Partial<InteriorProp>) => {
+      pushWorkspaceUndo();
       setConfigPatch((prev) => ({
         ...prev,
         interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
@@ -853,13 +1044,14 @@ export function App() {
         ),
       }));
     },
-    [config.interiorProps]
+    [config.interiorProps, pushWorkspaceUndo]
   );
 
   const handleDuplicateInteriorProp = useCallback(
     (id: string) => {
       const src = (config.interiorProps ?? []).find((p) => p.id === id);
       if (!src) return;
+      pushWorkspaceUndo();
       const copy: InteriorProp = {
         ...src,
         id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -872,11 +1064,12 @@ export function App() {
       }));
       setSelectedPropId(copy.id);
     },
-    [config.interiorProps]
+    [config.interiorProps, pushWorkspaceUndo]
   );
 
   const handleDeleteInteriorProp = useCallback(
     (id: string) => {
+      pushWorkspaceUndo();
       setConfigPatch((prev) => ({
         ...prev,
         interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).filter(
@@ -885,10 +1078,11 @@ export function App() {
       }));
       setSelectedPropId((curr) => (curr === id ? null : curr));
     },
-    [config.interiorProps]
+    [config.interiorProps, pushWorkspaceUndo]
   );
 
   const handleAutoPopulateInterior = useCallback(() => {
+    pushWorkspaceUndo();
     const aisleSp = config.aisleSpacingM ?? 3.4;
     const baySp = config.baySpacingM ?? 1.45;
     const maxX = (config.aisles - 1) * aisleSp;
@@ -946,7 +1140,15 @@ export function App() {
         ? '✨ 맞춤 3D 인테리어(책상·소파·화분·출입문·3면 룸)가 자동 배치되었습니다!'
         : '✨ Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room)!'
     );
-  }, [config.aisleSpacingM, config.aisles, config.baySpacingM, config.baysPerAisle, lang, showToast]);
+  }, [
+    config.aisleSpacingM,
+    config.aisles,
+    config.baySpacingM,
+    config.baysPerAisle,
+    lang,
+    pushWorkspaceUndo,
+    showToast,
+  ]);
 
   // Global Keyboard Shortcuts System
   useEffect(() => {
@@ -961,6 +1163,23 @@ export function App() {
       ) {
         return;
       }
+
+      if ((e.ctrlKey || e.metaKey) && !mapEditorOpen) {
+        const lower = e.key.toLowerCase();
+        if (lower === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          handleWorkspaceUndo();
+          showToast(lang === 'ko' ? '↩ 3D 편집 실행 취소 (Undo)' : '↩ Undo 3D Edit');
+          return;
+        }
+        if (lower === 'y' || (lower === 'z' && e.shiftKey)) {
+          e.preventDefault();
+          handleWorkspaceRedo();
+          showToast(lang === 'ko' ? '↪ 3D 편집 다시 실행 (Redo)' : '↪ Redo 3D Edit');
+          return;
+        }
+      }
+
       if (e.ctrlKey || e.metaKey || e.altKey) return;
 
       const key = e.key;
@@ -1094,7 +1313,10 @@ export function App() {
     handleMoveRackColumn,
     handleTranslateWholeTemplate,
     handleUpdateInteriorProp,
+    handleWorkspaceRedo,
+    handleWorkspaceUndo,
     lang,
+    mapEditorOpen,
     selectedBin,
     selectedProp,
     showToast,
@@ -1588,8 +1810,11 @@ export function App() {
                 skus={skus}
                 pinnedPlacements={pinnedPlacements}
                 selectedBinId={selectedBinId}
+                scenarioName={activeScenario.name}
+                activeResult={shownResult}
                 lang={lang}
                 onUpdateConfig={(patch) => {
+                  pushWorkspaceUndo();
                   setConfigPatch((prev) => ({ ...prev, ...patch }));
                   if (
                     patch.aisles !== undefined ||
@@ -1618,11 +1843,13 @@ export function App() {
                 onAddBin={handleAddBin}
                 onDeleteBin={handleDeleteBin}
                 onResetSpaceEdits={() => {
+                  pushWorkspaceUndo();
                   setCustomBinsOverride(null);
                   setExtraBins([]);
                   setRemovedBinIds([]);
                 }}
                 onChangeSkus={(nextSkus) => {
+                  pushWorkspaceUndo();
                   setSkus(nextSkus);
                   const validIds = new Set(nextSkus.map((s) => s.id));
                   setPinnedPlacements((prev) =>
@@ -1630,7 +1857,10 @@ export function App() {
                   );
                 }}
                 onPinCargo={handlePinCargo}
-                onClearAllPins={() => setPinnedPlacements([])}
+                onClearAllPins={() => {
+                  pushWorkspaceUndo();
+                  setPinnedPlacements([]);
+                }}
               />
             ) : (
               <BinInspectorPanel
@@ -1995,6 +2225,44 @@ export function App() {
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
+              {/* 3D Workspace Undo / Redo Buttons */}
+              <div className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900">
+                <button
+                  type="button"
+                  disabled={undoStack.length === 0}
+                  onClick={() => {
+                    handleWorkspaceUndo();
+                    showToast(
+                      lang === 'ko'
+                        ? '↩ 3D 편집 실행 취소 (Undo)'
+                        : '↩ Undo 3D Edit'
+                    );
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
+                  title="Undo 3D Workspace Edit (Ctrl+Z)"
+                >
+                  <Undo2 className="h-3 w-3 text-cyan-400" />
+                  {lang === 'ko' ? '실행취소' : 'Undo'}
+                </button>
+                <button
+                  type="button"
+                  disabled={redoStack.length === 0}
+                  onClick={() => {
+                    handleWorkspaceRedo();
+                    showToast(
+                      lang === 'ko'
+                        ? '↪ 3D 편집 다시 실행 (Redo)'
+                        : '↪ Redo 3D Edit'
+                    );
+                  }}
+                  className="inline-flex items-center gap-1 border-l border-slate-700 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
+                  title="Redo 3D Workspace Edit (Ctrl+Y / Ctrl+Shift+Z)"
+                >
+                  <Redo2 className="h-3 w-3 text-cyan-400" />
+                  {lang === 'ko' ? '다시실행' : 'Redo'}
+                </button>
+              </div>
+
               {/* Instant 1-Click 3D Background Brightness Pills */}
               <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900 px-1.5 py-0.5">
                 <Sun className="h-3 w-3 text-amber-400" />
@@ -2360,6 +2628,15 @@ export function App() {
             selectedBin={selectedBin}
             externalPromptRequest={externalAiPrompt}
             onLastInferenceSource={setLastInferenceSource}
+            onFocusBinId={(binId) => {
+              setSelectedBinId(binId);
+              setLeftTab('inspector');
+              showToast(
+                lang === 'ko'
+                  ? `🎯 AI 추천 선반 [${binId}] 포커스됨`
+                  : `🎯 Focused AI Recommended Bin [${binId}]`
+              );
+            }}
             lang={lang}
           />
         </section>
@@ -2409,41 +2686,59 @@ export function App() {
         }}
       />
 
-      <TemplateGalleryModal
-        open={templateGalleryOpen}
-        onClose={() => setTemplateGalleryOpen(false)}
-        activeTemplateId={scenarioId}
-        onSelectTemplate={(tpl) => {
-          handleSelectScenario(tpl.id);
-        }}
-        lang={lang}
-      />
+      <Suspense fallback={null}>
+        {templateGalleryOpen && (
+          <TemplateGalleryModal
+            open={templateGalleryOpen}
+            onClose={() => setTemplateGalleryOpen(false)}
+            activeTemplateId={scenarioId}
+            onSelectTemplate={(tpl) => {
+              handleSelectScenario(tpl.id);
+            }}
+            lang={lang}
+          />
+        )}
 
-      <MapEditorModal
-        open={mapEditorOpen}
-        onClose={() => setMapEditorOpen(false)}
-        config={config}
-        bins={bins}
-        scenario={activeScenario}
-        onApplyMapEdits={({ configPatch: nextPatch, customBins }) => {
-          setConfigPatch((prev) => ({ ...prev, ...nextPatch }));
-          setCustomBinsOverride(customBins);
-          setRemovedBinIds([]);
-          setExtraBins([]);
-          setSelectedBinId(null);
-          setCameraResetTick((t) => t + 1);
-        }}
-        onSaveCustomScenario={handleSaveCustomScenario}
-      />
+        {mapEditorOpen && (
+          <MapEditorModal
+            open={mapEditorOpen}
+            onClose={() => setMapEditorOpen(false)}
+            config={config}
+            bins={bins}
+            scenario={activeScenario}
+            onApplyMapEdits={({ configPatch: nextPatch, customBins }) => {
+              pushWorkspaceUndo();
+              setConfigPatch((prev) => ({ ...prev, ...nextPatch }));
+              setCustomBinsOverride(customBins);
+              setRemovedBinIds([]);
+              setExtraBins([]);
+              setSelectedBinId(null);
+              setCameraResetTick((t) => t + 1);
+            }}
+            onSaveCustomScenario={handleSaveCustomScenario}
+          />
+        )}
 
-      <CadPreviewModal
-        open={cadModalOpen}
-        onClose={() => setCadModalOpen(false)}
-        result={shownResult}
-        config={config}
-        scenarioName={activeScenario.name}
-        lang={lang}
-      />
+        {cadModalOpen && (
+          <CadPreviewModal
+            open={cadModalOpen}
+            onClose={() => setCadModalOpen(false)}
+            result={shownResult}
+            config={config}
+            scenarioName={activeScenario.name}
+            lang={lang}
+          />
+        )}
+
+        {setupOpen && (
+          <FirebaseSetupModal
+            open={setupOpen}
+            onClose={() => setSetupOpen(false)}
+            onApplyConfig={handleApplyFirebaseConfig}
+            lang={lang}
+          />
+        )}
+      </Suspense>
 
       <DesignStudioMenu
         open={designMenuOpen}
@@ -2476,23 +2771,19 @@ export function App() {
         onDuplicateProp={handleDuplicateInteriorProp}
         onDeleteProp={handleDeleteInteriorProp}
         onClearProps={() => {
+          pushWorkspaceUndo();
           setConfigPatch((prev) => ({ ...prev, interiorProps: [] }));
           setSelectedPropId(null);
         }}
         onAutoPopulateInterior={handleAutoPopulateInterior}
-        onChangeRoomEnclosure={(style: RoomEnclosureStyle) =>
-          setConfigPatch((prev) => ({ ...prev, roomEnclosure: style }))
-        }
-        onChangeWallColor={(color: string) =>
-          setConfigPatch((prev) => ({ ...prev, wallColor: color }))
-        }
-      />
-
-      <FirebaseSetupModal
-        open={setupOpen}
-        onClose={() => setSetupOpen(false)}
-        onApplyConfig={handleApplyFirebaseConfig}
-        lang={lang}
+        onChangeRoomEnclosure={(style: RoomEnclosureStyle) => {
+          pushWorkspaceUndo();
+          setConfigPatch((prev) => ({ ...prev, roomEnclosure: style }));
+        }}
+        onChangeWallColor={(color: string) => {
+          pushWorkspaceUndo();
+          setConfigPatch((prev) => ({ ...prev, wallColor: color }));
+        }}
       />
     </div>
   );

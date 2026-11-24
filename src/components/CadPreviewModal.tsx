@@ -210,13 +210,19 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
               className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-0.5 text-[11px]"
             >
               <option value="all">All Levels</option>
-              {Array.from({ length: config.levels }, (_, i) => i + 1).map(
-                (lvl) => (
-                  <option key={lvl} value={lvl}>
-                    Level Z{lvl}
-                  </option>
-                )
-              )}
+              {Array.from(
+                {
+                  length: result.allocations.reduce(
+                    (max, a) => Math.max(max, a.bin.level),
+                    config.levels
+                  ),
+                },
+                (_, i) => i + 1
+              ).map((lvl) => (
+                <option key={lvl} value={lvl}>
+                  Level Z{lvl}
+                </option>
+              ))}
             </select>
           </div>
         </div>

@@ -38,6 +38,7 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
   const o = optimized.kpis;
   const isOpt = activeLayout === 'optimized_3d';
   const current = isOpt ? o : b;
+  const currentResult = isOpt ? optimized : baseline;
 
   const cycleGainPct =
     b.avgCycleTimeSec > 0
@@ -151,10 +152,24 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
             {freedBins >= 0 ? `+${freedBins} ${lang === 'ko' ? '여유' : 'free'}` : `${freedBins}`}
           </span>
         </div>
-        <div className="mt-1 text-[11px] text-slate-500">
-          {lang === 'ko' && simpleMode
-            ? `인체공학 점수 ${current.ergonomicsScore}/100`
-            : `Ergo score: ${current.ergonomicsScore}/100 (2D: ${b.ergonomicsScore})`}
+        <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+          <span>
+            {lang === 'ko' && simpleMode
+              ? `인체공학 점수 ${current.ergonomicsScore}/100`
+              : `Ergo score: ${current.ergonomicsScore}/100 (2D: ${b.ergonomicsScore})`}
+          </span>
+          {currentResult.unplacedUnits > 0 && (
+            <span
+              className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300"
+              title={(currentResult.unplacedItems ?? [])
+                .map((u) => `${u.skuCode} ×${u.count}`)
+                .join(', ')}
+            >
+              {lang === 'ko'
+                ? `미적재 ${currentResult.unplacedUnits}개`
+                : `${currentResult.unplacedUnits} unplaced`}
+            </span>
+          )}
         </div>
       </div>
 

@@ -7,6 +7,7 @@ import type {
   PinnedCargoPlacement,
   SKUItem,
   SlottingResult,
+  UnplacedItemDetail,
   WarehouseConfig,
   WarehouseKPIs,
   ZLevelSummary,
@@ -264,6 +265,25 @@ function tryPackIntoBin(
   return null;
 }
 
+export function computeAisleTravelDistanceM(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  corridorYMeters = 0.75
+): number {
+  const dx = Math.abs(x2 - x1);
+  if (dx < 0.35) {
+    return dx + Math.abs(y2 - y1);
+  }
+  // Changing aisles: if both points are deep inside rack bays (> corridorYMeters),
+  // route via the front cross-aisle corridor rather than cutting through solid racks.
+  if (y1 > corridorYMeters && y2 > corridorYMeters) {
+    return (y1 - corridorYMeters) + dx + (y2 - corridorYMeters);
+  }
+  return dx + Math.abs(y2 - y1);
+}
+
 export function computeCycleTimeSec(
   bin: BinSpec,
   equipmentMode: EquipmentMode,
@@ -274,8 +294,14 @@ export function computeCycleTimeSec(
 ): number {
   const depotX = depotXMeters ?? ((Math.max(1, aisles) - 1) * aisleSpacingM) / 2;
   const depotY = depotYMeters ?? 0;
-  const horizontalDist =
-    Math.abs(bin.xMeters - depotX) + Math.abs(bin.yMeters - depotY);
+  const corridorY = Math.min(depotY + 0.75, 0.85);
+  const horizontalDist = computeAisleTravelDistanceM(
+    depotX,
+    depotY,
+    bin.xMeters,
+    bin.yMeters,
+    corridorY
+  );
   const verticalDist = bin.zMeters;
 
   if (equipmentMode === 'asrs_crane') {
@@ -313,7 +339,8 @@ function evaluateAllocations(
   config: WarehouseConfig,
   skus: SKUItem[],
   mode: 'baseline_2d' | 'optimized_3d',
-  unplacedUnits: number
+  unplacedUnits: number,
+  unplacedItems: UnplacedItemDetail[] = []
 ): SlottingResult {
   const occupied = allocations.filter((a) => a.boxes.length > 0);
   let totalUsedVol = 0;
@@ -327,6 +354,7 @@ function evaluateAllocations(
   let maxPickLoad = 0;
 
   const skuMap = new Map(skus.map((s) => [s.id, s]));
+  const heavyCutoffKg = config.optimizationPreset === 'safety' ? 10 : 16;
 
   for (const alloc of occupied) {
     totalUsedVol += alloc.usedVolumeCm3;
@@ -363,8 +391,8 @@ function evaluateAllocations(
           binPenalty += box.dailyPicksShare * (alloc.bin.level >= 4 ? 1.8 : 1.1);
         }
       }
-      // Heavy items (>16kg) on high racks (level >= 3) pose ergonomic/stability hazard
-      if (box.weightKg > 16 && alloc.bin.level >= 3) {
+      // Heavy items (>16kg, or >10kg in safety preset) on high racks (level >= 3) pose ergonomic/stability hazard
+      if (box.weightKg > heavyCutoffKg && alloc.bin.level >= 3) {
         binSafetyViolation = true;
         binPenalty += 25 * (alloc.bin.level - 1);
       }
@@ -417,10 +445,11 @@ function evaluateAllocations(
     ((Math.max(1, config.aisles) - 1) * (config.aisleSpacingM ?? DEFAULT_AISLE_SPACING_M)) /
       2;
   const depotY = config.depotYMeters ?? 0;
+  const corridorY = Math.min(depotY + 0.75, 0.85);
 
   let orderedHotBins = hotBinsRaw;
   if (mode === 'optimized_3d' && hotBinsRaw.length > 1) {
-    // Nearest-Neighbor TSP ordering starting from I/O Depot to eliminate criss-cross walking
+    // Nearest-Neighbor TSP ordering starting from I/O Depot using real aisle-corridor travel
     const remaining = [...hotBinsRaw];
     orderedHotBins = [];
     let curX = depotX;
@@ -431,7 +460,13 @@ function evaluateAllocations(
       let bestCost = Infinity;
       for (let i = 0; i < remaining.length; i++) {
         const b = remaining[i].bin;
-        const dXY = Math.abs(b.xMeters - curX) + Math.abs(b.yMeters - curY);
+        const dXY = computeAisleTravelDistanceM(
+          curX,
+          curY,
+          b.xMeters,
+          b.yMeters,
+          corridorY
+        );
         const dZ = Math.abs(b.zMeters - curZ);
         const cost = dXY + dZ * 1.6;
         if (cost < bestCost) {
@@ -451,7 +486,13 @@ function evaluateAllocations(
   let prevY = depotY;
   let prevZ = 0;
   const pickRoute: PickWaypoint[] = orderedHotBins.map((a) => {
-    const legH = Math.abs(a.bin.xMeters - prevX) + Math.abs(a.bin.yMeters - prevY);
+    const legH = computeAisleTravelDistanceM(
+      prevX,
+      prevY,
+      a.bin.xMeters,
+      a.bin.yMeters,
+      corridorY
+    );
     const legV = Math.abs(a.bin.zMeters - prevZ);
     const legSec =
       config.equipmentMode === 'asrs_crane'
@@ -487,16 +528,40 @@ function evaluateAllocations(
     mode,
     allocations,
     unplacedUnits,
+    unplacedItems,
     kpis,
     pickRoute,
   };
+}
+
+function recordUnplaced(
+  map: Map<string, UnplacedItemDetail>,
+  sku: SKUItem,
+  count: number,
+  reason: UnplacedItemDetail['reason']
+): void {
+  if (count <= 0) return;
+  const existing = map.get(sku.id);
+  if (existing) {
+    existing.count += count;
+  } else {
+    map.set(sku.id, {
+      skuId: sku.id,
+      skuCode: sku.skuCode,
+      name: sku.name,
+      count,
+      reason,
+    });
+  }
 }
 
 function applyPinnedPlacements(
   allocations: BinAllocation[],
   skus: SKUItem[],
   pinnedPlacements: PinnedCargoPlacement[],
-  allowRotation: boolean
+  allowRotation: boolean,
+  bestFitMode = false,
+  unplacedMap?: Map<string, UnplacedItemDetail>
 ): { remainingSkus: SKUItem[]; unplacedPinned: number } {
   if (pinnedPlacements.length === 0) {
     return { remainingSkus: skus, unplacedPinned: 0 };
@@ -515,11 +580,18 @@ function applyPinnedPlacements(
     for (let i = 0; i < pin.count; i++) {
       const avail = remainingQty.get(sku.id) ?? 0;
       if (avail <= 0) break;
-      const packed = tryPackIntoBin(alloc, sku, allowRotation);
+      const packed = tryPackIntoBin(alloc, sku, allowRotation, bestFitMode);
       if (packed) {
         remainingQty.set(sku.id, avail - 1);
       } else {
         unplacedPinned++;
+        if (unplacedMap) {
+          const reason: UnplacedItemDetail['reason'] =
+            alloc.currentWeightKg + sku.weightKg > alloc.bin.maxWeightKg
+              ? 'weight_or_safety_limit'
+              : 'volume_full';
+          recordUnplaced(unplacedMap, sku, 1, reason);
+        }
       }
     }
   }
@@ -543,11 +615,14 @@ export function runBaseline2DSlotting(
   pinnedPlacements: PinnedCargoPlacement[] = []
 ): SlottingResult {
   const allocations = createEmptyAllocations(bins);
+  const unplacedMap = new Map<string, UnplacedItemDetail>();
   const { remainingSkus, unplacedPinned } = applyPinnedPlacements(
     allocations,
     skus,
     pinnedPlacements,
-    false
+    false,
+    false,
+    unplacedMap
   );
 
   // 2D sort: strictly by Bay (Y), then Aisle (X), filling Z top-to-bottom or sequentially (ignoring ergonomics)
@@ -586,12 +661,20 @@ export function runBaseline2DSlotting(
       }
       if (!placed) {
         unplacedUnits += remaining;
+        recordUnplaced(unplacedMap, sku, remaining, 'volume_full');
         break;
       }
     }
   }
 
-  return evaluateAllocations(allocations, config, skus, 'baseline_2d', unplacedUnits);
+  return evaluateAllocations(
+    allocations,
+    config,
+    skus,
+    'baseline_2d',
+    unplacedUnits,
+    [...unplacedMap.values()]
+  );
 }
 
 /**
@@ -611,11 +694,14 @@ export function runOptimized3DSlotting(
   const preset = config.optimizationPreset ?? 'balanced';
   const heavyCutoffKg = preset === 'safety' ? 10 : 16;
   const allowRotation = config.allowRotationAndCoPack ?? true;
+  const unplacedMap = new Map<string, UnplacedItemDetail>();
   const { remainingSkus, unplacedPinned } = applyPinnedPlacements(
     allocations,
     skus,
     pinnedPlacements,
-    allowRotation
+    allowRotation,
+    true,
+    unplacedMap
   );
 
   // Prioritize heavy items first (weight base layer stability), then ABC tier & dailyPicks velocity
@@ -724,10 +810,22 @@ export function runOptimized3DSlotting(
     }
     if (!placed) {
       unplacedUnits++;
+      const reason: UnplacedItemDetail['reason'] =
+        sku.weightKg > heavyCutoffKg || scoredBins.length === 0
+          ? 'weight_or_safety_limit'
+          : 'volume_full';
+      recordUnplaced(unplacedMap, sku, 1, reason);
     }
   }
 
-  return evaluateAllocations(allocations, config, skus, 'optimized_3d', unplacedUnits);
+  return evaluateAllocations(
+    allocations,
+    config,
+    skus,
+    'optimized_3d',
+    unplacedUnits,
+    [...unplacedMap.values()]
+  );
 }
 
 export function computeZLevelBreakdown(

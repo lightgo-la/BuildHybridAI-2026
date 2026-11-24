@@ -1,0 +1,204 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {
+  computeAisleTravelDistanceM,
+  generateWarehouseBins,
+  runBaseline2DSlotting,
+  runOptimized3DSlotting,
+} from './slottingEngine.ts';
+import { parseSkusFromCSV } from '../utils/csvExporter.ts';
+import { generateWarehouseDXF, generateWarehouseSVG } from '../utils/cadExporter.ts';
+import type { SKUItem, WarehouseConfig } from '../types/warehouse.ts';
+
+const sampleConfig: WarehouseConfig = {
+  aisles: 3,
+  baysPerAisle: 4,
+  levels: 4,
+  equipmentMode: 'reach_truck',
+  goldenZoneMinM: 0.8,
+  goldenZoneMaxM: 1.65,
+  allowRotationAndCoPack: true,
+  optimizationPreset: 'balanced',
+};
+
+const sampleSkus: SKUItem[] = [
+  {
+    id: 'sku-heavy-a',
+    skuCode: 'HVY-20',
+    name: 'Heavy Motor Assembly',
+    category: 'Industrial',
+    abcClass: 'A',
+    dailyPicks: 140,
+    lengthCm: 50,
+    widthCm: 40,
+    heightCm: 30,
+    weightKg: 22,
+    quantity: 4,
+    fragile: false,
+    color: '#38bdf8',
+  },
+  {
+    id: 'sku-fast-a',
+    skuCode: 'FST-01',
+    name: 'Fast Pick Carton',
+    category: 'Consumer',
+    abcClass: 'A',
+    dailyPicks: 220,
+    lengthCm: 35,
+    widthCm: 25,
+    heightCm: 22,
+    weightKg: 4.5,
+    quantity: 8,
+    fragile: false,
+    color: '#34d399',
+  },
+  {
+    id: 'sku-fragile-b',
+    skuCode: 'FRG-02',
+    name: 'Glass Sensor Kit',
+    category: 'Tech',
+    abcClass: 'B',
+    dailyPicks: 65,
+    lengthCm: 30,
+    widthCm: 20,
+    heightCm: 20,
+    weightKg: 2.5,
+    quantity: 4,
+    fragile: true,
+    color: '#fb7185',
+  },
+];
+
+test('3D Optimized Slotting enforces 0 safety violations and outperforms 2D Baseline', () => {
+  const bins = generateWarehouseBins(sampleConfig);
+  assert.equal(bins.length, 48);
+
+  const baseline = runBaseline2DSlotting(bins, sampleSkus, sampleConfig);
+  const optimized = runOptimized3DSlotting(bins, sampleSkus, sampleConfig);
+
+  assert.equal(optimized.kpis.safetyViolations, 0);
+  assert.equal(optimized.unplacedUnits, 0);
+  assert.ok(
+    optimized.kpis.cubicUtilizationPct >= baseline.kpis.cubicUtilizationPct,
+    '3D Optimized should improve or equal 3D cubic utilization via co-packing & rotation'
+  );
+  assert.ok(
+    optimized.kpis.ergonomicsScore >= baseline.kpis.ergonomicsScore,
+    '3D Optimized should improve ergonomics score'
+  );
+
+  // Verify heavy items (>16kg) never land on level >= 3 in 3D Optimized mode
+  for (const alloc of optimized.allocations) {
+    if (alloc.bin.level >= 3) {
+      for (const box of alloc.boxes) {
+        assert.ok(
+          box.weightKg <= 16,
+          `Heavy box (${box.weightKg}kg) must not be placed on Z${alloc.bin.level}`
+        );
+      }
+    }
+  }
+});
+
+test('Max Safety preset enforces stricter 10kg cutoff on Z3+ in both baseline evaluation and 3D optimization', () => {
+  const safetyConfig: WarehouseConfig = {
+    ...sampleConfig,
+    optimizationPreset: 'safety',
+  };
+  const bins = generateWarehouseBins(safetyConfig);
+  const mediumHeavySkus: SKUItem[] = [
+    {
+      id: 'sku-12kg',
+      skuCode: 'MED-12',
+      name: '12kg Medium-Heavy Case',
+      category: 'Hardware',
+      abcClass: 'A',
+      dailyPicks: 120,
+      lengthCm: 40,
+      widthCm: 30,
+      heightCm: 25,
+      weightKg: 12,
+      quantity: 8,
+      fragile: false,
+      color: '#f59e0b',
+    },
+  ];
+
+  // Baseline 2D fills upper Z4/Z3 first, triggering safety violation in Max Safety (>10kg) mode
+  const baseline = runBaseline2DSlotting(bins, mediumHeavySkus, safetyConfig);
+  assert.ok(
+    baseline.kpis.safetyViolations > 0,
+    'Baseline 2D with 12kg on Z3/Z4 must be flagged in Max Safety (>10kg) mode'
+  );
+
+  // 3D Optimized keeps all 12kg units on Z1-Z2 in Max Safety mode -> 0 violations
+  const optimized = runOptimized3DSlotting(bins, mediumHeavySkus, safetyConfig);
+  assert.equal(optimized.kpis.safetyViolations, 0);
+});
+
+test('Aisle corridor routing adds cross-aisle detour when switching aisles deep inside bays', () => {
+  const sameAisleDist = computeAisleTravelDistanceM(0, 3.25, 0, 4.7, 0.75);
+  assert.ok(Math.abs(sameAisleDist - 1.45) < 0.001);
+
+  const crossAisleDist = computeAisleTravelDistanceM(0, 3.25, 3.4, 3.25, 0.75);
+  // Must exit aisle 1 (3.25 -> 0.75 = 2.5m), cross (3.4m), and enter aisle 2 (0.75 -> 3.25 = 2.5m) = 8.4m
+  assert.ok(
+    crossAisleDist > 3.4,
+    `Expected detour > direct 3.4m, got ${crossAisleDist}`
+  );
+  assert.ok(Math.abs(crossAisleDist - 8.4) < 0.001);
+});
+
+test('Unplaced items detail reports overflow SKUs accurately', () => {
+  const tinyBins = generateWarehouseBins({
+    ...sampleConfig,
+    aisles: 1,
+    baysPerAisle: 1,
+    levels: 1,
+  });
+  const overflowSkus: SKUItem[] = [
+    {
+      ...sampleSkus[0],
+      quantity: 30,
+    },
+  ];
+  const res = runOptimized3DSlotting(tinyBins, overflowSkus, sampleConfig);
+  assert.ok(res.unplacedUnits > 0);
+  assert.ok(res.unplacedItems && res.unplacedItems.length > 0);
+  assert.equal(res.unplacedItems[0].skuCode, 'HVY-20');
+});
+
+test('CSV parser imports SKU master data with Korean/English columns and BOM', () => {
+  const csv = `\uFEFFskuCode,name,category,abcClass,dailyPicks,lengthCm,widthCm,heightCm,weightKg,quantity,fragile
+WTR-500,"생수 500mL 묶음",Beverage,A,180,36,24,22,11.5,6,false
+GLS-10,"유리 용기 세트",Kitchen,B,45,28,22,18,3.2,4,true`;
+
+  const parsed = parseSkusFromCSV(csv);
+  assert.equal(parsed.length, 2);
+  assert.equal(parsed[0].skuCode, 'WTR-500');
+  assert.equal(parsed[0].abcClass, 'A');
+  assert.equal(parsed[0].weightKg, 11.5);
+  assert.equal(parsed[1].fragile, true);
+});
+
+test('CAD Exporter generates valid AutoCAD R12 DXF and vector SVG blueprints', () => {
+  const bins = generateWarehouseBins(sampleConfig);
+  const optimized = runOptimized3DSlotting(bins, sampleSkus, sampleConfig);
+  const opts = {
+    includeCartons: true,
+    includePickRoute: true,
+    includeLabels: true,
+    includeElevation: true,
+    planLevelFilter: 'all' as const,
+  };
+
+  const dxf = generateWarehouseDXF(optimized, sampleConfig, 'Unit Test Hub', opts);
+  assert.ok(dxf.includes('$ACADVER'));
+  assert.ok(dxf.includes('PICK_ROUTE'));
+  assert.ok(dxf.includes('EOF'));
+
+  const svg = generateWarehouseSVG(optimized, sampleConfig, 'Unit Test Hub', opts);
+  assert.ok(svg.startsWith('<svg'));
+  assert.ok(svg.includes('CUBISLOT 2D CAD BLUEPRINT'));
+  assert.ok(svg.endsWith('</svg>'));
+});

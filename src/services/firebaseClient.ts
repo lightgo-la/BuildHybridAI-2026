@@ -59,8 +59,8 @@ export interface FirebaseServicesState {
 }
 
 const DEFAULT_REMOTE_PARAMS: RemoteSlottingParams = {
-  cloudModelName: 'gemini-3.8-flash',
-  liteModelName: 'gemini-3.5-flash-lite',
+  cloudModelName: 'gemini-2.5-flash',
+  liteModelName: 'gemini-2.5-flash-lite',
   onDeviceMaxSkus: 8,
   goldenZoneMinM: 0.8,
   goldenZoneMaxM: 1.65,

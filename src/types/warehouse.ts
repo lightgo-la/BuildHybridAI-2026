@@ -88,10 +88,19 @@ export interface WarehouseKPIs {
   totalBins: number;
 }
 
+export interface UnplacedItemDetail {
+  skuId: string;
+  skuCode: string;
+  name: string;
+  count: number;
+  reason: 'weight_or_safety_limit' | 'volume_full';
+}
+
 export interface SlottingResult {
   mode: 'baseline_2d' | 'optimized_3d';
   allocations: BinAllocation[];
   unplacedUnits: number;
+  unplacedItems?: UnplacedItemDetail[];
   kpis: WarehouseKPIs;
   pickRoute: PickWaypoint[];
 }
