@@ -9,7 +9,6 @@
 ![On-Device AI Gemini Nano](https://img.shields.io/badge/On--Device%20AI-Chrome%20Gemini%20Nano-4285F4?logo=googlechrome&logoColor=white)
 ![CAD Export DXF & SVG](https://img.shields.io/badge/2D%20CAD-AutoCAD%20DXF%20%26%20SVG-0696D7?logo=autodesk&logoColor=white)
 ![Language KO & EN](https://img.shields.io/badge/i18n-Korean%20%26%20English-10B981)
-![Tests 15,000 Passed](https://img.shields.io/badge/QC%20%26%20QA%20Tests-15%2C000%20Passed-22C55E)
 ![Hackathon BuildHybridAI 2026](https://img.shields.io/badge/Hackathon-%23BuildHybridAI%202026-FF6D00?logo=googledevelopers&logoColor=white)
 ![License Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache&logoColor=white)
 ![Release v1.0.0](https://img.shields.io/badge/Release-v1.0.0-8A2BE2)
