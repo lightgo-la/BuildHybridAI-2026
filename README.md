@@ -1,5 +1,19 @@
 # CubiSlot 3D — 3D Warehouse & Living Space Slotting Digital Twin (`#BuildHybridAI 2026`)
 
+![Built with TypeScript](https://img.shields.io/badge/Built%20with-TypeScript%205.7-3178C6?logo=typescript&logoColor=white)
+![Frontend React](https://img.shields.io/badge/Frontend-React%2019-61DAFB?logo=react&logoColor=black)
+![3D Engine Three.js](https://img.shields.io/badge/3D%20Engine-Three.js%20%2F%20WebGL-000000?logo=threedotjs&logoColor=white)
+![UI Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS%204-06B6D4?logo=tailwindcss&logoColor=white)
+![Build Vite](https://img.shields.io/badge/Bundler-Vite%206-646CFF?logo=vite&logoColor=white)
+![Hybrid AI Firebase](https://img.shields.io/badge/Hybrid%20AI-Firebase%20AI%20Logic%20v12-FFCA28?logo=firebase&logoColor=black)
+![On-Device AI Gemini Nano](https://img.shields.io/badge/On--Device%20AI-Chrome%20Gemini%20Nano-4285F4?logo=googlechrome&logoColor=white)
+![CAD Export DXF & SVG](https://img.shields.io/badge/2D%20CAD-AutoCAD%20DXF%20%26%20SVG-0696D7?logo=autodesk&logoColor=white)
+![Language KO & EN](https://img.shields.io/badge/i18n-Korean%20%26%20English-10B981)
+![Tests 15,000 Passed](https://img.shields.io/badge/QC%20%26%20QA%20Tests-15%2C000%20Passed-22C55E)
+![Hackathon BuildHybridAI 2026](https://img.shields.io/badge/Hackathon-%23BuildHybridAI%202026-FF6D00?logo=googledevelopers&logoColor=white)
+![License Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache&logoColor=white)
+![Release v1.0.0](https://img.shields.io/badge/Release-v1.0.0-8A2BE2)
+
 <img width="2528" height="1280" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/44075604-0476-44f7-8866-5acf4f59f8ce" />
 
 > **Google for Developers `#BuildHybridAI 2026` Challenge · Web / Chrome Track**  
