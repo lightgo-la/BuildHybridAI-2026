@@ -20,6 +20,12 @@
 > Open-Source 3D Warehouse Slotting Optimization & Everyday Home Storage Digital Twin powered by **Firebase AI Logic (`firebase/ai`)** Hybrid Inference (**On-Device Chrome Gemini Nano** + **Cloud Gemini Fallback**).
 ---
 
+#  📅 4-Day Development & Submission Schedule (Nov 25 – Nov 28, 2026)
+1. Nov 25 (Day 4) — 3D UX Polish & Custom Data Pipeline (v1.1.0)
+2. Nov 26 (Day 3) — Hybrid AI Action Engine & Live Hosting
+3. Nov 27 (Day 2) — Performance Optimization, Final QA & Demo Recording (v1.2.0)
+4. Nov 28 (Day 1 · Submission Day) — Final Packaging & Official Submission
+
 ## ✨ Key Features
 
 1. **3D Warehouse & Everyday Space Slotting Engine (`src/engine/slottingEngine.ts`)**
