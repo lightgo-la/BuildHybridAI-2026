@@ -14,6 +14,7 @@ import {
 import type { FirebaseServicesState } from '../services/firebaseClient';
 import {
   type ChromeNanoDiagnostics,
+  type HybridAIAction,
   type HybridAIResponse,
   type HybridModeChoice,
   buildWarehousePromptContext,
@@ -40,6 +41,7 @@ interface HybridAICopilotPanelProps {
   } | null;
   onLastInferenceSource?: (source: string) => void;
   onFocusBinId?: (binId: string) => void;
+  onExecuteAiAction?: (action: HybridAIAction) => void;
   lang?: LangCode;
 }
 
@@ -83,6 +85,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
   externalPromptRequest,
   onLastInferenceSource,
   onFocusBinId,
+  onExecuteAiAction,
   lang = 'ko',
 }) => {
   const [modeChoice, setModeChoice] =
@@ -330,6 +333,28 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                           className="rounded-md border border-cyan-500/40 bg-cyan-500/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-cyan-300 transition hover:bg-cyan-500/30"
                         >
                           {binId}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                {onExecuteAiAction &&
+                  item.answer.recommendedActions &&
+                  item.answer.recommendedActions.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-800/80 pt-2">
+                      <span className="text-[10px] font-semibold text-emerald-400">
+                        {lang === 'ko'
+                          ? '권장 최적화 실행:'
+                          : 'Apply Action:'}
+                      </span>
+                      {item.answer.recommendedActions.map((act) => (
+                        <button
+                          key={act.id}
+                          type="button"
+                          onClick={() => onExecuteAiAction(act)}
+                          className="rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 transition hover:bg-emerald-500/30"
+                        >
+                          {lang === 'ko' ? act.labelKo : act.labelEn}
                         </button>
                       ))}
                     </div>

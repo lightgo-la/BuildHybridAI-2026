@@ -1309,6 +1309,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     const wire = new THREE.LineSegments(edges, lineMat);
     wire.position.copy(pos);
     overlayGroup.add(wire);
+
+    // Smoothly shift OrbitControls focus toward the selected bin when not dragging in 3D
+    if (controlsRef.current && !dragMoveModeRef.current) {
+      controlsRef.current.target.lerp(pos, 0.45);
+      controlsRef.current.update();
+    }
   }, [selectedBinId, allocations, theme.accent]);
 
   return (

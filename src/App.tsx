@@ -58,6 +58,7 @@ import {
 } from './services/firebaseClient';
 import {
   type ChromeNanoDiagnostics,
+  type HybridAIAction,
   type HybridModeChoice,
   checkChromeGeminiNanoStatus,
 } from './services/hybridAi';
@@ -2002,6 +2003,28 @@ export function App() {
                 lang === 'ko'
                   ? `추천 선반 [${binId}] 포커스됨`
                   : `Focused Recommended Bin [${binId}]`
+              );
+            }}
+            onExecuteAiAction={(action: HybridAIAction) => {
+              if (action.kind === 'apply_preset_safety') {
+                setOptimizationPreset('safety');
+                setActiveLayout('optimized_3d');
+              } else if (action.kind === 'apply_preset_speed') {
+                setOptimizationPreset('speed');
+                setActiveLayout('optimized_3d');
+              } else if (action.kind === 'apply_preset_density') {
+                setOptimizationPreset('density');
+                setActiveLayout('optimized_3d');
+              } else if (action.kind === 'enable_smart_fit') {
+                setAllowRotationAndCoPack(true);
+                setActiveLayout('optimized_3d');
+              } else {
+                setActiveLayout('optimized_3d');
+              }
+              showToast(
+                lang === 'ko'
+                  ? `권장 최적화 실행됨: ${action.labelKo}`
+                  : `Applied Action: ${action.labelEn}`
               );
             }}
             lang={lang}

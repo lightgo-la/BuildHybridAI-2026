@@ -1,6 +1,6 @@
 # CubiSlot 3D — 3D Warehouse & Living Space Slotting Digital Twin (`#BuildHybridAI 2026`)
 
-![Built with TypeScript](https://img.shields.io/badge/Built%20with-TypeScript%205.7-3178C6?logo=typescript&logoColor=white)
+![Built with TypeScript](https://img.shields.io/badge/Built%20with-TypeScript%205.8-3178C6?logo=typescript&logoColor=white)
 ![Frontend React](https://img.shields.io/badge/Frontend-React%2019-61DAFB?logo=react&logoColor=black)
 ![3D Engine Three.js](https://img.shields.io/badge/3D%20Engine-Three.js%20%2F%20WebGL-000000?logo=threedotjs&logoColor=white)
 ![UI Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS%204-06B6D4?logo=tailwindcss&logoColor=white)
@@ -10,27 +10,30 @@
 ![Language KO & EN](https://img.shields.io/badge/i18n-Korean%20%26%20English-10B981)
 ![Hackathon BuildHybridAI 2026](https://img.shields.io/badge/Hackathon-%23BuildHybridAI%202026-FF6D00?logo=googledevelopers&logoColor=white)
 ![License Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache&logoColor=white)
-![Release v1.0.0](https://img.shields.io/badge/Release-v1.0.0-8A2BE2)
+![Release v1.1.0](https://img.shields.io/badge/Release-v1.1.0-8A2BE2)
 
 <img width="2528" height="1280" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/44075604-0476-44f7-8866-5acf4f59f8ce" />
 
 > **Google for Developers `#BuildHybridAI 2026` Challenge · Web / Chrome Track**  
-> Open-Source 3D Warehouse Slotting Optimization & Everyday Home Storage Digital Twin powered by **Firebase AI Logic (`firebase/ai`)** Hybrid Inference (**On-Device Chrome Gemini Nano** + **Cloud Gemini Fallback**).
+> Open-Source 3D Warehouse Slotting Optimization & Everyday Home Storage Digital Twin powered by **Firebase AI Logic (`firebase/ai`)** Hybrid Inference (**On-Device Chrome Gemini Nano** + **Cloud Gemini Fallback** + **Local Deterministic Action Engine**).
+
 ---
 
-#  📅 4-Day Development & Submission Schedule (Nov 25 – Nov 28, 2026)
-1. Nov 25 (Day 4) — 3D UX Polish & Custom Data Pipeline (v1.1.0)
+## 4-Day Development & Submission Schedule (Nov 25 – Nov 28, 2026)
+1. Nov 25 (Day 4) — 3D UX Polish & Custom Data Pipeline (`v1.1.0`)
 2. Nov 26 (Day 3) — Hybrid AI Action Engine & Live Hosting
-3. Nov 27 (Day 2) — Performance Optimization, Final QA & Demo Recording (v1.2.0)
+3. Nov 27 (Day 2) — Performance Optimization, Final QA & Demo Recording (`v1.2.0`)
 4. Nov 28 (Day 1 · Submission Day) — Final Packaging & Official Submission
 
-## ✨ Key Features
+---
+
+## Key Features
 
 1. **3D Warehouse & Everyday Space Slotting Engine (`src/engine/slottingEngine.ts`)**
    - **Z-Axis Golden Zone Ergonomics (`0.80m – 1.65m`)**: Aligns high-frequency Class-A SKUs to waist-to-shoulder elevation to minimize vertical lift fatigue and cycle time.
    - **3D Bin Packing with Best-Fit 6-Axis Rotation & Multi-SKU Co-Packing**: Eliminates cubic void waste (*honeycombing*) while enforcing **70% physical bottom-support**, **fragile top-stack protection**, and **heavy-on-light crush prevention (`≤ 1.45×` weight ratio)**.
-   - **NIOSH Structural & Rack Safety Guard**: Anchors heavy cargo (`> 16 kg`, or `> 10 kg` in Max-Safety mode) to lower levels (`Z1–Z2`), achieving **0 safety violations**.
-   - **3D Kinematics & Nearest-Neighbor TSP Pick Wave**: Models both **Reach-Truck** sequential lift/travel and **AS/RS Dual-Mast Crane Chebyshev (`max(dx/vx, dz/vz)`)** simultaneous motion with depot-rooted TSP routing.
+   - **NIOSH Structural & Rack Safety Guard**: Anchors heavy cargo (`> 16 kg`, or `> 10 kg` in Max-Safety mode) to lower levels (`Z1–Z2`), achieving **0 safety violations**, and reports detailed per-SKU overflow diagnostics (`unplacedItems`).
+   - **Orthogonal Aisle-Corridor Kinematics & Nearest-Neighbor TSP Pick Wave**: Models both **Reach-Truck** sequential lift/travel and **AS/RS Dual-Mast Crane Chebyshev (`max(dx/vx, dz/vz)`)** simultaneous motion with cross-aisle corridor routing that never cuts diagonally through solid storage racks.
    - **4 One-Click 3D Optimization Presets**: `Balanced (균형)`, `Fast Pick (빠른 동선)`, `Max Density (공간 압축)`, `Max Safety (안전 최우선)`.
 
 2. **24 Ready-to-Use Pro & Everyday Space Templates with Bespoke 3D Previews (`src/data/warehouseTemplates.ts`, `public/templates/`)**
@@ -41,28 +44,29 @@
    - Dedicated approachable home mode with visual template cards, SKU content chips, plain-language KPIs, and a **10-Second Custom Room / Shelf Builder**.
 
 4. **Interactive 3D Digital Twin Studio (`src/components/Warehouse3DViewport.tsx`, `src/utils/threeContentBuilder.ts`)**
-   - **Rich 3D Content Models & 512×512 Procedural Textures**: Displays actual SKU names, codes, weights, ABC badges, barcodes, protruding bottle caps, wooden pallet skids, container snap lids, and fragile corner guards in 3D.
-   - **Whole-Template & Single-Rack 3D Drag-Move**: Drag the **entire template layout** (or individual rack columns and 3D furniture) live at 60fps across a fixed 1m floor grid without parallax jumps, plus 1-click **90° Whole-Template Rotation**, **Span+/Span- Spacing Scaling**, and **Center Alignment**.
-   - **3D Space Interior & Furniture Builder (`src/components/InteriorStudioModal.tsx`)**: Place, drag, rotate, scale, and recolor 12 types of 3D furniture, appliances, doors, and windows (`Desk`, `Island Counter`, `Fridge`, `Washer`, `Standing Mirror`, `Sofa`, `Window`, `Door`, `Plant`, `Carpet`, `Tool Cabinet`, `Reach Truck`) + 4 room wall styles.
-   - **3D Background & Lighting Studio (`src/components/Scene3DBackgroundModal.tsx`)**: 12 lighting/backdrop presets (defaulting to **Bright Daylight Studio** with HemisphereLight, dual directional fill lights, ACES Filmic exposure, and zero dark fog) + custom color pickers and floor materials.
-   - **Live 3D Hover HUD Card, Aisle Floor Markers (`A1..An`), and Z-Level Height Ruler Tower (`Z1..Zn`)**.
+   - **`THREE.InstancedMesh` Draw-Call Batching & LRU Texture Cache**: Batches rack uprights, shelf decks, Golden Zone volume bands, structural pillars, bottle crates, and pallet runners into GPU-instanced meshes with bounded LRU `CanvasTexture` disposal and `requestAnimationFrame`-throttled hover raycasting.
+   - **Whole-Template & Single-Rack 3D Drag-Move + Global Undo/Redo (`Ctrl+Z` / `Ctrl+Y`)**: Drag the entire template layout (or individual rack columns and 3D furniture) live at 60fps across a fixed 1m floor grid without parallax jumps, plus 1-click **90° Whole-Template Rotation**, **Span+/Span- Spacing Scaling**, **Center Alignment**, and 350ms-coalesced **3D Workspace Undo/Redo**.
+   - **3D Space Interior & Furniture Builder (`src/components/InteriorStudioModal.tsx`)**: Place, drag, rotate, scale, and recolor 12 types of 3D furniture, appliances, doors, and windows + 4 room wall styles.
+   - **3D Background & Lighting Studio (`src/components/Scene3DBackgroundModal.tsx`)**: 12 lighting/backdrop presets + custom color pickers and floor materials.
 
-5. **2D Free-Canvas Map Editor & 2D CAD Blueprint Exporter (`.DXF` / `.SVG`)**
-   - **2D Free Canvas (`src/components/MapEditorModal.tsx`)**: Drag-and-drop racks, marquee multi-select, right-click context actions, interactive floor resize handles, pillars/obstacles, and JSON import/export.
-   - **AutoCAD R12 `.DXF` & `.SVG` Blueprint Generator (`src/utils/cadExporter.ts`)**: 1:1 metric plan view + front Z-elevation view.
+5. **2D Free-Canvas Map Editor, CSV Data Pipeline & 2D CAD Blueprint Exporter (`.DXF` / `.SVG` / `.CSV`)**
+   - **2D Free Canvas (`src/components/MapEditorModal.tsx`)**: Pointer-enabled drag-and-drop racks, marquee multi-select, right-click context actions, interactive floor resize handles, pillars/obstacles, and JSON import/export.
+   - **Warehouse CSV Data Pipeline (`src/utils/csvExporter.ts`)**: Import custom SKU master tables (`.CSV` with UTF-8 BOM & Korean/English header mapping) and export both SKU catalogs and 3D bin-packing coordinate schedules to `.CSV`.
+   - **AutoCAD R12 `.DXF` & `.SVG` Blueprint Generator (`src/utils/cadExporter.ts`)**: 1:1 metric plan view + front Z-elevation view with orthogonal aisle pick routes.
 
-6. **Firebase AI Logic Hybrid Co-Pilot (`src/services/hybridAi.ts`, `src/services/firebaseClient.ts`)**
-   - Uses official **`firebase/ai`** SDK (`InferenceMode.PREFER_ON_DEVICE`, `ONLY_ON_DEVICE`, `PREFER_IN_CLOUD`, `ONLY_IN_CLOUD`) with Chrome built-in **Gemini Nano Prompt API** detection, **Cloud Gemini** fallback, **Firebase App Check** (reCAPTCHA v3 / Debug Token), **Firebase Remote Config**, and **Cloud Firestore** run snapshots.
+6. **Firebase AI Logic Hybrid Co-Pilot & Action Engine (`src/services/hybridAi.ts`, `src/components/HybridAICopilotPanel.tsx`)**
+   - Uses official **`firebase/ai`** SDK (`InferenceMode.PREFER_ON_DEVICE`, `ONLY_ON_DEVICE`, `PREFER_IN_CLOUD`, `ONLY_IN_CLOUD`) with Chrome built-in **Gemini Nano Prompt API** fallback, local quantitative heuristic fallback, **1-click 3D Bin Camera Focus chips**, and **1-click Executable Slotting Actions**.
 
-7. **Full Korean / English (`한국어 / EN`) Localization & 18 Global Keyboard Shortcuts**
+7. **Full Korean / English (`한국어 / EN`) Localization & Global Keyboard Shortcuts**
    - Instant `한국어 ↔ EN` language toggle (`L`) + `Easy Mode ↔ Pro Terms` toggle + 24 UI Design Themes (`src/data/designThemes.ts`).
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## Keyboard Shortcuts
 
 | Key | Action |
 | --- | --- |
+| `Ctrl+Z` / `Ctrl+Y` | Undo / Redo 3D Workspace & Layout Edits |
 | `1` / `2` / `3` | Switch 3D Camera (`1`: 3D Isometric, `2`: 2D Top Plan, `3`: Z-Elevation) |
 | `R` | Reset 3D Camera Framing |
 | `Space` | Toggle `Before: 2D Baseline` ↔ `After: 3D Optimized` |
@@ -81,7 +85,7 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Install dependencies
@@ -93,13 +97,14 @@ cp .env.example .env
 # 3. Start development server
 npm run dev
 
-# 4. Type-check & build for production
+# 4. Run type-check, unit test suite, and production build
 npm run typecheck
+npm test
 npm run build
 ```
 
 ---
 
-## 📄 Open-Source License
+## Open-Source License
 
 Licensed under the **Apache License, Version 2.0** — see [LICENSE](LICENSE).

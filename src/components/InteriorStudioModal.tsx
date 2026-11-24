@@ -187,6 +187,11 @@ export const KEYBOARD_SHORTCUT_LIST: Array<{
     descEn: '+: Add +1 Z-Level Above Bin · Delete: Remove Selected Bin/Prop',
   },
   {
+    keyLabel: 'Ctrl+Z / Ctrl+Y',
+    descKo: '3D 작업실 편집 실행 취소 (Undo) · 다시 실행 (Redo)',
+    descEn: 'Undo / Redo 3D Workspace Edits',
+  },
+  {
     keyLabel: '? (또는 K)',
     descKo: '단축키 안내 & 인테리어 스튜디오 창 열기 / 닫기',
     descEn: 'Toggle Keyboard Shortcuts & Interior Studio Modal',

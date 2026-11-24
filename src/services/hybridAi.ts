@@ -24,6 +24,18 @@ export interface ChromeNanoDiagnostics {
   detail: string;
 }
 
+export interface HybridAIAction {
+  id: string;
+  labelKo: string;
+  labelEn: string;
+  kind:
+    | 'apply_preset_speed'
+    | 'apply_preset_safety'
+    | 'apply_preset_density'
+    | 'enable_smart_fit'
+    | 'switch_3d_optimized';
+}
+
 export interface HybridAIResponse {
   text: string;
   inferenceSource: InferenceSource | 'local_engine' | 'not_executed';
@@ -31,12 +43,62 @@ export interface HybridAIResponse {
   modelName: string;
   latencyMs: number;
   recommendedBinIds?: string[];
+  recommendedActions?: HybridAIAction[];
   error?: string;
 }
 
 function extractBinIdsFromText(text: string): string[] {
   const matches = text.match(/\b(?:C\d+-)?A\d+-B\d+-Z\d+\b/g) ?? [];
   return [...new Set(matches)];
+}
+
+function deriveRecommendedActions(
+  prompt: string,
+  context: string,
+  text: string
+): HybridAIAction[] {
+  const combined = `${prompt}\n${context}\n${text}`.toLowerCase();
+  const actions: HybridAIAction[] = [];
+
+  if (/safety|heavy|weight|hazard|z1|안전|무거운|중량|하중|위험/.test(combined)) {
+    actions.push({
+      id: 'act-safety',
+      labelKo: '안전 최우선(Max Safety) 적용',
+      labelEn: 'Apply Max-Safety Preset',
+      kind: 'apply_preset_safety',
+    });
+  }
+  if (/speed|cycle|fast|golden|pick|동선|빠른|속도|골든존|피킹/.test(combined)) {
+    actions.push({
+      id: 'act-speed',
+      labelKo: '빠른 동선(Fast Pick) 적용',
+      labelEn: 'Apply Fast-Pick Preset',
+      kind: 'apply_preset_speed',
+    });
+  }
+  if (/density|cubic|waste|honeycomb|space|공간|빈틈|압축|적재율|합포장/.test(combined)) {
+    actions.push({
+      id: 'act-density',
+      labelKo: '공간 압축(Max Density) 적용',
+      labelEn: 'Apply Max-Density Preset',
+      kind: 'apply_preset_density',
+    });
+    actions.push({
+      id: 'act-smartfit',
+      labelKo: '6축 회전·합포장 활성화',
+      labelEn: 'Enable 6-Axis Co-Packing',
+      kind: 'enable_smart_fit',
+    });
+  }
+  if (actions.length === 0) {
+    actions.push({
+      id: 'act-opt3d',
+      labelKo: '3D 최적화 배치 적용',
+      labelEn: 'Switch to 3D Optimized',
+      kind: 'switch_3d_optimized',
+    });
+  }
+  return actions.slice(0, 3);
 }
 
 async function tryDirectChromePromptApi(
@@ -253,7 +315,6 @@ export async function runHybridWarehouseCopilot(params: {
 
   const fullPrompt = `${context}\n\nEngineer Question:\n${prompt}`;
 
-  // 1. If On-Device mode is preferred/forced and Firebase is not configured, try direct Chrome Gemini Nano API first, then local deterministic engine
   if (!firebaseState.app) {
     if (modeChoice === 'prefer_on_device' || modeChoice === 'only_on_device') {
       const nanoOut = await tryDirectChromePromptApi(systemText, fullPrompt);
@@ -265,6 +326,7 @@ export async function runHybridWarehouseCopilot(params: {
           modelName: 'chrome-gemini-nano',
           latencyMs: Math.round(performance.now() - start),
           recommendedBinIds: extractBinIdsFromText(`${nanoOut}\n${context}`),
+          recommendedActions: deriveRecommendedActions(prompt, context, nanoOut),
         };
       }
     }
@@ -277,6 +339,7 @@ export async function runHybridWarehouseCopilot(params: {
       modelName: 'cubislot-local-heuristic-v1',
       latencyMs: Math.round(performance.now() - start),
       recommendedBinIds: extractBinIdsFromText(`${localText}\n${context}`),
+      recommendedActions: deriveRecommendedActions(prompt, context, localText),
     };
   }
 
@@ -313,9 +376,9 @@ export async function runHybridWarehouseCopilot(params: {
       modelName,
       latencyMs: Math.round(performance.now() - start),
       recommendedBinIds: extractBinIdsFromText(`${text}\n${context}`),
+      recommendedActions: deriveRecommendedActions(prompt, context, text),
     };
   } catch (err) {
-    // Graceful fallback to direct Chrome Prompt API or Local Deterministic Audit so user is never left with an empty screen
     const nanoOut = await tryDirectChromePromptApi(systemText, fullPrompt);
     if (nanoOut) {
       return {
@@ -325,6 +388,7 @@ export async function runHybridWarehouseCopilot(params: {
         modelName: 'chrome-gemini-nano',
         latencyMs: Math.round(performance.now() - start),
         recommendedBinIds: extractBinIdsFromText(`${nanoOut}\n${context}`),
+        recommendedActions: deriveRecommendedActions(prompt, context, nanoOut),
       };
     }
 
@@ -337,6 +401,7 @@ export async function runHybridWarehouseCopilot(params: {
       modelName: `local-fallback (${message.slice(0, 48)})`,
       latencyMs: Math.round(performance.now() - start),
       recommendedBinIds: extractBinIdsFromText(`${localText}\n${context}`),
+      recommendedActions: deriveRecommendedActions(prompt, context, localText),
     };
   }
 }

@@ -377,7 +377,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   useEffect(() => {
     if (!open) return;
 
-    const onWinMove = (e: MouseEvent) => {
+    const onWinMove = (e: PointerEvent) => {
       const drag = dragRef.current;
       if (!drag) return;
 
@@ -468,11 +468,11 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
       dragRef.current = null;
     };
 
-    window.addEventListener('mousemove', onWinMove);
-    window.addEventListener('mouseup', onWinUp);
+    window.addEventListener('pointermove', onWinMove);
+    window.addEventListener('pointerup', onWinUp);
     return () => {
-      window.removeEventListener('mousemove', onWinMove);
-      window.removeEventListener('mouseup', onWinUp);
+      window.removeEventListener('pointermove', onWinMove);
+      window.removeEventListener('pointerup', onWinUp);
     };
   }, [open, clientToWorld, pushUndo, snapCoord, aisleSpacingM, baySpacingM, racks]);
 
@@ -528,7 +528,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
     );
   };
 
-  const handleCanvasMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+  const handleCanvasPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
     if (e.button !== 0) return;
     setCtxMenu(null);
     if (
@@ -1425,9 +1425,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 width={svgW}
                 height={svgH}
                 viewBox={`0 0 ${svgW} ${svgH}`}
-                className="mx-auto block cursor-crosshair rounded-lg border border-sky-500/30 select-none"
+                className="mx-auto block cursor-crosshair rounded-lg border border-sky-500/30 select-none touch-none"
                 style={{ background: '#071326' }}
-                onMouseDown={handleCanvasMouseDown}
+                onPointerDown={handleCanvasPointerDown}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   const { wx, wy } = clientToWorld(e.clientX, e.clientY);
@@ -1490,7 +1490,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 {/* Right Edge Width Resize Handle */}
                 <g
                   className="cursor-ew-resize"
-                  onMouseDown={(e) => {
+                  onPointerDown={(e) => {
                     e.stopPropagation();
                     dragRef.current = {
                       type: 'resize_floor',
@@ -1512,7 +1512,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 {/* Top Edge Depth Resize Handle */}
                 <g
                   className="cursor-ns-resize"
-                  onMouseDown={(e) => {
+                  onPointerDown={(e) => {
                     e.stopPropagation();
                     dragRef.current = {
                       type: 'resize_floor',
@@ -1534,7 +1534,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 {/* Corner Diagonal Resize Handle */}
                 <g
                   className="cursor-nesw-resize"
-                  onMouseDown={(e) => {
+                  onPointerDown={(e) => {
                     e.stopPropagation();
                     dragRef.current = {
                       type: 'resize_floor',
@@ -1556,7 +1556,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 {/* I/O Depot / Entry (Draggable) */}
                 <g
                   className="cursor-move"
-                  onMouseDown={(e) => {
+                  onPointerDown={(e) => {
                     e.stopPropagation();
                     if (e.button !== 0) return;
                     const { wx, wy } = clientToWorld(e.clientX, e.clientY);
@@ -1595,7 +1595,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   <g
                     key={obs.id}
                     className="cursor-move"
-                    onMouseDown={(e) => {
+                    onPointerDown={(e) => {
                       e.stopPropagation();
                       if (e.button !== 0) return;
                       if (tool === 'erase') {
@@ -1662,7 +1662,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     <g
                       key={rack.key}
                       className="cursor-move"
-                      onMouseDown={(e) => {
+                      onPointerDown={(e) => {
                         e.stopPropagation();
                         if (e.button !== 0) return;
                         setCtxMenu(null);
