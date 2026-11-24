@@ -8,6 +8,7 @@ dist
 dist-ssr
 *.local
 *.tsbuildinfo
+*.zip
 
 # Environment variables (keep secrets out of public repo)
 .env

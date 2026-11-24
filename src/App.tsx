@@ -77,6 +77,10 @@ import type {
 } from './types/warehouse';
 import { useWarehouseShortcuts } from './hooks/useWarehouseShortcuts';
 import { useWarehouseTransforms } from './hooks/useWarehouseTransforms';
+import {
+  exportSkusToCSV,
+  exportSlottingResultToCSV,
+} from './utils/csvExporter';
 import { Warehouse3DViewport } from './components/Warehouse3DViewport';
 import { KPIComparisonBar } from './components/KPIComparisonBar';
 import { HybridAICopilotPanel } from './components/HybridAICopilotPanel';
@@ -138,6 +142,29 @@ const DESIGN_STORAGE_KEY = 'cubislot_design_layout_v1';
 const CUSTOM_MAPS_KEY = 'cubislot_custom_maps_v1';
 const LANG_STORAGE_KEY = 'cubislot_lang_v1';
 const SCENE_3D_BG_KEY = 'cubislot_scene_3d_bg_v1';
+const WORKSPACE_SESSION_KEY = 'cubislot_active_workspace_v1';
+
+interface SavedWorkspaceSession {
+  scenarioId: string;
+  skus: SKUItem[];
+  configPatch: Partial<WarehouseConfig>;
+  customBinsOverride: BinSpec[] | null;
+  extraBins: BinSpec[];
+  removedBinIds: string[];
+  pinnedPlacements: PinnedCargoPlacement[];
+}
+
+function loadSavedWorkspaceSession(): SavedWorkspaceSession | null {
+  try {
+    const raw = localStorage.getItem(WORKSPACE_SESSION_KEY);
+    if (raw) {
+      return JSON.parse(raw) as SavedWorkspaceSession;
+    }
+  } catch {
+    // ignore storage errors
+  }
+  return null;
+}
 
 function loadScene3DBg(): Scene3DBackgroundSettings {
   try {
@@ -198,26 +225,68 @@ export function App() {
     [customMaps]
   );
 
-  const [scenarioId, setScenarioId] = useState(SAMPLE_SCENARIOS[0].id);
+  const initialSession = useMemo(() => loadSavedWorkspaceSession(), []);
+  const defaultScenario =
+    SAMPLE_SCENARIOS.find((s) => s.id === 'everyday-home-pantry') ??
+    SAMPLE_SCENARIOS[0];
+
+  const [scenarioId, setScenarioId] = useState(
+    initialSession?.scenarioId ?? defaultScenario.id
+  );
   const activeScenario = useMemo(
     () =>
-      allScenarios.find((s) => s.id === scenarioId) ?? SAMPLE_SCENARIOS[0],
-    [allScenarios, scenarioId]
+      allScenarios.find((s) => s.id === scenarioId) ?? defaultScenario,
+    [allScenarios, scenarioId, defaultScenario]
   );
 
-  const [skus, setSkus] = useState<SKUItem[]>(activeScenario.skus);
-  const [configPatch, setConfigPatch] = useState<Partial<WarehouseConfig>>({});
-  const [customBinsOverride, setCustomBinsOverride] = useState<BinSpec[] | null>(
-    null
+  const [skus, setSkus] = useState<SKUItem[]>(
+    initialSession?.skus && initialSession.skus.length > 0
+      ? initialSession.skus
+      : activeScenario.skus
   );
-  const [extraBins, setExtraBins] = useState<BinSpec[]>([]);
-  const [removedBinIds, setRemovedBinIds] = useState<string[]>([]);
+  const [configPatch, setConfigPatch] = useState<Partial<WarehouseConfig>>(
+    initialSession?.configPatch ?? {}
+  );
+  const [customBinsOverride, setCustomBinsOverride] = useState<BinSpec[] | null>(
+    initialSession?.customBinsOverride ?? null
+  );
+  const [extraBins, setExtraBins] = useState<BinSpec[]>(
+    initialSession?.extraBins ?? []
+  );
+  const [removedBinIds, setRemovedBinIds] = useState<string[]>(
+    initialSession?.removedBinIds ?? []
+  );
   const [pinnedPlacements, setPinnedPlacements] = useState<
     PinnedCargoPlacement[]
-  >([]);
+  >(initialSession?.pinnedPlacements ?? []);
   const [undoStack, setUndoStack] = useState<WorkspaceHistorySnapshot[]>([]);
   const [redoStack, setRedoStack] = useState<WorkspaceHistorySnapshot[]>([]);
   const lastUndoPushMsRef = useRef<number>(0);
+
+  useEffect(() => {
+    try {
+      const payload: SavedWorkspaceSession = {
+        scenarioId,
+        skus,
+        configPatch,
+        customBinsOverride,
+        extraBins,
+        removedBinIds,
+        pinnedPlacements,
+      };
+      localStorage.setItem(WORKSPACE_SESSION_KEY, JSON.stringify(payload));
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [
+    scenarioId,
+    skus,
+    configPatch,
+    customBinsOverride,
+    extraBins,
+    removedBinIds,
+    pinnedPlacements,
+  ]);
 
   const pushWorkspaceUndo = useCallback(() => {
     const now = performance.now();
@@ -591,6 +660,8 @@ export function App() {
     );
   }, [shownResult.allocations, selectedBinId]);
 
+  const [showBeginnerGuide, setShowBeginnerGuide] = useState<boolean>(true);
+
   const handleSelectBin = useCallback((alloc: BinAllocation | null) => {
     setSelectedBinId(alloc ? alloc.bin.id : null);
     if (alloc) setLeftTab('inspector');
@@ -629,6 +700,7 @@ export function App() {
     handleAddBin,
     handleDeleteBin,
     handlePinCargo,
+    handleMoveSkuToLevel,
     handleAddBinAbove,
     handleAddBinAtFloor,
     handleMoveRackColumn,
@@ -723,6 +795,19 @@ export function App() {
     <div
       className="themed-shell flex min-h-screen flex-col"
       data-theme-mode={activeTheme.mode}
+      onContextMenu={(e) => {
+        if (mapEditorOpen) return;
+        const tag = (e.target as HTMLElement | null)?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        setContextMenu({
+          clientX: e.clientX,
+          clientY: e.clientY,
+          binAlloc: selectedBin,
+          interiorProp: selectedProp,
+          floorPoint: null,
+        });
+      }}
     >
       {/* Top Bar */}
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/90 px-4 py-2.5">
@@ -1045,6 +1130,16 @@ export function App() {
               </div>
 
               <div className="flex items-center gap-2">
+                {simpleMode && !showBeginnerGuide && (
+                  <button
+                    type="button"
+                    onClick={() => setShowBeginnerGuide(true)}
+                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    {lang === 'ko' ? '초보자 가이드 열기' : 'Show Quick Guide'}
+                  </button>
+                )}
                 {!simpleMode && (
                   <div className="flex overflow-hidden rounded-md border border-slate-700 bg-slate-950 text-[10px]">
                     <button
@@ -1081,6 +1176,90 @@ export function App() {
             <div className="border-b border-slate-800 bg-slate-900 px-4 py-1.5 text-right text-[11px] text-cyan-300">
               {firestoreNotice}
             </div>
+          )}
+
+          {/* 3-Step Interactive Beginner Onboarding Bar (Visible in Simple Mode) */}
+          {simpleMode && showBeginnerGuide && (
+            <section className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/30 bg-emerald-950/25 px-4 py-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
+                  <Sparkles className="h-3 w-3" />
+                  {lang === 'ko'
+                    ? '초보자 3단계 빠른 시작:'
+                    : '3-Step Quick Start:'}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => setTemplateGalleryOpen(true)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-cyan-400"
+                >
+                  <span className="font-bold text-cyan-400">STEP 1</span>
+                  {lang === 'ko'
+                    ? '우리집·매장 공간 템플릿 고르기'
+                    : 'Choose Space Template'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next =
+                      activeLayout === 'optimized_3d'
+                        ? 'baseline_2d'
+                        : 'optimized_3d';
+                    setActiveLayout(next);
+                    showToast(
+                      lang === 'ko'
+                        ? next === 'optimized_3d'
+                          ? '3D 자동 최적 정리 적용됨'
+                          : '정리 전(2D 일반 배치) 화면으로 전환됨'
+                        : `Switched to ${next}`
+                    );
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-emerald-400"
+                >
+                  <span className="font-bold text-emerald-400">STEP 2</span>
+                  {lang === 'ko'
+                    ? `정리 전(2D) ↔ 3D 자동 정리 비교 (${activeLayout === 'optimized_3d' ? '현재: 3D 정리 후' : '현재: 정리 전'})`
+                    : 'Compare Before (2D) ↔ After (3D)'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetAlloc =
+                      shownResult.allocations.find(
+                        (a) => a.bin.isGoldenZone && a.boxes.length > 0
+                      ) ??
+                      shownResult.allocations[0] ??
+                      null;
+                    if (targetAlloc) {
+                      setSelectedBinId(targetAlloc.bin.id);
+                      setLeftTab('inspector');
+                      showToast(
+                        lang === 'ko'
+                          ? `선반 [${targetAlloc.bin.id}] 선택됨: 좌측 패널에서 물건을 바로 넣어보세요`
+                          : `Selected [${targetAlloc.bin.id}] in Inspector`
+                      );
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-amber-400"
+                >
+                  <span className="font-bold text-amber-400">STEP 3</span>
+                  {lang === 'ko'
+                    ? '추천 선반 클릭해 내 물건 바로 넣어보기'
+                    : 'Select Golden Zone Shelf & Place Item'}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowBeginnerGuide(false)}
+                className="text-[11px] text-slate-400 hover:text-white"
+              >
+                {lang === 'ko' ? '가이드 접기 ×' : 'Hide ×'}
+              </button>
+            </section>
           )}
 
           {/* KPI ROI Strip */}
@@ -1237,12 +1416,25 @@ export function App() {
                 activeLayout={activeLayout}
                 accentColor={activeTheme.accent}
                 simpleMode={simpleMode}
+                skus={skus}
+                onPinCargo={handlePinCargo}
+                onMoveSkuToLevel={handleMoveSkuToLevel}
+                onClearBinPins={(binId) => {
+                  pushWorkspaceUndo();
+                  setPinnedPlacements((prev) =>
+                    prev.filter((p) => p.binId !== binId)
+                  );
+                }}
+                onAddBinAbove={handleAddBinAbove}
                 lang={lang}
                 onAuditWithAi={(alloc) => {
                   setExternalAiPrompt({
                     id: Date.now(),
                     mode: 'prefer_on_device',
-                    prompt: `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Give concise 3D slotting advice.`,
+                    prompt:
+                      lang === 'ko'
+                        ? `선반 ${alloc.bin.id} (Z${alloc.bin.level}층, 높이 ${alloc.bin.zMeters}m, 채움률=${alloc.cubicUtilizationPct.toFixed(1)}%, 현재무게=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg)의 3D 적재 상태를 진단하고 더 안전하고 편하게 수납할 수 있는 개선안을 한국어로 알려줘.`
+                        : `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Give concise 3D slotting advice.`,
                   });
                 }}
                 onDeleteBin={handleDeleteBin}
@@ -2037,43 +2229,179 @@ export function App() {
       <ViewportContextMenu
         menu={contextMenu}
         skus={skus}
+        selectedProp={selectedProp}
         levelFilter={levelFilter}
+        maxLevels={Math.max(config.levels, zBreakdown.length)}
         activeLayout={activeLayout}
+        optimizationPreset={optimizationPreset}
+        allowRotationAndCoPack={allowRotationAndCoPack}
+        equipmentMode={equipmentMode}
+        viewLayer={viewLayer}
+        cameraPreset={cameraPreset}
+        animateRoute={animateRoute}
+        dragMoveMode={dragMoveMode}
+        dragScope={dragScope}
+        canUndo={undoStack.length > 0}
+        canRedo={redoStack.length > 0}
+        scenePresetId={sceneBg.presetId}
+        xrayBins={sceneBg.xrayBins}
+        appView={appView}
+        simpleMode={simpleMode}
         lang={lang}
         onClose={() => setContextMenu(null)}
         onInspectBin={(alloc) => {
           setSelectedBinId(alloc.bin.id);
           setLeftTab('inspector');
+          setAppView('workspace');
         }}
-        onPinSkuToBin={(binId, skuId) => handlePinCargo(binId, skuId, 1)}
-        onClearBinPins={(binId) =>
-          setPinnedPlacements((prev) => prev.filter((p) => p.binId !== binId))
+        onPinSkuToBin={(binId, skuId, delta = 1) =>
+          handlePinCargo(binId, skuId, delta)
         }
+        onMoveSkuToLevel={handleMoveSkuToLevel}
+        onClearBinPins={(binId) => {
+          pushWorkspaceUndo();
+          setPinnedPlacements((prev) => prev.filter((p) => p.binId !== binId));
+        }}
+        onClearAllPins={() => {
+          pushWorkspaceUndo();
+          setPinnedPlacements([]);
+        }}
         onAddBinAbove={handleAddBinAbove}
         onAddBinAtFloor={handleAddBinAtFloor}
         onDeleteBin={handleDeleteBin}
+        onAddInteriorPropAt={handleAddInteriorProp}
+        onUpdateInteriorProp={handleUpdateInteriorProp}
+        onDuplicateInteriorProp={handleDuplicateInteriorProp}
+        onDeleteInteriorProp={handleDeleteInteriorProp}
+        onAutoPopulateInterior={handleAutoPopulateInterior}
         onToggleLevelSlice={setLevelFilter}
         onAuditBinWithAi={(alloc) => {
           setSelectedBinId(alloc.bin.id);
+          setAppView('workspace');
           setExternalAiPrompt({
             id: Date.now(),
             mode: 'prefer_on_device',
-            prompt: `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Recommend exact 3D slotting improvements.`,
+            prompt:
+              lang === 'ko'
+                ? `선반 ${alloc.bin.id} (Z${alloc.bin.level}층, 높이 ${alloc.bin.zMeters}m, 채움률=${alloc.cubicUtilizationPct.toFixed(1)}%, 현재무게=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg)의 3D 적재 상태를 정밀 진단하고 개선안을 한국어로 추천해줘.`
+                : `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Recommend exact 3D slotting improvements.`,
+          });
+        }}
+        onRunQuickAiPrompt={(kind) => {
+          setAppView('workspace');
+          const promptMap = {
+            efficiency:
+              lang === 'ko'
+                ? `골든존(${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) 적중률과 3D 공간 활용률을 분석하고, 더 많은 물건을 안전하고 빠르게 수납할 수 있는 핵심 개선안 3가지를 한국어로 추천해줘.`
+                : `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage.`,
+            safety:
+              lang === 'ko'
+                ? '높은 층에 놓인 무거운 물건이나 통로 병목, 빈틈 낭비 구간을 점검하고 어떤 선반 칸(Bin ID)을 조정해야 하는지 한국어로 알려줘.'
+                : 'Check for heavy items placed too high or aisle congestion.',
+            offline:
+              lang === 'ko'
+                ? '현재 선택된 선반 칸(또는 최상위 피킹 칸)의 허용 하중, 3D 적재 상태, Z1 바닥층 이동 필요 여부를 로컬 온디바이스 AI로 점검해줘.'
+                : 'Run a local-only check on the currently focused bin.',
+          };
+          setExternalAiPrompt({
+            id: Date.now(),
+            mode: kind === 'offline' ? 'only_on_device' : 'prefer_on_device',
+            prompt: promptMap[kind],
           });
         }}
         onOpenCadExport={() => setCadModalOpen(true)}
         onOpenMapEditor={() => setMapEditorOpen(true)}
-        onOpenEditor={() => setLeftTab('editor')}
-        onChangeViewLayer={setViewLayer}
+        onOpenTemplateGallery={() => setTemplateGalleryOpen(true)}
+        onQuickSelectScenario={(id) => {
+          handleSelectScenario(id);
+          setAppView('workspace');
+        }}
+        onExportSkusCsv={() => exportSkusToCSV(skus, activeScenario.name)}
+        onExportSlottingCsv={() =>
+          exportSlottingResultToCSV(shownResult, activeScenario.name)
+        }
+        onOpenEditor={() => {
+          setLeftTab('editor');
+          setAppView('workspace');
+        }}
+        onOpenLeftTab={(tab) => {
+          setLeftTab(tab);
+          setAppView('workspace');
+        }}
+        onChangeViewLayer={(layer) => {
+          setViewLayer(layer);
+          setAppView('workspace');
+        }}
+        onChangeCameraPreset={(preset) => {
+          setCameraPreset(preset);
+          setAppView('workspace');
+        }}
+        onToggleAnimateRoute={() => setAnimateRoute((v) => !v)}
         onToggleLayout={() =>
           setActiveLayout((l) =>
             l === 'optimized_3d' ? 'baseline_2d' : 'optimized_3d'
           )
         }
+        onChangeOptimizationPreset={(preset) => {
+          setOptimizationPreset(preset);
+          setActiveLayout('optimized_3d');
+        }}
+        onToggleRotationAndCoPack={() =>
+          setAllowRotationAndCoPack((v) => !v)
+        }
+        onChangeEquipmentMode={setEquipmentMode}
+        onUndo={handleWorkspaceUndo}
+        onRedo={handleWorkspaceRedo}
+        onToggleDragMove={(scope) => {
+          if (dragMoveMode && dragScope === scope) {
+            setDragMoveMode(false);
+          } else {
+            setDragMoveMode(true);
+            setDragScope(scope);
+          }
+        }}
+        onTranslateWholeTemplate={handleTranslateWholeTemplate}
+        onRotateWholeTemplate90={handleRotateWholeTemplate90}
+        onScaleWholeTemplateSpacing={handleScaleWholeTemplateSpacing}
+        onCenterWholeTemplate={handleCenterWholeTemplate}
+        onResetSpaceEdits={() => {
+          pushWorkspaceUndo();
+          setConfigPatch({});
+          setCustomBinsOverride(null);
+          setExtraBins([]);
+          setRemovedBinIds([]);
+          setPinnedPlacements([]);
+        }}
         onResetCamera={() => {
           setCameraPreset('iso');
           setCameraResetTick((t) => t + 1);
         }}
+        onApplyScenePreset={(pid) => {
+          const found = SCENE_3D_PRESETS.find((x) => x.id === pid);
+          if (found) {
+            setSceneBg((prev) => ({
+              ...prev,
+              presetId: found.id,
+              ...found.settings,
+            }));
+          }
+        }}
+        onToggleXrayBins={() =>
+          setSceneBg((prev) => ({ ...prev, xrayBins: !prev.xrayBins }))
+        }
+        onOpenInteriorModal={(tab = 'interior') => {
+          setInteriorInitialTab(tab);
+          setInteriorModalOpen(true);
+        }}
+        onOpenSceneBgModal={() => setSceneBgModalOpen(true)}
+        onOpenDesignMenu={() => setDesignMenuOpen(true)}
+        onCycleTheme={cycleTheme}
+        onToggleAppView={() =>
+          setAppView((v) => (v === 'home' ? 'workspace' : 'home'))
+        }
+        onToggleSimpleMode={() => setSimpleMode((v) => !v)}
+        onToggleLanguage={toggleLanguage}
+        onOpenFirebaseSetup={() => setSetupOpen(true)}
       />
 
       <Suspense fallback={null}>
@@ -2096,6 +2424,7 @@ export function App() {
             config={config}
             bins={bins}
             scenario={activeScenario}
+            lang={lang}
             onApplyMapEdits={({ configPatch: nextPatch, customBins }) => {
               pushWorkspaceUndo();
               setConfigPatch((prev) => ({ ...prev, ...nextPatch }));

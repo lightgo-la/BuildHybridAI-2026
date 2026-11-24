@@ -99,8 +99,8 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   const maxL = (config.binLengthCm ?? 120) - 2;
   const maxW = (config.binWidthCm ?? 90) - 2;
   const maxH = (config.binHeightCm ?? 70) - 2;
-  const [skuCode, setSkuCode] = useState('CAD-105');
-  const [skuName, setSkuName] = useState('Custom Designed Carton');
+  const [skuCode, setSkuCode] = useState('ITEM-01');
+  const [skuName, setSkuName] = useState('다용도 수납 박스 (Storage Box)');
   const [abcClass, setAbcClass] = useState<ABCClass>('A');
   const [dailyPicks, setDailyPicks] = useState(120);
   const [lengthCm, setLengthCm] = useState(Math.min(40, maxL));
@@ -109,6 +109,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   const [weightKg, setWeightKg] = useState(8);
   const [quantity, setQuantity] = useState(6);
   const [fragile, setFragile] = useState(false);
+  const [editingSkuId, setEditingSkuId] = useState<string | null>(null);
 
   // Sync dimension form defaults whenever active template/rack bin bounds change
   useEffect(() => {
@@ -229,7 +230,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
             <div className="grid grid-cols-3 gap-2 text-[11px]">
               <div>
-                <span className="text-[10px] text-slate-400">Aisles (X)</span>
+                <span className="text-[10px] text-slate-400">
+                  {lang === 'ko' ? '선반 열 수 (X)' : 'Aisles (X)'}
+                </span>
                 <input
                   type="number"
                   min={1}
@@ -246,7 +249,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400">Bays (Y)</span>
+                <span className="text-[10px] text-slate-400">
+                  {lang === 'ko' ? '가로 칸 수 (Y)' : 'Bays (Y)'}
+                </span>
                 <input
                   type="number"
                   min={2}
@@ -266,7 +271,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400">Levels (Z)</span>
+                <span className="text-[10px] text-slate-400">
+                  {lang === 'ko' ? '높이 단수 (Z)' : 'Levels (Z)'}
+                </span>
                 <input
                   type="number"
                   min={2}
@@ -286,7 +293,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
             <div className="grid grid-cols-3 gap-2 text-[11px]">
               <div>
-                <span className="text-[10px] text-slate-400">Bin L (cm)</span>
+                <span className="text-[10px] text-slate-400">
+                  {lang === 'ko' ? '칸 가로 L (cm)' : 'Bin L (cm)'}
+                </span>
                 <input
                   type="number"
                   min={60}
@@ -303,7 +312,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400">Bin W (cm)</span>
+                <span className="text-[10px] text-slate-400">
+                  {lang === 'ko' ? '칸 깊이 W (cm)' : 'Bin W (cm)'}
+                </span>
                 <input
                   type="number"
                   min={50}
@@ -320,7 +331,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400">Bin H (cm)</span>
+                <span className="text-[10px] text-slate-400">
+                  {lang === 'ko' ? '칸 높이 H (cm)' : 'Bin H (cm)'}
+                </span>
                 <input
                   type="number"
                   min={40}
@@ -366,7 +379,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
             <div className="grid grid-cols-4 gap-1.5">
               <div>
-                <span className="text-[10px] text-slate-500">Aisle</span>
+                <span className="text-[10px] text-slate-500">
+                  {lang === 'ko' ? '열(Aisle)' : 'Aisle'}
+                </span>
                 <input
                   type="number"
                   min={1}
@@ -379,7 +394,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-500">Bay</span>
+                <span className="text-[10px] text-slate-500">
+                  {lang === 'ko' ? '칸(Bay)' : 'Bay'}
+                </span>
                 <input
                   type="number"
                   min={1}
@@ -392,7 +409,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-500">Level Z</span>
+                <span className="text-[10px] text-slate-500">
+                  {lang === 'ko' ? '층(Z)' : 'Level Z'}
+                </span>
                 <input
                   type="number"
                   min={1}
@@ -405,7 +424,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-500">Max kg</span>
+                <span className="text-[10px] text-slate-500">
+                  {lang === 'ko' ? '하중(kg)' : 'Max kg'}
+                </span>
                 <input
                   type="number"
                   min={100}
@@ -551,7 +572,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           {/* 1-Click Quick Item Chips (No typing required) */}
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
             <div className="mb-1.5 text-[10px] font-semibold text-slate-400">
-              Quick Add Item (1-Click · 클릭 한 번으로 물건 추가)
+              {lang === 'ko'
+                ? '원클릭 빠른 물품 추가 (클릭 한 번으로 바로 추가)'
+                : 'Quick Add Item (1-Click)'}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {QUICK_ITEM_PRESETS.map((preset) => (
@@ -592,29 +615,39 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <input
               value={skuCode}
               onChange={(e) => setSkuCode(e.target.value)}
-              placeholder="SKU Code"
+              placeholder={lang === 'ko' ? '물품 코드/라벨' : 'SKU Code'}
               className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
             />
             <input
               value={skuName}
               onChange={(e) => setSkuName(e.target.value)}
-              placeholder="Cargo Name"
+              placeholder={lang === 'ko' ? '물품 이름' : 'Cargo Name'}
               className="col-span-2 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
             />
             <div>
-              <span className="text-[10px] text-slate-500">ABC</span>
+              <span className="text-[10px] text-slate-500">
+                {lang === 'ko' ? '사용 빈도' : 'ABC'}
+              </span>
               <select
                 value={abcClass}
                 onChange={(e) => setAbcClass(e.target.value as ABCClass)}
                 className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
               >
-                <option value="A">Class A</option>
-                <option value="B">Class B</option>
-                <option value="C">Class C</option>
+                <option value="A">
+                  {lang === 'ko' ? '자주 씀 (A)' : 'Class A'}
+                </option>
+                <option value="B">
+                  {lang === 'ko' ? '보통 (B)' : 'Class B'}
+                </option>
+                <option value="C">
+                  {lang === 'ko' ? '가끔·보관 (C)' : 'Class C'}
+                </option>
               </select>
             </div>
             <div>
-              <span className="text-[10px] text-slate-500">Picks/d</span>
+              <span className="text-[10px] text-slate-500">
+                {lang === 'ko' ? '하루 꺼내는 횟수' : 'Picks/d'}
+              </span>
               <input
                 type="number"
                 value={dailyPicks}
@@ -625,7 +658,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               />
             </div>
             <div>
-              <span className="text-[10px] text-slate-500">Weight (kg)</span>
+              <span className="text-[10px] text-slate-500">
+                {lang === 'ko' ? '무게 (kg)' : 'Weight (kg)'}
+              </span>
               <input
                 type="number"
                 step="0.5"
@@ -637,7 +672,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               />
             </div>
             <div>
-              <span className="text-[10px] text-slate-500">L (≤{maxL})</span>
+              <span className="text-[10px] text-slate-500">
+                {lang === 'ko' ? `가로 L (≤${maxL})` : `L (≤${maxL})`}
+              </span>
               <input
                 type="number"
                 max={maxL}
@@ -649,7 +686,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               />
             </div>
             <div>
-              <span className="text-[10px] text-slate-500">W (≤{maxW})</span>
+              <span className="text-[10px] text-slate-500">
+                {lang === 'ko' ? `세로 W (≤${maxW})` : `W (≤${maxW})`}
+              </span>
               <input
                 type="number"
                 max={maxW}
@@ -661,7 +700,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               />
             </div>
             <div>
-              <span className="text-[10px] text-slate-500">H (≤{maxH}) / Qty</span>
+              <span className="text-[10px] text-slate-500">
+                {lang === 'ko' ? `높이 H (≤${maxH}) / 수량` : `H (≤${maxH}) / Qty`}
+              </span>
               <div className="flex gap-1">
                 <input
                   type="number"
@@ -689,14 +730,16 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 onChange={(e) => setFragile(e.target.checked)}
                 className="accent-amber-400"
               />
-              Fragile (upright only, block top stacking)
+              {lang === 'ko'
+                ? '파손주의 (세워서만 보관 · 상단 적재 금지)'
+                : 'Fragile (upright only, block top stacking)'}
             </label>
             <button
               type="submit"
               className="col-span-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/90 py-1.5 font-semibold text-slate-950 hover:bg-emerald-400"
             >
               <Plus className="h-3.5 w-3.5" />
-              Create Cargo SKU
+              {lang === 'ko' ? '새 수납 물품 추가' : 'Create Cargo SKU'}
             </button>
           </form>
 
@@ -706,14 +749,16 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               <div className="flex items-center justify-between font-semibold text-cyan-300">
                 <span className="inline-flex items-center gap-1">
                   <Pin className="h-3 w-3" />
-                  Manual Bin Pins ({pinnedPlacements.length})
+                  {lang === 'ko'
+                    ? `수동 고정된 물품 (${pinnedPlacements.length})`
+                    : `Manual Bin Pins (${pinnedPlacements.length})`}
                 </span>
                 <button
                   type="button"
                   onClick={onClearAllPins}
                   className="text-[10px] text-slate-400 hover:text-white"
                 >
-                  Clear All
+                  {lang === 'ko' ? '전체 해제' : 'Clear All'}
                 </button>
               </div>
               <div className="mt-1.5 space-y-1">
@@ -725,14 +770,14 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                       className="flex items-center justify-between text-[10px]"
                     >
                       <span>
-                        {p.binId} ← {sku?.skuCode ?? p.skuId} ×{p.count}
+                        {p.binId} ← {sku?.name ?? sku?.skuCode ?? p.skuId} ×{p.count}
                       </span>
                       <button
                         type="button"
                         onClick={() => onPinCargo(p.binId, p.skuId, -p.count)}
                         className="text-rose-400 hover:underline"
                       >
-                        Unpin
+                        {lang === 'ko' ? '해제' : 'Unpin'}
                       </button>
                     </div>
                   );
@@ -741,83 +786,237 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
           )}
 
-          {/* Cargo List with Qty +/-, Pin to Bin, Delete */}
-          <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
-            {skus.map((sku) => (
-              <div
-                key={sku.id}
-                className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-1.5 text-[11px]"
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="inline-block h-2.5 w-2.5 rounded-sm"
-                      style={{ backgroundColor: sku.color }}
-                    />
-                    <span className="font-semibold text-white">
-                      {sku.skuCode}
-                    </span>
-                    <span className="truncate text-slate-400">{sku.name}</span>
+          {/* Cargo List with Qty +/-, Inline Edit, Pin to Bin, Delete */}
+          <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+            {skus.map((sku) => {
+              const isEditing = editingSkuId === sku.id;
+              return (
+                <div
+                  key={sku.id}
+                  className="rounded-lg border border-slate-800 bg-slate-950/60 px-2.5 py-1.5 text-[11px]"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
+                          style={{ backgroundColor: sku.color }}
+                        />
+                        <span className="font-semibold text-white">
+                          {sku.skuCode}
+                        </span>
+                        <span className="truncate text-slate-300">
+                          {sku.name}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-slate-500">
+                        {sku.lengthCm}×{sku.widthCm}×{sku.heightCm}cm ·{' '}
+                        {sku.weightKg}kg ·{' '}
+                        {lang === 'ko'
+                          ? `수량 ${sku.quantity}개`
+                          : `qty ${sku.quantity}`}
+                      </div>
+                    </div>
+                    <div className="ml-2 flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setEditingSkuId(isEditing ? null : sku.id)
+                        }
+                        className={`rounded border px-1.5 py-0.5 text-[9px] font-semibold ${
+                          isEditing
+                            ? 'border-amber-400 bg-amber-500/20 text-amber-300'
+                            : 'border-slate-700 text-slate-300 hover:border-cyan-400'
+                        }`}
+                      >
+                        {lang === 'ko'
+                          ? isEditing
+                            ? '닫기'
+                            : '수정'
+                          : isEditing
+                            ? 'Close'
+                            : 'Edit'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onChangeSkus(
+                            skus.map((s) =>
+                              s.id === sku.id
+                                ? { ...s, quantity: Math.max(1, s.quantity - 1) }
+                                : s
+                            )
+                          )
+                        }
+                        className="rounded border border-slate-700 p-0.5 text-slate-300 hover:bg-slate-800"
+                        title="Decrease qty"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onChangeSkus(
+                            skus.map((s) =>
+                              s.id === sku.id
+                                ? {
+                                    ...s,
+                                    quantity: Math.min(50, s.quantity + 1),
+                                  }
+                                : s
+                            )
+                          )
+                        }
+                        className="rounded border border-slate-700 p-0.5 text-slate-300 hover:bg-slate-800"
+                        title="Increase qty"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                      {selectedBinId && (
+                        <button
+                          type="button"
+                          onClick={() => onPinCargo(selectedBinId, sku.id, 1)}
+                          className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
+                          title={`Pin 1 unit into ${selectedBinId}`}
+                        >
+                          {lang === 'ko' ? '+고정' : '+Pin'}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onChangeSkus(skus.filter((s) => s.id !== sku.id))
+                        }
+                        className="rounded p-1 text-slate-500 hover:bg-slate-800 hover:text-rose-400"
+                        title="Delete SKU"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="text-[10px] text-slate-500">
-                    {sku.lengthCm}×{sku.widthCm}×{sku.heightCm}cm ·{' '}
-                    {sku.weightKg}kg · qty {sku.quantity}
-                  </div>
-                </div>
-                <div className="ml-2 flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChangeSkus(
-                        skus.map((s) =>
-                          s.id === sku.id
-                            ? { ...s, quantity: Math.max(1, s.quantity - 1) }
-                            : s
-                        )
-                      )
-                    }
-                    className="rounded border border-slate-700 p-0.5 text-slate-300 hover:bg-slate-800"
-                    title="Decrease qty"
-                  >
-                    <Minus className="h-3 w-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onChangeSkus(
-                        skus.map((s) =>
-                          s.id === sku.id
-                            ? { ...s, quantity: Math.min(50, s.quantity + 1) }
-                            : s
-                        )
-                      )
-                    }
-                    className="rounded border border-slate-700 p-0.5 text-slate-300 hover:bg-slate-800"
-                    title="Increase qty"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                  {selectedBinId && (
-                    <button
-                      type="button"
-                      onClick={() => onPinCargo(selectedBinId, sku.id, 1)}
-                      className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
-                      title={`Pin 1 unit into ${selectedBinId}`}
-                    >
-                      +Pin
-                    </button>
+
+                  {isEditing && (
+                    <div className="mt-2 grid grid-cols-3 gap-1.5 border-t border-slate-800 pt-2 text-[10px]">
+                      <input
+                        value={sku.name}
+                        onChange={(e) =>
+                          onChangeSkus(
+                            skus.map((s) =>
+                              s.id === sku.id
+                                ? { ...s, name: e.target.value }
+                                : s
+                            )
+                          )
+                        }
+                        placeholder={lang === 'ko' ? '물품 이름' : 'Name'}
+                        className="col-span-2 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
+                      />
+                      <select
+                        value={sku.abcClass}
+                        onChange={(e) =>
+                          onChangeSkus(
+                            skus.map((s) =>
+                              s.id === sku.id
+                                ? { ...s, abcClass: e.target.value as ABCClass }
+                                : s
+                            )
+                          )
+                        }
+                        className="rounded border border-slate-700 bg-slate-900 px-1 py-1 text-slate-100"
+                      >
+                        <option value="A">
+                          {lang === 'ko' ? '자주 씀 (A)' : 'Class A'}
+                        </option>
+                        <option value="B">
+                          {lang === 'ko' ? '보통 (B)' : 'Class B'}
+                        </option>
+                        <option value="C">
+                          {lang === 'ko' ? '가끔 (C)' : 'Class C'}
+                        </option>
+                      </select>
+                      <div>
+                        <span className="text-slate-500">L(cm)</span>
+                        <input
+                          type="number"
+                          value={sku.lengthCm}
+                          onChange={(e) =>
+                            onChangeSkus(
+                              skus.map((s) =>
+                                s.id === sku.id
+                                  ? {
+                                      ...s,
+                                      lengthCm: parseInputInt(
+                                        e.target.value,
+                                        s.lengthCm,
+                                        8,
+                                        maxL
+                                      ),
+                                    }
+                                  : s
+                              )
+                            )
+                          }
+                          className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-slate-500">W(cm)</span>
+                        <input
+                          type="number"
+                          value={sku.widthCm}
+                          onChange={(e) =>
+                            onChangeSkus(
+                              skus.map((s) =>
+                                s.id === sku.id
+                                  ? {
+                                      ...s,
+                                      widthCm: parseInputInt(
+                                        e.target.value,
+                                        s.widthCm,
+                                        8,
+                                        maxW
+                                      ),
+                                    }
+                                  : s
+                              )
+                            )
+                          }
+                          className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-slate-500">
+                          {lang === 'ko' ? '무게(kg)' : 'kg'}
+                        </span>
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={sku.weightKg}
+                          onChange={(e) =>
+                            onChangeSkus(
+                              skus.map((s) =>
+                                s.id === sku.id
+                                  ? {
+                                      ...s,
+                                      weightKg: parseInputFloat(
+                                        e.target.value,
+                                        s.weightKg,
+                                        0.2,
+                                        500
+                                      ),
+                                    }
+                                  : s
+                              )
+                            )
+                          }
+                          className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+                        />
+                      </div>
+                    </div>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => onChangeSkus(skus.filter((s) => s.id !== sku.id))}
-                    className="rounded p-1 text-slate-500 hover:bg-slate-800 hover:text-rose-400"
-                    title="Delete SKU"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

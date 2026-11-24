@@ -589,6 +589,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
     const onContextMenu = (e: MouseEvent) => {
       e.preventDefault();
+      e.stopPropagation();
       const handler = onContextActionRef.current;
       if (!handler) return;
 
@@ -597,6 +598,30 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(pointer, camera);
 
+      const hitFloor = raycaster.ray.intersectPlane(floorPlane, floorHitVec);
+      const floorPt = hitFloor
+        ? { x: Number(floorHitVec.x.toFixed(2)), z: Number(floorHitVec.z.toFixed(2)) }
+        : null;
+
+      // 1. Check 3D Interior Furniture Props first
+      const propTargets = Array.from(propHitMeshesRef.current.keys());
+      const propHits = raycaster.intersectObjects(propTargets, false);
+      if (propHits.length > 0) {
+        const prop = propHitMeshesRef.current.get(propHits[0].object) ?? null;
+        if (prop) {
+          onSelectPropRef.current?.(prop.id);
+          handler({
+            clientX: e.clientX,
+            clientY: e.clientY,
+            binAlloc: null,
+            interiorProp: prop,
+            floorPoint: floorPt,
+          });
+          return;
+        }
+      }
+
+      // 2. Check 3D Storage Rack Bins
       const targets = Array.from(hitMeshesRef.current.keys());
       const hits = raycaster.intersectObjects(targets, false);
       if (hits.length > 0) {
@@ -606,17 +631,19 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           clientX: e.clientX,
           clientY: e.clientY,
           binAlloc: alloc,
-          floorPoint: null,
+          interiorProp: null,
+          floorPoint: floorPt,
         });
         return;
       }
 
-      const hitFloor = raycaster.ray.intersectPlane(floorPlane, floorHitVec);
+      // 3. Empty Floor / Scene Background
       handler({
         clientX: e.clientX,
         clientY: e.clientY,
         binAlloc: null,
-        floorPoint: hitFloor ? { x: hitFloor.x, z: hitFloor.z } : null,
+        interiorProp: null,
+        floorPoint: floorPt,
       });
     };
 
@@ -1337,6 +1364,15 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
       />
 
+      {/* Friendly Non-Intrusive Click Hint when no bin is selected */}
+      {!selectedBinId && !hoveredBin && (
+        <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-slate-800/80 bg-slate-950/75 px-2.5 py-1.5 text-[10px] text-slate-300 backdrop-blur">
+          {lang === 'ko'
+            ? '선반 칸을 클릭하면 내부 물품 확인 및 +1 바로 넣기가 가능합니다 (우클릭: 빠른 메뉴)'
+            : 'Click any shelf bin to inspect & place items (Right-click: quick menu)'}
+        </div>
+      )}
+
       {/* Live 3D Hover HUD Overlay Card */}
       {hoveredBin && (
         <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-xs rounded-xl border border-cyan-500/40 bg-slate-950/90 p-2.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
@@ -1349,19 +1385,19 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             </span>
             {hoveredBin.bin.isGoldenZone && (
               <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
-                {lang === 'ko' ? '골든존 ★' : 'Golden ★'}
+                {lang === 'ko' ? '허리높이 골든존' : 'Golden Zone'}
               </span>
             )}
           </div>
           <div className="mt-1 flex items-center gap-3 text-[10px] text-slate-300">
             <span>
-              {lang === 'ko' ? '적재율' : 'Cubic'}{' '}
+              {lang === 'ko' ? '채움률' : 'Cubic'}{' '}
               <strong className="text-white">
                 {hoveredBin.cubicUtilizationPct.toFixed(1)}%
               </strong>
             </span>
             <span>
-              {lang === 'ko' ? '하중' : 'Load'}{' '}
+              {lang === 'ko' ? '현재 무게' : 'Load'}{' '}
               <strong className="text-white">
                 {hoveredBin.currentWeightKg.toFixed(1)}/{hoveredBin.bin.maxWeightKg}kg
               </strong>
@@ -1378,7 +1414,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                     className="h-2 w-2 rounded-full"
                     style={{ backgroundColor: b.color }}
                   />
-                  {b.skuCode} ({b.name.slice(0, 10)})
+                  {b.name.split(' (')[0].slice(0, 14)}
                 </span>
               ))}
               {hoveredBin.boxes.length > 4 && (

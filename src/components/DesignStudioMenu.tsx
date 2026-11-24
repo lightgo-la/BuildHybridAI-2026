@@ -124,7 +124,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
         <section className="space-y-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-3.5">
           <div className="flex items-center gap-1.5 text-xs font-semibold">
             <Maximize2 className="h-3.5 w-3.5 text-[var(--t-accent)]" />
-            Menu & Panel Size Controls
+            {lang === 'ko' ? '화면 & 패널 크기 조절' : 'Menu & Panel Size Controls'}
           </div>
 
           {/* Quick Size Presets */}
@@ -134,28 +134,28 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
               onClick={() => applyPreset('balanced')}
               className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 font-medium hover:border-[var(--t-accent)]"
             >
-              Balanced 3-Col
+              {lang === 'ko' ? '기본 3단 균형' : 'Balanced 3-Col'}
             </button>
             <button
               type="button"
               onClick={() => applyPreset('cinema_3d')}
               className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 font-medium hover:border-[var(--t-accent)]"
             >
-              3D Cinema Focus
+              {lang === 'ko' ? '3D 화면 와이드 집중' : '3D Cinema Focus'}
             </button>
             <button
               type="button"
               onClick={() => applyPreset('compact_dense')}
               className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 font-medium hover:border-[var(--t-accent)]"
             >
-              Compact (88%)
+              {lang === 'ko' ? '컴팩트 뷰 (88%)' : 'Compact (88%)'}
             </button>
             <button
               type="button"
               onClick={() => applyPreset('large_accessible')}
               className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 font-medium hover:border-[var(--t-accent)]"
             >
-              Large UI (115%)
+              {lang === 'ko' ? '큰 글씨 뷰 (115%)' : 'Large UI (115%)'}
             </button>
           </div>
 
@@ -163,7 +163,9 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
           <div className="space-y-2.5 pt-1 text-[11px]">
             <div>
               <div className="flex justify-between">
-                <span className="text-[var(--t-muted)]">UI Menu & Text Scale</span>
+                <span className="text-[var(--t-muted)]">
+                  {lang === 'ko' ? 'UI 메뉴·글자 크기' : 'UI Menu & Text Scale'}
+                </span>
                 <span className="font-semibold text-[var(--t-accent)]">
                   {settings.uiScalePct}%
                 </span>
@@ -184,7 +186,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             <div>
               <div className="flex justify-between">
                 <span className="text-[var(--t-muted)]">
-                  Left Optimizer Menu Width
+                  {lang === 'ko' ? '좌측 패널 폭' : 'Left Optimizer Menu Width'}
                 </span>
                 <span className="font-semibold">{settings.leftPanelPx}px</span>
               </div>
@@ -204,7 +206,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             <div>
               <div className="flex justify-between">
                 <span className="text-[var(--t-muted)]">
-                  Right AI Co-Pilot Width
+                  {lang === 'ko' ? '우측 AI 패널 폭' : 'Right AI Co-Pilot Width'}
                 </span>
                 <span className="font-semibold">{settings.rightPanelPx}px</span>
               </div>
@@ -227,7 +229,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             <div>
               <div className="flex justify-between">
                 <span className="text-[var(--t-muted)]">
-                  3D Twin Viewport Height
+                  {lang === 'ko' ? '3D 화면 최소 높이' : '3D Twin Viewport Height'}
                 </span>
                 <span className="font-semibold">
                   {settings.viewportMinHeightPx}px
@@ -262,7 +264,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
                 className="accent-[var(--t-accent)]"
               />
               <LayoutTemplate className="h-3 w-3 text-[var(--t-muted)]" />
-              Show Map Strip
+              {lang === 'ko' ? '상단 공간 선택 바 표시' : 'Show Map Strip'}
             </label>
             <label className="flex cursor-pointer items-center gap-1.5">
               <input
@@ -274,7 +276,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
                 className="accent-[var(--t-accent)]"
               />
               <Sliders className="h-3 w-3 text-[var(--t-muted)]" />
-              Show KPI Bar
+              {lang === 'ko' ? 'KPI 요약 카드 표시' : 'Show KPI Bar'}
             </label>
           </div>
         </section>
@@ -283,7 +285,8 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
         <section className="space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold">
-              Theme Palette ({filteredThemes.length} / {DESIGN_THEMES.length})
+              {lang === 'ko' ? '테마 팔레트' : 'Theme Palette'} (
+              {filteredThemes.length} / {DESIGN_THEMES.length})
             </span>
             <div className="flex overflow-hidden rounded-lg border border-[var(--t-border)] text-[10px]">
               {(['all', 'dark', 'light'] as const).map((m) => (

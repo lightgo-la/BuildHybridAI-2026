@@ -71,7 +71,7 @@ export function useWarehouseTransforms({
   );
 
   const handlePinCargo = useCallback(
-    (binId: string, skuId: string, delta: number) => {
+    (binId: string, skuId: string, delta: number = 1) => {
       pushWorkspaceUndo();
       setPinnedPlacements((prev) => {
         const idx = prev.findIndex(
@@ -90,6 +90,53 @@ export function useWarehouseTransforms({
       });
     },
     [pushWorkspaceUndo, setPinnedPlacements]
+  );
+
+  const handleMoveSkuToLevel = useCallback(
+    (fromBinId: string, skuId: string, targetLevel: number) => {
+      const fromBin = bins.find((b) => b.id === fromBinId);
+      const sameColBin = fromBin
+        ? bins.find(
+            (b) =>
+              b.aisle === fromBin.aisle &&
+              b.bay === fromBin.bay &&
+              b.level === targetLevel
+          )
+        : null;
+      const targetBin =
+        sameColBin ??
+        bins.find((b) => b.level === targetLevel) ??
+        bins[0] ??
+        null;
+      if (!targetBin) return;
+
+      pushWorkspaceUndo();
+      setPinnedPlacements((prev) => {
+        const filtered = prev
+          .map((p) =>
+            p.binId === fromBinId && p.skuId === skuId
+              ? { ...p, count: p.count - 1 }
+              : p
+          )
+          .filter((p) => p.count > 0);
+        const existingIdx = filtered.findIndex(
+          (p) => p.binId === targetBin.id && p.skuId === skuId
+        );
+        if (existingIdx === -1) {
+          return [...filtered, { binId: targetBin.id, skuId, count: 1 }];
+        }
+        return filtered.map((p, i) =>
+          i === existingIdx ? { ...p, count: p.count + 1 } : p
+        );
+      });
+      setSelectedBinId(targetBin.id);
+      showToast(
+        lang === 'ko'
+          ? `물품을 [${targetBin.id}] (Z${targetLevel}층) 선반으로 이동했습니다.`
+          : `Moved item to [${targetBin.id}] (Level Z${targetLevel}).`
+      );
+    },
+    [bins, lang, pushWorkspaceUndo, setPinnedPlacements, setSelectedBinId, showToast]
   );
 
   const handleAddBinAbove = useCallback(
@@ -463,7 +510,7 @@ export function useWarehouseTransforms({
   );
 
   const handleAddInteriorProp = useCallback(
-    (type: InteriorPropType) => {
+    (type: InteriorPropType, customX?: number, customY?: number) => {
       pushWorkspaceUndo();
       const cat =
         INTERIOR_PROP_CATALOG.find((c) => c.type === type) ??
@@ -474,8 +521,14 @@ export function useWarehouseTransforms({
         id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         type,
         label: lang === 'ko' ? cat.nameKo : cat.nameEn,
-        xMeters: Number((-0.8 + (offsetIdx % 4) * 1.4).toFixed(2)),
-        yMeters: Number((0.4 + Math.floor(offsetIdx / 4) * 1.3).toFixed(2)),
+        xMeters:
+          customX !== undefined
+            ? Number(customX.toFixed(2))
+            : Number((-0.8 + (offsetIdx % 4) * 1.4).toFixed(2)),
+        yMeters:
+          customY !== undefined
+            ? Number(customY.toFixed(2))
+            : Number((0.4 + Math.floor(offsetIdx / 4) * 1.3).toFixed(2)),
         rotationDeg: 0,
         scale: 1.0,
         color: cat.defaultColor,
@@ -625,6 +678,7 @@ export function useWarehouseTransforms({
     handleAddBin,
     handleDeleteBin,
     handlePinCargo,
+    handleMoveSkuToLevel,
     handleAddBinAbove,
     handleAddBinAtFloor,
     handleMoveRackColumn,

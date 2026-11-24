@@ -2,6 +2,7 @@
   "name": "3d-warehouse-slotting-optimization",
   "private": true,
   "version": "1.0.0",
+  "license": "Apache-2.0",
   "description": "3D Warehouse Slotting Optimization & Digital Twin powered by Firebase AI Logic Hybrid Inference",
   "type": "module",
   "scripts": {

@@ -270,15 +270,27 @@ export function getCargoLabelTexture(
   ctx.font = 'bold 30px sans-serif';
   ctx.fillText(`CLS ${box.abcClass}`, 376, 277);
 
-  // Full Readable Item Name
+  // Full Readable Item Name (Cleanly splits bilingual Korean + English parenthetical)
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 34px "Malgun Gothic", "Segoe UI", sans-serif';
-  const line1 = box.name.slice(0, 15);
-  const line2 = box.name.length > 15 ? box.name.slice(15, 30) : '';
+  const parenIdx = box.name.indexOf(' (');
+  const line1 =
+    parenIdx > 0
+      ? box.name.slice(0, parenIdx).slice(0, 15)
+      : box.name.slice(0, 15);
+  const line2 =
+    parenIdx > 0
+      ? box.name
+          .slice(parenIdx + 2)
+          .replace(/\)$/, '')
+          .slice(0, 20)
+      : box.name.length > 15
+        ? box.name.slice(15, 30)
+        : '';
   ctx.fillText(line1, 54, 344);
   if (line2) {
-    ctx.font = 'bold 28px "Malgun Gothic", "Segoe UI", sans-serif';
-    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 26px "Malgun Gothic", "Segoe UI", sans-serif';
+    ctx.fillStyle = '#cbd5e1';
     ctx.fillText(line2, 54, 382);
   }
 

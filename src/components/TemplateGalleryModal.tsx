@@ -85,9 +85,23 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
           <div className="flex overflow-hidden rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)]">
             {(
               [
-                ['all', `All (${WAREHOUSE_TEMPLATES.length})`, null],
-                ['professional', 'Pro Logistics (12)', Briefcase],
-                ['everyday', 'Everyday / Home (12)', Home],
+                [
+                  'all',
+                  lang === 'ko'
+                    ? `전체 (${WAREHOUSE_TEMPLATES.length})`
+                    : `All (${WAREHOUSE_TEMPLATES.length})`,
+                  null,
+                ],
+                [
+                  'professional',
+                  lang === 'ko' ? '전문 물류 (12)' : 'Pro Logistics (12)',
+                  Briefcase,
+                ],
+                [
+                  'everyday',
+                  lang === 'ko' ? '일상·가정 (12)' : 'Everyday / Home (12)',
+                  Home,
+                ],
               ] as const
             ).map(([id, label, Icon]) => (
               <button
@@ -113,7 +127,9 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
             }
             className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 text-[11px]"
           >
-            <option value="all">All Categories</option>
+            <option value="all">
+              {lang === 'ko' ? '전체 카테고리' : 'All Categories'}
+            </option>
             {(
               Object.entries(TEMPLATE_CATEGORY_LABELS) as Array<
                 [TemplateCategory, string]

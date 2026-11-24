@@ -22,6 +22,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
+import { type LangCode } from '../i18n/translations';
 import type {
   BinSpec,
   WarehouseConfig,
@@ -103,6 +104,7 @@ interface MapEditorModalProps {
   config: WarehouseConfig;
   bins: BinSpec[];
   scenario: WarehouseScenario;
+  lang?: LangCode;
   onApplyMapEdits: (params: {
     configPatch: Partial<WarehouseConfig>;
     customBins: BinSpec[];
@@ -180,9 +182,11 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   config,
   bins,
   scenario,
+  lang = 'ko',
   onApplyMapEdits,
   onSaveCustomScenario,
 }) => {
+  const isKo = lang === 'ko';
   const isScenarioEveryday =
     scenario.id.startsWith('everyday') || scenario.id.startsWith('tpl-life-');
   const [persona, setPersona] = useState<EditorPersona>(
@@ -762,11 +766,14 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             <MapIcon className="h-4 w-4 text-[var(--t-accent)]" />
             <div>
               <h3 className="text-sm font-bold">
-                Free-Canvas 2D Space & Map Editor (Pro & Everyday)
+                {isKo
+                  ? '2D 공간 & 평면도 자유 에디터 (전문 물류 · 일상 공간)'
+                  : 'Free-Canvas 2D Space & Map Editor (Pro & Everyday)'}
               </h3>
               <p className="text-[11px] text-[var(--t-muted)]">
-                Drag racks/obstacles/depot anywhere · Drag floor handles to
-                resize space · Marquee drag to move groups · Right-click to edit
+                {isKo
+                  ? '선반·기둥·출입구를 마우스로 드래그 이동 · 파란 테두리 핸들로 방 크기 조절 · 빈 바닥 드래그로 다중 선택 · 우클릭 메뉴 지원'
+                  : 'Drag racks/obstacles/depot anywhere · Drag floor handles to resize space · Marquee drag to move groups · Right-click to edit'}
               </p>
             </div>
           </div>
@@ -783,7 +790,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 }`}
               >
                 <Briefcase className="h-3 w-3" />
-                Pro
+                {isKo ? '전문 물류' : 'Pro'}
               </button>
               <button
                 type="button"
@@ -795,7 +802,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 }`}
               >
                 <Home className="h-3 w-3" />
-                Everyday
+                {isKo ? '일상·가정' : 'Everyday'}
               </button>
             </div>
 
@@ -807,7 +814,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               title="Undo (Ctrl+Z)"
             >
               <Undo2 className="h-3.5 w-3.5" />
-              Undo
+              {isKo ? '실행취소' : 'Undo'}
             </button>
             <button
               type="button"
@@ -819,7 +826,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             </button>
             <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 py-1.5">
               <Upload className="h-3.5 w-3.5" />
-              Import
+              {isKo ? '불러오기' : 'Import'}
               <input
                 type="file"
                 accept=".json"
@@ -843,7 +850,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
           <div className="space-y-3 overflow-y-auto pr-1 text-xs lg:col-span-4">
             <div>
               <label className="mb-1 block text-[11px] text-[var(--t-muted)]">
-                Map Name
+                {isKo ? '공간 맵 이름' : 'Map Name'}
               </label>
               <input
                 value={mapName}
@@ -857,7 +864,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="flex items-center justify-between font-semibold">
                 <span className="inline-flex items-center gap-1.5">
                   <Maximize2 className="h-3.5 w-3.5 text-[var(--t-accent)]" />
-                  Easy Space Size Controls
+                  {isKo ? '공간·선반 크기 간편 조절' : 'Easy Space Size Controls'}
                 </span>
                 <span className="text-[10px] text-[var(--t-accent)]">
                   {floorWidthM}m × {floorDepthM}m
@@ -885,7 +892,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               {/* Sliders for Width & Depth */}
               <div>
                 <div className="flex justify-between text-[10px] text-[var(--t-muted)]">
-                  <span>Floor Width</span>
+                  <span>{isKo ? '바닥 가로 폭 (Width)' : 'Floor Width'}</span>
                   <span>{floorWidthM} m</span>
                 </div>
                 <input
@@ -901,7 +908,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               <div>
                 <div className="flex justify-between text-[10px] text-[var(--t-muted)]">
-                  <span>Floor Depth</span>
+                  <span>{isKo ? '바닥 세로 깊이 (Depth)' : 'Floor Depth'}</span>
                   <span>{floorDepthM} m</span>
                 </div>
                 <input
@@ -917,7 +924,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               {/* Quick Scale All Racks */}
               <div className="flex items-center justify-between gap-1.5 pt-0.5 text-[10px]">
-                <span className="text-[var(--t-muted)]">Scale All Shelves:</span>
+                <span className="text-[var(--t-muted)]">
+                  {isKo ? '전체 선반 크기 일괄 조절:' : 'Scale All Shelves:'}
+                </span>
                 <div className="flex gap-1">
                   <button
                     type="button"
@@ -938,7 +947,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div>
-                  <span className="text-[10px] text-[var(--t-muted)]">Aisles</span>
+                  <span className="text-[10px] text-[var(--t-muted)]">
+                    {isKo ? '선반 열 수' : 'Aisles'}
+                  </span>
                   <input
                     type="number"
                     min={1}
@@ -951,7 +962,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   />
                 </div>
                 <div>
-                  <span className="text-[10px] text-[var(--t-muted)]">Bays</span>
+                  <span className="text-[10px] text-[var(--t-muted)]">
+                    {isKo ? '가로 칸 수' : 'Bays'}
+                  </span>
                   <input
                     type="number"
                     min={1}
@@ -966,7 +979,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   />
                 </div>
                 <div>
-                  <span className="text-[10px] text-[var(--t-muted)]">Max Z</span>
+                  <span className="text-[10px] text-[var(--t-muted)]">
+                    {isKo ? '최대 층수(Z)' : 'Max Z'}
+                  </span>
                   <input
                     type="number"
                     min={1}
@@ -987,7 +1002,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    Bin L (cm)
+                    {isKo ? '칸 가로 L(cm)' : 'Bin L (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1006,7 +1021,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    Bin W (cm)
+                    {isKo ? '칸 깊이 W(cm)' : 'Bin W (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1025,7 +1040,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    Bin H (cm)
+                    {isKo ? '칸 높이 H(cm)' : 'Bin H (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1078,28 +1093,28 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   onClick={() => regenerateGrid('full')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  Rebuild Full Grid
+                  {isKo ? '전체 격자 재배치' : 'Rebuild Full Grid'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('cross_aisle')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  Cross-Aisle Grid
+                  {isKo ? '중앙 교차 통로형' : 'Cross-Aisle Grid'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('u_shape')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  U-Shape Floor
+                  {isKo ? 'ㄷ자형 공간 배치' : 'U-Shape Floor'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('mezzanine')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  Mezzanine Step
+                  {isKo ? '전면 저층·후면 고층' : 'Mezzanine Step'}
                 </button>
               </div>
             </div>
@@ -1349,12 +1364,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="flex flex-wrap gap-1">
                 {(
                   [
-                    ['select', 'Drag / Select', MousePointer2],
-                    ['add_rack', `+Rack (Z${levels})`, PlusSquare],
-                    ['add_low', '+Low Shelf', PlusSquare],
-                    ['add_obstacle', '+Pillar / Wall', Ban],
-                    ['move_depot', 'Move Depot', Navigation],
-                    ['erase', 'Erase', Eraser],
+                    ['select', isKo ? '선택 / 드래그' : 'Drag / Select', MousePointer2],
+                    ['add_rack', isKo ? `+선반 (Z${levels})` : `+Rack (Z${levels})`, PlusSquare],
+                    ['add_low', isKo ? '+낮은 선반' : '+Low Shelf', PlusSquare],
+                    ['add_obstacle', isKo ? '+기둥 / 벽' : '+Pillar / Wall', Ban],
+                    ['move_depot', isKo ? '출입구 이동' : 'Move Depot', Navigation],
+                    ['erase', isKo ? '지우개' : 'Erase', Eraser],
                   ] as const
                 ).map(([id, label, Icon]) => (
                   <button
@@ -1788,8 +1803,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             {/* Footer */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2.5 text-xs">
               <span className="text-[11px] text-[var(--t-muted)]">
-                Drag racks/depot/edges freely · Drag empty floor to multi-select
-                group · Right-click anywhere to edit
+                {isKo
+                  ? '선반·출입구·테두리 핸들을 자유롭게 드래그 · 빈 바닥 드래그로 다중 선택 · 우클릭으로 세부 편집'
+                  : 'Drag racks/depot/edges freely · Drag empty floor to multi-select group · Right-click anywhere to edit'}
               </span>
               <div className="flex gap-2">
                 <button
@@ -1798,7 +1814,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-3 py-1.5 font-semibold hover:border-[var(--t-accent)]"
                 >
                   <Save className="h-3.5 w-3.5 text-emerald-400" />
-                  Save as New Map Card
+                  {isKo ? '새 공간 카드로 저장' : 'Save as New Map Card'}
                 </button>
                 <button
                   type="button"
@@ -1810,7 +1826,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   }}
                 >
                   <Check className="h-3.5 w-3.5" />
-                  Apply Canvas to 3D Twin
+                  {isKo ? '3D 화면에 바로 적용' : 'Apply Canvas to 3D Twin'}
                 </button>
               </div>
             </div>

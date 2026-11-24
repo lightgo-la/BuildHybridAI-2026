@@ -40,7 +40,7 @@
 
 2. **24 Ready-to-Use Pro & Everyday Space Templates with Bespoke 3D Previews (`src/data/warehouseTemplates.ts`, `public/templates/`)**
    - **12 Professional WMS / Logistics Templates**: Omni High-Bay, AS/RS Cube, Cold-Chain Hub, Heavy Cross-Dock, Pharma GDP Vault, Fashion Mezzanine, Auto Parts, 3PL Cross-Aisle with Pillars, Beverage Depot, ESD Clean Rack, Q-Commerce Dark Store, Goods-to-Person Shuttle.
-   - **12 Everyday Home & Small-Business Templates**: Home Kitchen Pantry (팬트리), Walk-In Closet (드레스룸), Deep Fridge & Freezer (냉장고), Garage & DIY Tool Rack (차고/공구), Camping Gear (캠핑장비), Studio Apartment Wall (원룸 수납벽), Smart Store Packing Room (스마트스토어), Study & Hobby Shelf (서재/취미), Laundry & Utility Room (다용도실), Cafe Stockroom (카페 창고), Office Supply Archive (사무실 비품), Moving & Self-Storage (이삿짐).
+   - **12 Everyday Home & Small-Business Templates**: Home Kitchen Pantry (팬트리), Walk-In Closet (드레스룸), Deep Fridge & Freezer (냉장고), Garage & DIY Tool Rack (차고/공구), Camping Gear (캠핑장비), Studio Apartment Wall (원룸 수납벽), Online Shop Packing Room (온라인 쇼핑몰 포장실), Study & Hobby Shelf (서재/취미), Laundry & Utility Room (다용도실), Cafe Stockroom (카페 창고), Office Supply Archive (사무실 비품), Moving & Self-Storage (이삿짐).
 
 3. **Everyday Life Home Dashboard (`src/components/EverydayHomeView.tsx`)**
    - Dedicated approachable home mode with visual template cards, SKU content chips, plain-language KPIs, and a **10-Second Custom Room / Shelf Builder**.
@@ -54,7 +54,7 @@
 5. **2D Free-Canvas Map Editor, CSV Data Pipeline & 2D CAD Blueprint Exporter (`.DXF` / `.SVG` / `.CSV`)**
    - **2D Free Canvas (`src/components/MapEditorModal.tsx`)**: Pointer-enabled drag-and-drop racks, marquee multi-select, right-click context actions, interactive floor resize handles, pillars/obstacles, and JSON import/export.
    - **Warehouse CSV Data Pipeline (`src/utils/csvExporter.ts`)**: Import custom SKU master tables (`.CSV` with UTF-8 BOM & Korean/English header mapping) and export both SKU catalogs and 3D bin-packing coordinate schedules to `.CSV`.
-   - **AutoCAD R12 `.DXF` & `.SVG` Blueprint Generator (`src/utils/cadExporter.ts`)**: 1:1 metric plan view + front Z-elevation view with orthogonal aisle pick routes.
+   - **Standard R12 ASCII `.DXF` (AutoCAD-compatible) & `.SVG` Blueprint Generator (`src/utils/cadExporter.ts`)**: 1:1 metric plan view + front Z-elevation view with orthogonal aisle pick routes.
 
 6. **Firebase AI Logic Hybrid Co-Pilot & Action Engine (`src/services/hybridAi.ts`, `src/components/HybridAICopilotPanel.tsx`)**
    - Uses official **`firebase/ai`** SDK (`InferenceMode.PREFER_ON_DEVICE`, `ONLY_ON_DEVICE`, `PREFER_IN_CLOUD`, `ONLY_IN_CLOUD`) with Chrome built-in **Gemini Nano Prompt API** fallback, local quantitative heuristic fallback, **1-click 3D Bin Camera Focus chips**, and **1-click Executable Slotting Actions**.

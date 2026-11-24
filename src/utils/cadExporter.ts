@@ -190,7 +190,7 @@ function dxfText(
 }
 
 /**
- * Generates an AutoCAD R12 ASCII DXF file (metric units: 1 drawing unit = 1 meter)
+ * Generates a Standard R12 ASCII .DXF file (AutoCAD-compatible, metric units: 1 drawing unit = 1 meter)
  * containing both the Top-Down 2D Floor Plan and Front Z-Elevation View.
  */
 export function generateWarehouseDXF(

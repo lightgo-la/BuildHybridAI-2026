@@ -287,21 +287,27 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
               {item.answer.inferenceSource === 'on_device' ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300">
                   <Lock className="h-2.5 w-2.5" />
-                  ON_DEVICE (Gemini Nano)
+                  {lang === 'ko'
+                    ? '온디바이스 AI (Gemini Nano)'
+                    : 'ON_DEVICE (Gemini Nano)'}
                 </span>
               ) : item.answer.inferenceSource === 'in_cloud' ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/15 px-2 py-0.5 font-semibold text-sky-300">
                   <Cloud className="h-2.5 w-2.5" />
-                  IN_CLOUD ({item.answer.modelName})
+                  {lang === 'ko'
+                    ? `클라우드 AI (${item.answer.modelName})`
+                    : `IN_CLOUD (${item.answer.modelName})`}
                 </span>
               ) : item.answer.inferenceSource === 'local_engine' ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-300">
                   <Cpu className="h-2.5 w-2.5" />
-                  LOCAL_ENGINE (On-Device Heuristic)
+                  {lang === 'ko'
+                    ? '로컬 슬로팅 분석 엔진 (오프라인 즉시 응답)'
+                    : 'LOCAL_ENGINE (On-Device Heuristic)'}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 font-semibold text-rose-300">
-                  NOT EXECUTED
+                  {lang === 'ko' ? '실행되지 않음' : 'NOT EXECUTED'}
                 </span>
               )}
               <span className="text-slate-500">{item.answer.latencyMs} ms</span>
@@ -400,7 +406,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
           ) : (
             <Send className="h-3.5 w-3.5" />
           )}
-          Ask
+          {lang === 'ko' ? '질문' : 'Ask'}
         </button>
       </form>
     </div>
