@@ -1,12 +1,9 @@
 # CubiSlot 3D — 3D Warehouse & Living Space Slotting Digital Twin (`#BuildHybridAI 2026`)
 
+<img width="2528" height="1280" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/44075604-0476-44f7-8866-5acf4f59f8ce" />
+
 > **Google for Developers `#BuildHybridAI 2026` Challenge · Web / Chrome Track**  
 > Open-Source 3D Warehouse Slotting Optimization & Everyday Home Storage Digital Twin powered by **Firebase AI Logic (`firebase/ai`)** Hybrid Inference (**On-Device Chrome Gemini Nano** + **Cloud Gemini Fallback**).
-
-![Home Kitchen Pantry 3D Preview](public/templates/tpl-life-13-pantry.png)
-
-![Omni High-Bay Fulfillment 3D Preview](public/templates/tpl-pro-01-highbay.png)
-
 ---
 
 ## ✨ Key Features
