@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+:root {
+  --t-bg: #020617;
+  --t-surface: #0f172a;
+  --t-surface-alt: #090f1d;
+  --t-border: #1e293b;
+  --t-text: #f1f5f9;
+  --t-muted: #94a3b8;
+  --t-accent: #22d3ee;
+  --t-accent-text: #082f49;
+  --left-panel-px: 320px;
+  --right-panel-px: 370px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background-color: var(--t-bg);
+  color: var(--t-text);
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+@media (min-width: 1024px) {
+  .workspace-grid {
+    grid-template-columns: var(--left-panel-px) minmax(320px, 1fr) var(--right-panel-px);
+    align-items: stretch;
+  }
+}
+
+/* Full 24-theme propagation across surfaces, borders, text, and accents */
+.themed-shell {
+  background-color: var(--t-bg);
+  color: var(--t-text);
+  --t-accent-soft: color-mix(in srgb, var(--t-accent) 18%, transparent);
+  --t-accent-border: color-mix(in srgb, var(--t-accent) 45%, transparent);
+}
+
+.themed-shell header,
+.themed-shell .theme-surface {
+  background-color: var(--t-surface) !important;
+  border-color: var(--t-border) !important;
+}
+
+.themed-shell .bg-slate-950,
+.themed-shell .bg-slate-950\/80,
+.themed-shell .bg-slate-950\/70,
+.themed-shell .bg-slate-950\/60,
+.themed-shell .bg-slate-950\/50,
+.themed-shell .bg-slate-950\/40 {
+  background-color: var(--t-surface-alt) !important;
+}
+
+.themed-shell .bg-slate-900,
+.themed-shell .bg-slate-900\/90,
+.themed-shell .bg-slate-900\/85,
+.themed-shell .bg-slate-900\/80,
+.themed-shell .bg-slate-900\/60,
+.themed-shell .bg-slate-900\/50,
+.themed-shell .bg-slate-800,
+.themed-shell .bg-slate-800\/80 {
+  background-color: var(--t-surface) !important;
+}
+
+.themed-shell .border-slate-800,
+.themed-shell .border-slate-800\/80,
+.themed-shell .border-slate-700,
+.themed-shell .border-slate-700\/80 {
+  border-color: var(--t-border) !important;
+}
+
+.themed-shell .text-white,
+.themed-shell .text-slate-100,
+.themed-shell .text-slate-200,
+.themed-shell .text-slate-300 {
+  color: var(--t-text) !important;
+}
+
+.themed-shell .text-slate-400,
+.themed-shell .text-slate-500 {
+  color: var(--t-muted) !important;
+}
+
+/* Dynamic Theme Accent Propagation */
+.themed-shell .text-cyan-300,
+.themed-shell .text-cyan-400 {
+  color: var(--t-accent) !important;
+}
+
+.themed-shell .bg-cyan-500 {
+  background-color: var(--t-accent) !important;
+  color: var(--t-accent-text) !important;
+}
+
+.themed-shell .bg-cyan-500\/20,
+.themed-shell .bg-cyan-500\/15,
+.themed-shell .bg-cyan-500\/10,
+.themed-shell .bg-cyan-950\/40,
+.themed-shell .bg-cyan-950\/35 {
+  background-color: var(--t-accent-soft) !important;
+}
+
+.themed-shell .border-cyan-400,
+.themed-shell .border-cyan-500\/30,
+.themed-shell .border-cyan-500\/40 {
+  border-color: var(--t-accent-border) !important;
+}
+
+.themed-shell[data-theme-mode='light'] .text-emerald-300,
+.themed-shell[data-theme-mode='light'] .text-emerald-400 {
+  color: #047857 !important;
+}
+
+.themed-shell[data-theme-mode='light'] .text-amber-300 {
+  color: #b45309 !important;
+}
+
+.themed-shell[data-theme-mode='light'] .text-rose-300,
+.themed-shell[data-theme-mode='light'] .text-rose-400 {
+  color: #be123c !important;
+}
