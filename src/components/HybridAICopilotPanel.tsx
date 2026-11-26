@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Bot,
+  Check,
   ChevronDown,
   ChevronUp,
   Cloud,
+  Copy,
   Cpu,
   Loader2,
   Lock,
   Send,
   ShieldCheck,
   Sliders,
+  Trash2,
 } from 'lucide-react';
 import type { FirebaseServicesState } from '../services/firebaseClient';
 import {
@@ -93,10 +96,21 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [promptInput, setPromptInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [history, setHistory] = useState<
     Array<{ question: string; answer: HybridAIResponse }>
   >([]);
   const lastExtIdRef = useRef<number>(0);
+
+  const handleCopyReport = async (text: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIdx(idx);
+      window.setTimeout(() => setCopiedIdx(null), 1800);
+    } catch {
+      // ignore clipboard permissions error
+    }
+  };
 
   const executeQuery = async (
     question: string,
@@ -160,19 +174,31 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowAdvanced((v) => !v)}
-            className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[10px] text-slate-300 hover:border-cyan-500/40"
-          >
-            <Sliders className="h-3 w-3 text-cyan-400" />
-            {lang === 'ko' ? 'AI 설정' : 'AI Settings'}
-            {showAdvanced ? (
-              <ChevronUp className="h-3 w-3" />
-            ) : (
-              <ChevronDown className="h-3 w-3" />
+          <div className="flex items-center gap-1.5">
+            {history.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setHistory([])}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[10px] text-slate-400 hover:border-rose-500/40 hover:text-rose-300"
+                title={lang === 'ko' ? '대화 기록 지우기' : 'Clear History'}
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
             )}
-          </button>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[10px] text-slate-300 hover:border-cyan-500/40"
+            >
+              <Sliders className="h-3 w-3 text-cyan-400" />
+              {lang === 'ko' ? 'AI 설정' : 'AI Settings'}
+              {showAdvanced ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Collapsible Technical SDK Telemetry & InferenceMode */}
@@ -282,7 +308,27 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
             key={idx}
             className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/80 p-3"
           >
-            <div className="font-medium text-cyan-300">Q: {item.question}</div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="font-medium text-cyan-300">Q: {item.question}</div>
+              <button
+                type="button"
+                onClick={() => handleCopyReport(item.answer.text, idx)}
+                className="inline-flex shrink-0 items-center gap-1 rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-cyan-500/50"
+                title={lang === 'ko' ? '분석 리포트 복사' : 'Copy Audit Report'}
+              >
+                {copiedIdx === idx ? (
+                  <>
+                    <Check className="h-2.5 w-2.5 text-emerald-400" />
+                    {lang === 'ko' ? '복사됨' : 'Copied'}
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-2.5 w-2.5" />
+                    {lang === 'ko' ? '복사' : 'Copy'}
+                  </>
+                )}
+              </button>
+            </div>
             <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
               {item.answer.inferenceSource === 'on_device' ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300">

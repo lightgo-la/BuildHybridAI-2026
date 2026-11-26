@@ -214,7 +214,7 @@ export function getCargoLabelTexture(
   safetyViolation: boolean
 ): THREE.CanvasTexture {
   const kind = classifyCargoVisual(box);
-  const key = `v2_${box.skuCode}_${box.name}_${box.color}_${box.abcClass}_${box.fragile}_${safetyViolation}_${kind}`;
+  const key = `v2_${box.skuCode}_${box.name}_${box.color}_${box.abcClass}_${box.fragile}_${safetyViolation}_${kind}_${box.lengthCm}x${box.widthCm}x${box.heightCm}_${box.weightKg}`;
   const cached = getLruTexture(textureCache, key);
   if (cached) return cached;
 
@@ -523,7 +523,6 @@ export function buildTemplateEnvironmentProps(params: {
     config,
     bounds,
     depotX,
-    depotZ,
     maxRackTop,
     accentColor,
     showHeaderSign = true,
@@ -595,8 +594,6 @@ export function buildTemplateEnvironmentProps(params: {
     }
   }
 
-  const sidePropX = depotX + 2.35;
-
   const aisleSp = config.aisleSpacingM ?? 3.4;
   const frontMarkerZ = bounds.minZ + 1.05;
   const baseAisleX = bounds.minX + 1.2;
@@ -662,193 +659,174 @@ export function buildTemplateEnvironmentProps(params: {
     const h2 = new THREE.Mesh(handleGeo, handleMat);
     h2.position.set(bounds.centerX + 0.14, wallH * 0.46, bounds.minZ + 0.35);
     propGroup.add(h1, h2);
-  } else if (/closet|apparel|드레스룸/.test(tag)) {
-    const mirrorFrameGeo = new THREE.BoxGeometry(0.88, 1.98, 0.08);
-    const mirrorFrameMat = new THREE.MeshStandardMaterial({
-      color: '#fbbf24',
-      metalness: 0.65,
-      roughness: 0.25,
-    });
-    const mirrorFrame = new THREE.Mesh(mirrorFrameGeo, mirrorFrameMat);
-    mirrorFrame.position.set(bounds.minX + 0.55, 0.99, bounds.centerZ);
-    mirrorFrame.rotation.y = Math.PI / 2;
-    propGroup.add(mirrorFrame);
-
-    const glassGeo = new THREE.BoxGeometry(0.74, 1.84, 0.09);
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: '#bae6fd',
-      metalness: 0.92,
-      roughness: 0.06,
-    });
-    const glass = new THREE.Mesh(glassGeo, glassMat);
-    glass.position.copy(mirrorFrame.position);
-    glass.rotation.y = Math.PI / 2;
-    propGroup.add(glass);
-
-    const rugGeo = new THREE.BoxGeometry(1.35, 0.02, Math.max(2.4, bounds.depth * 0.52));
-    const rugMat = new THREE.MeshStandardMaterial({ color: '#be185d', roughness: 0.9 });
-    const rug = new THREE.Mesh(rugGeo, rugMat);
-    rug.position.set(bounds.centerX, 0.015, bounds.centerZ);
-    propGroup.add(rug);
-  } else if (/laundry|다용도실/.test(tag)) {
-    const washerGeo = new THREE.BoxGeometry(0.85, 1.08, 0.82);
-    const washerMat = new THREE.MeshStandardMaterial({
-      color: '#f8fafc',
-      roughness: 0.25,
-      metalness: 0.2,
-    });
-    const washer = new THREE.Mesh(washerGeo, washerMat);
-    washer.position.set(depotX - 2.1, 0.54, depotZ + 0.25);
-    propGroup.add(washer);
-
-    const drumGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.86, 20);
-    drumGeo.rotateX(Math.PI / 2);
-    const drumMat = new THREE.MeshStandardMaterial({
-      color: '#0284c7',
-      metalness: 0.75,
-      roughness: 0.12,
-    });
-    const drum = new THREE.Mesh(drumGeo, drumMat);
-    drum.position.copy(washer.position);
-    propGroup.add(drum);
-  } else if (/pantry|cafe|kitchen|팬트리|카페/.test(tag)) {
-    // Positioned cleanly to the right of Depot with Espresso/Prep Counter Appliances on top
-    const tableTopGeo = new THREE.BoxGeometry(1.65, 0.08, 0.82);
-    const woodMat = new THREE.MeshStandardMaterial({ color: '#d97706', roughness: 0.5 });
-    const tableTop = new THREE.Mesh(tableTopGeo, woodMat);
-    tableTop.position.set(sidePropX, 0.86, depotZ + 0.25);
-    const baseGeo = new THREE.BoxGeometry(1.52, 0.82, 0.74);
-    const baseMat = new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.5 });
-    const base = new THREE.Mesh(baseGeo, baseMat);
-    base.position.set(sidePropX, 0.41, depotZ + 0.25);
-
-    const machineGeo = new THREE.BoxGeometry(0.52, 0.44, 0.42);
-    const machineMat = new THREE.MeshStandardMaterial({
-      color: '#e2e8f0',
-      metalness: 0.75,
-      roughness: 0.2,
-    });
-    const machine = new THREE.Mesh(machineGeo, machineMat);
-    machine.position.set(sidePropX - 0.35, 1.12, depotZ + 0.25);
-    propGroup.add(tableTop, base, machine);
-  } else if (/garage|camping|auto|차고|캠핑/.test(tag)) {
-    // 5-Drawer Rolling Mechanic Tool Cabinet with Silver Drawer Pulls
-    const chestGeo = new THREE.BoxGeometry(1.15, 1.05, 0.64);
-    const chestMat = new THREE.MeshStandardMaterial({
-      color: '#dc2626',
-      metalness: 0.45,
-      roughness: 0.32,
-    });
-    const chest = new THREE.Mesh(chestGeo, chestMat);
-    chest.position.set(depotX - 2.15, 0.53, depotZ + 0.25);
-    propGroup.add(chest);
-
-    const pullGeo = new THREE.BoxGeometry(0.86, 0.04, 0.68);
-    const pullMat = new THREE.MeshStandardMaterial({ color: '#e2e8f0', metalness: 0.8 });
-    for (const py of [0.22, 0.42, 0.62, 0.82]) {
-      const pull = new THREE.Mesh(pullGeo, pullMat);
-      pull.position.set(depotX - 2.15, py, depotZ + 0.25);
-      propGroup.add(pull);
-    }
   } else if (
+    config.equipmentMode === 'asrs_crane' ||
+    /as\/rs|shuttle/.test(tag)
+  ) {
+    const craneX = depotX + (config.aisleSpacingM ?? 3.4) * 0.45;
+    const mastGeo = new THREE.BoxGeometry(0.16, maxRackTop + 0.55, 0.16);
+    const mastMat = new THREE.MeshStandardMaterial({
+      color: '#f59e0b',
+      metalness: 0.65,
+      roughness: 0.3,
+    });
+    const mast1 = new THREE.Mesh(mastGeo, mastMat);
+    mast1.position.set(craneX, (maxRackTop + 0.55) / 2, bounds.centerZ - 0.45);
+    const mast2 = new THREE.Mesh(mastGeo, mastMat);
+    mast2.position.set(craneX, (maxRackTop + 0.55) / 2, bounds.centerZ + 0.45);
+
+    const shuttleGeo = new THREE.BoxGeometry(0.88, 0.22, 1.1);
+    const shuttleMat = new THREE.MeshStandardMaterial({
+      color: '#38bdf8',
+      emissive: '#0284c7',
+      emissiveIntensity: 0.4,
+    });
+    const shuttle = new THREE.Mesh(shuttleGeo, shuttleMat);
+    shuttle.position.set(craneX, Math.min(maxRackTop * 0.45, 1.35), bounds.centerZ);
+    propGroup.add(mast1, mast2, shuttle);
+  }
+
+  return propGroup;
+}
+
+export function getEffectiveInteriorProps(params: {
+  scenarioName: string;
+  config: WarehouseConfig;
+  bounds: {
+    minX: number;
+    maxX: number;
+    minZ: number;
+    maxZ: number;
+    width: number;
+    depth: number;
+    centerX: number;
+    centerZ: number;
+  };
+  depotX: number;
+  depotZ: number;
+}): InteriorProp[] {
+  const { scenarioName, config, bounds, depotX, depotZ } = params;
+  if (config.interiorProps !== undefined) {
+    return config.interiorProps;
+  }
+
+  const tag = `${scenarioName} ${config.mapTag ?? ''}`.toLowerCase();
+  const sidePropX = Number((depotX + 2.35).toFixed(2));
+  const leftPropX = Number((depotX - 2.15).toFixed(2));
+  const propY = Number((depotZ + 0.25).toFixed(2));
+
+  if (/fridge|cold|냉장고/.test(tag)) {
+    return [];
+  }
+  if (/closet|apparel|드레스룸/.test(tag)) {
+    return [
+      {
+        id: 'tpl-default-mirror',
+        type: 'wardrobe_mirror',
+        label: '드레스룸 전신 거울 (Wardrobe Mirror)',
+        xMeters: Number((bounds.minX + 0.55).toFixed(2)),
+        yMeters: Number(bounds.centerZ.toFixed(2)),
+        rotationDeg: 90,
+        scale: 1,
+        color: '#fbbf24',
+      },
+      {
+        id: 'tpl-default-rug',
+        type: 'rug_carpet',
+        label: '바닥 매트·러그 (Floor Rug)',
+        xMeters: Number(bounds.centerX.toFixed(2)),
+        yMeters: Number(bounds.centerZ.toFixed(2)),
+        rotationDeg: 0,
+        scale: 1,
+        color: '#be185d',
+      },
+    ];
+  }
+  if (/laundry|다용도실/.test(tag)) {
+    return [
+      {
+        id: 'tpl-default-washer',
+        type: 'washer_dryer',
+        label: '드럼 세탁기·건조기 (Washer/Dryer)',
+        xMeters: leftPropX,
+        yMeters: propY,
+        rotationDeg: 0,
+        scale: 1,
+        color: '#f8fafc',
+      },
+    ];
+  }
+  if (/pantry|cafe|kitchen|팬트리|카페/.test(tag)) {
+    return [
+      {
+        id: 'tpl-default-island',
+        type: 'island_counter',
+        label: '주방 아일랜드·커피머신 (Kitchen Island)',
+        xMeters: sidePropX,
+        yMeters: propY,
+        rotationDeg: 0,
+        scale: 1,
+        color: '#d97706',
+      },
+    ];
+  }
+  if (/garage|camping|auto|차고|캠핑/.test(tag)) {
+    return [
+      {
+        id: 'tpl-default-toolcab',
+        type: 'tool_cabinet',
+        label: '5단 이동식 공구함 (Tool Cabinet)',
+        xMeters: leftPropX,
+        yMeters: propY,
+        rotationDeg: 0,
+        scale: 1,
+        color: '#dc2626',
+      },
+    ];
+  }
+  if (
     /oneroom|one-room|hobby|office|smartstore|moving|원룸|서재|사무실|스마트스토어|이삿짐/.test(
       tag
     )
   ) {
-    const winGeo = new THREE.BoxGeometry(1.85, 1.35, 0.1);
-    const winMat = new THREE.MeshStandardMaterial({
-      color: '#fef08a',
-      emissive: '#facc15',
-      emissiveIntensity: 0.35,
-      transparent: true,
-      opacity: 0.65,
-    });
-    const winMesh = new THREE.Mesh(winGeo, winMat);
-    winMesh.position.set(bounds.centerX, wallH * 0.62, bounds.maxZ - 0.22);
-    propGroup.add(winMesh);
-
-    const deskGeo = new THREE.BoxGeometry(1.45, 0.76, 0.72);
-    const deskMat = new THREE.MeshStandardMaterial({ color: '#b45309', roughness: 0.55 });
-    const desk = new THREE.Mesh(deskGeo, deskMat);
-    desk.position.set(sidePropX, 0.38, depotZ + 0.25);
-    propGroup.add(desk);
-  } else {
-    if (config.equipmentMode === 'asrs_crane' || /as\/rs|shuttle/.test(tag)) {
-      const craneX = depotX + (config.aisleSpacingM ?? 3.4) * 0.45;
-      const mastGeo = new THREE.BoxGeometry(0.16, maxRackTop + 0.55, 0.16);
-      const mastMat = new THREE.MeshStandardMaterial({
-        color: '#f59e0b',
-        metalness: 0.65,
-        roughness: 0.3,
-      });
-      const mast1 = new THREE.Mesh(mastGeo, mastMat);
-      mast1.position.set(craneX, (maxRackTop + 0.55) / 2, bounds.centerZ - 0.45);
-      const mast2 = new THREE.Mesh(mastGeo, mastMat);
-      mast2.position.set(craneX, (maxRackTop + 0.55) / 2, bounds.centerZ + 0.45);
-
-      const shuttleGeo = new THREE.BoxGeometry(0.88, 0.22, 1.1);
-      const shuttleMat = new THREE.MeshStandardMaterial({
-        color: '#38bdf8',
-        emissive: '#0284c7',
-        emissiveIntensity: 0.4,
-      });
-      const shuttle = new THREE.Mesh(shuttleGeo, shuttleMat);
-      shuttle.position.set(craneX, Math.min(maxRackTop * 0.45, 1.35), bounds.centerZ);
-      propGroup.add(mast1, mast2, shuttle);
-    } else {
-      // Detailed 3D Reach-Truck Forklift with Chassis, Overhead Cage, Mast, Forks & 4 Wheels
-      const fx = depotX - 2.25;
-      const fz = depotZ + 0.2;
-      const bodyGeo = new THREE.BoxGeometry(1.05, 0.68, 1.32);
-      const bodyMat = new THREE.MeshStandardMaterial({
-        color: '#f59e0b',
-        roughness: 0.32,
-        metalness: 0.3,
-      });
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.set(fx, 0.42, fz);
-
-      const cageGeo = new THREE.BoxGeometry(0.95, 0.9, 1.05);
-      const cageEdges = new THREE.EdgesGeometry(cageGeo);
-      const cageWire = new THREE.LineSegments(
-        cageEdges,
-        new THREE.LineBasicMaterial({ color: '#1e293b' })
-      );
-      cageWire.position.set(fx, 1.2, fz - 0.08);
-      cageGeo.dispose();
-
-      const mastGeo = new THREE.BoxGeometry(0.11, 2.05, 0.11);
-      const mastMat = new THREE.MeshStandardMaterial({ color: '#334155', metalness: 0.75 });
-      const m1 = new THREE.Mesh(mastGeo, mastMat);
-      m1.position.set(fx + 0.3, 1.05, fz + 0.72);
-      const m2 = new THREE.Mesh(mastGeo, mastMat);
-      m2.position.set(fx - 0.3, 1.05, fz + 0.72);
-
-      const forkGeo = new THREE.BoxGeometry(0.12, 0.05, 0.92);
-      const f1 = new THREE.Mesh(forkGeo, mastMat);
-      f1.position.set(fx + 0.24, 0.12, fz + 1.18);
-      const f2 = new THREE.Mesh(forkGeo, mastMat);
-      f2.position.set(fx - 0.24, 0.12, fz + 1.18);
-
-      const wheelGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.16, 14);
-      wheelGeo.rotateZ(Math.PI / 2);
-      const wheelMat = new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.85 });
-      for (const [wx, wz] of [
-        [fx - 0.54, fz - 0.42],
-        [fx + 0.54, fz - 0.42],
-        [fx - 0.54, fz + 0.42],
-        [fx + 0.54, fz + 0.42],
-      ]) {
-        const w = new THREE.Mesh(wheelGeo, wheelMat);
-        w.position.set(wx, 0.18, wz);
-        propGroup.add(w);
-      }
-
-      propGroup.add(body, cageWire, m1, m2, f1, f2);
-    }
+    return [
+      {
+        id: 'tpl-default-window',
+        type: 'window_frame',
+        label: '채광 창문 프레임 (Daylight Window)',
+        xMeters: Number(bounds.centerX.toFixed(2)),
+        yMeters: Number((bounds.maxZ - 0.22).toFixed(2)),
+        rotationDeg: 0,
+        scale: 1,
+        color: '#fef08a',
+      },
+      {
+        id: 'tpl-default-desk',
+        type: 'desk_work',
+        label: '책상 & 모니터 작업대 (Work Desk)',
+        xMeters: sidePropX,
+        yMeters: propY,
+        rotationDeg: 0,
+        scale: 1,
+        color: '#b45309',
+      },
+    ];
   }
-
-  return propGroup;
+  if (config.equipmentMode !== 'asrs_crane' && !/as\/rs|shuttle/.test(tag)) {
+    return [
+      {
+        id: 'tpl-default-forklift',
+        type: 'forklift_unit',
+        label: '전동 리치트럭 지게차 (Reach-Truck)',
+        xMeters: Number((depotX - 2.25).toFixed(2)),
+        yMeters: Number((depotZ + 0.2).toFixed(2)),
+        rotationDeg: 0,
+        scale: 1,
+        color: '#f59e0b',
+      },
+    ];
+  }
+  return [];
 }
 
 export function createInteriorPropMesh(

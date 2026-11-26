@@ -1,21 +1,46 @@
 import { type Dispatch, type SetStateAction, useCallback } from 'react';
 import { INTERIOR_PROP_CATALOG } from '../components/InteriorStudioModal';
+import { buildTransferredSkuPins } from '../engine/slottingEngine';
 import type { LangCode } from '../i18n/translations';
 import type {
+  ABCClass,
   BinAllocation,
   BinSpec,
   InteriorProp,
   InteriorPropType,
   PinnedCargoPlacement,
+  SKUItem,
+  SelectedCargoBox,
   WarehouseConfig,
+  WarehouseObstacle,
 } from '../types/warehouse';
+
+export type ShelfResizeScope = 'single' | 'column' | 'all';
+
+export interface CustomBoxPlacementInput {
+  binId: string;
+  name?: string;
+  skuCode?: string;
+  lengthCm: number;
+  widthCm: number;
+  heightCm: number;
+  weightKg?: number;
+  quantity?: number;
+  abcClass?: ABCClass;
+  fragile?: boolean;
+  color?: string;
+  autoExpandBin?: boolean;
+}
 
 interface UseWarehouseTransformsParams {
   bins: BinSpec[];
+  allocations: BinAllocation[];
   config: WarehouseConfig;
+  effectiveInteriorProps?: InteriorProp[];
   lang: LangCode;
   pushWorkspaceUndo: () => void;
   showToast: (msg: string) => void;
+  setSkus: Dispatch<SetStateAction<SKUItem[]>>;
   setConfigPatch: Dispatch<SetStateAction<Partial<WarehouseConfig>>>;
   setCustomBinsOverride: Dispatch<SetStateAction<BinSpec[] | null>>;
   setExtraBins: Dispatch<SetStateAction<BinSpec[]>>;
@@ -23,16 +48,20 @@ interface UseWarehouseTransformsParams {
   setPinnedPlacements: Dispatch<SetStateAction<PinnedCargoPlacement[]>>;
   setSelectedBinId: Dispatch<SetStateAction<string | null>>;
   setSelectedPropId: Dispatch<SetStateAction<string | null>>;
+  setSelectedCargo: Dispatch<SetStateAction<SelectedCargoBox | null>>;
   setCameraResetTick: Dispatch<SetStateAction<number>>;
   setAppView: Dispatch<SetStateAction<'workspace' | 'home'>>;
 }
 
 export function useWarehouseTransforms({
   bins,
+  allocations,
   config,
+  effectiveInteriorProps,
   lang,
   pushWorkspaceUndo,
   showToast,
+  setSkus,
   setConfigPatch,
   setCustomBinsOverride,
   setExtraBins,
@@ -40,6 +69,7 @@ export function useWarehouseTransforms({
   setPinnedPlacements,
   setSelectedBinId,
   setSelectedPropId,
+  setSelectedCargo,
   setCameraResetTick,
   setAppView,
 }: UseWarehouseTransformsParams) {
@@ -60,6 +90,7 @@ export function useWarehouseTransforms({
       setExtraBins((prev) => prev.filter((b) => b.id !== binId));
       setPinnedPlacements((prev) => prev.filter((p) => p.binId !== binId));
       setSelectedBinId((curr) => (curr === binId ? null : curr));
+      setSelectedCargo((curr) => (curr?.binId === binId ? null : curr));
     },
     [
       pushWorkspaceUndo,
@@ -67,29 +98,290 @@ export function useWarehouseTransforms({
       setPinnedPlacements,
       setRemovedBinIds,
       setSelectedBinId,
+      setSelectedCargo,
     ]
   );
 
   const handlePinCargo = useCallback(
     (binId: string, skuId: string, delta: number = 1) => {
       pushWorkspaceUndo();
+      const currentInBin =
+        allocations
+          .find((a) => a.bin.id === binId)
+          ?.boxes.filter((b) => b.skuId === skuId).length ?? 0;
+
       setPinnedPlacements((prev) => {
+        if (delta < 0) {
+          return buildTransferredSkuPins(
+            prev,
+            allocations,
+            binId,
+            null,
+            skuId,
+            Math.abs(delta)
+          ).nextPins;
+        }
         const idx = prev.findIndex(
           (p) => p.binId === binId && p.skuId === skuId
         );
+        const baseCount =
+          idx === -1 ? currentInBin : Math.max(prev[idx].count, currentInBin);
+        const nextCount = baseCount + delta;
+        let nextPins: PinnedCargoPlacement[];
         if (idx === -1) {
-          return delta > 0 ? [...prev, { binId, skuId, count: delta }] : prev;
+          nextPins = [{ binId, skuId, count: nextCount }, ...prev];
+        } else if (nextCount <= 0) {
+          nextPins = prev.filter((_, i) => i !== idx);
+        } else {
+          nextPins = prev.map((p, i) =>
+            i === idx ? { ...p, count: nextCount } : p
+          );
         }
-        const nextCount = prev[idx].count + delta;
-        if (nextCount <= 0) {
-          return prev.filter((_, i) => i !== idx);
-        }
-        return prev.map((p, i) =>
-          i === idx ? { ...p, count: nextCount } : p
+
+        const totalPinnedForSku = nextPins
+          .filter((p) => p.skuId === skuId)
+          .reduce((sum, p) => sum + p.count, 0);
+        setSkus((currSkus) =>
+          currSkus.map((s) =>
+            s.id === skuId && s.quantity < totalPinnedForSku
+              ? { ...s, quantity: totalPinnedForSku }
+              : s
+          )
         );
+        return nextPins;
       });
     },
-    [pushWorkspaceUndo, setPinnedPlacements]
+    [allocations, pushWorkspaceUndo, setPinnedPlacements, setSkus]
+  );
+
+  const handleMoveSingleCargoToBin = useCallback(
+    (
+      fromBinId: string,
+      skuId: string,
+      toBinId: string,
+      transferCount: number | 'all' = 1
+    ) => {
+      if (fromBinId === toBinId) return;
+      const targetBin = bins.find((b) => b.id === toBinId);
+      if (!targetBin) return;
+
+      const sourceAlloc = allocations.find((a) => a.bin.id === fromBinId);
+      const targetAlloc = allocations.find((a) => a.bin.id === toBinId);
+      const sampleBox = sourceAlloc?.boxes.find((b) => b.skuId === skuId);
+      const boxVol = sampleBox
+        ? sampleBox.lengthCm * sampleBox.widthCm * sampleBox.heightCm
+        : 0;
+      const boxWeight = sampleBox?.weightKg ?? 0;
+
+      // Check if target bin needs a 1:1 swap because it is near full capacity
+      const swappedSkuId =
+        targetAlloc &&
+        targetAlloc.boxes.length > 0 &&
+        (targetAlloc.usedVolumeCm3 + boxVol > targetAlloc.totalVolumeCm3 * 0.92 ||
+          targetAlloc.currentWeightKg + boxWeight > targetAlloc.bin.maxWeightKg)
+          ? targetAlloc.boxes.find((b) => b.skuId !== skuId)?.skuId ?? null
+          : null;
+
+      pushWorkspaceUndo();
+      let movedUnits = 1;
+      setPinnedPlacements((prev) => {
+        const step1 = buildTransferredSkuPins(
+          prev,
+          allocations,
+          fromBinId,
+          toBinId,
+          skuId,
+          transferCount
+        );
+        movedUnits = step1.movedCount;
+        if (swappedSkuId) {
+          return buildTransferredSkuPins(
+            step1.nextPins,
+            allocations,
+            toBinId,
+            fromBinId,
+            swappedSkuId,
+            1
+          ).nextPins;
+        }
+        return step1.nextPins;
+      });
+      setSelectedBinId(toBinId);
+      setSelectedCargo((prev) =>
+        prev && prev.skuId === skuId
+          ? { ...prev, binId: toBinId, boxIndex: 0 }
+          : prev
+      );
+      showToast(
+        swappedSkuId
+          ? lang === 'ko'
+            ? `[${fromBinId}] ↔ [${toBinId}] 선반 간 물건 위치를 자동 맞교환(Swap)했습니다.`
+            : `Swapped item between [${fromBinId}] and [${toBinId}].`
+          : transferCount === 'all' && movedUnits > 1
+            ? lang === 'ko'
+              ? `묶음 물건 ${movedUnits}개를 [${fromBinId}] → [${toBinId}] (Z${targetBin.level}층)으로 일괄 이동했습니다.`
+              : `Moved batch of ${movedUnits} items from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
+            : lang === 'ko'
+              ? `낱개 물건을 [${fromBinId}] → [${toBinId}] (Z${targetBin.level}층) 선반으로 이동했습니다.`
+              : `Moved individual item from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
+      );
+    },
+    [
+      allocations,
+      bins,
+      lang,
+      pushWorkspaceUndo,
+      setPinnedPlacements,
+      setSelectedBinId,
+      setSelectedCargo,
+      showToast,
+    ]
+  );
+
+  const handleMoveSingleCargoToFloor = useCallback(
+    (
+      fromBinId: string,
+      skuId: string,
+      floorX: number,
+      floorZ: number,
+      transferCount: number | 'all' = 1
+    ) => {
+      const snappedX = Number((Math.round(floorX / 0.25) * 0.25).toFixed(2));
+      const snappedY = Number((Math.round(floorZ / 0.25) * 0.25).toFixed(2));
+
+      // Check if an existing Z1 bin is already at this floor location
+      const existingFloorBin = bins.find(
+        (b) =>
+          Math.hypot(b.xMeters - snappedX, b.yMeters - snappedY) < 0.45 &&
+          b.level === 1
+      );
+      if (existingFloorBin) {
+        handleMoveSingleCargoToBin(
+          fromBinId,
+          skuId,
+          existingFloorBin.id,
+          transferCount
+        );
+        return;
+      }
+
+      pushWorkspaceUndo();
+      const aisleSpacing = config.aisleSpacingM ?? 3.4;
+      const baySpacing = config.baySpacingM ?? 1.45;
+      const aisle = Math.max(1, Math.round(snappedX / aisleSpacing) + 1);
+      const bay = Math.max(1, Math.round((snappedY - 1.8) / baySpacing) + 1);
+      const zMeters = 0.05;
+      let binId = `A${aisle}-B${bay}-Z1`;
+      if (bins.some((b) => b.id === binId)) {
+        binId = `C${bins.length + 1}-A${aisle}-B${bay}-Z1`;
+      }
+
+      const newFloorBin: BinSpec = {
+        id: binId,
+        aisle,
+        bay,
+        level: 1,
+        xMeters: snappedX,
+        yMeters: snappedY,
+        zMeters,
+        binLengthCm: config.binLengthCm ?? 120,
+        binWidthCm: config.binWidthCm ?? 90,
+        binHeightCm: config.binHeightCm ?? 70,
+        maxWeightKg: 1200,
+        isGoldenZone:
+          zMeters >= config.goldenZoneMinM && zMeters <= config.goldenZoneMaxM,
+      };
+
+      setRemovedBinIds((prev) => prev.filter((id) => id !== binId));
+      setExtraBins((prev) => [...prev.filter((b) => b.id !== binId), newFloorBin]);
+      setPinnedPlacements(
+        (prev) =>
+          buildTransferredSkuPins(
+            prev,
+            allocations,
+            fromBinId,
+            binId,
+            skuId,
+            transferCount
+          ).nextPins
+      );
+      setSelectedBinId(binId);
+      setSelectedCargo((prev) =>
+        prev && prev.skuId === skuId
+          ? { ...prev, binId, boxIndex: 0 }
+          : prev
+      );
+      showToast(
+        lang === 'ko'
+          ? `물건을 3D 바닥 위치 [${binId}] (${snappedX}m, ${snappedY}m)로 이동했습니다.`
+          : `Moved item to 3D floor spot [${binId}] (${snappedX}m, ${snappedY}m).`
+      );
+    },
+    [
+      allocations,
+      bins,
+      config,
+      handleMoveSingleCargoToBin,
+      lang,
+      pushWorkspaceUndo,
+      setExtraBins,
+      setPinnedPlacements,
+      setRemovedBinIds,
+      setSelectedBinId,
+      setSelectedCargo,
+      showToast,
+    ]
+  );
+
+  const handleNudgeSingleCargo = useCallback(
+    (fromBinId: string, skuId: string, dxSign: number, dySign: number) => {
+      const fromBin = bins.find((b) => b.id === fromBinId);
+      if (!fromBin) return;
+
+      // Find nearest bin in the requested direction (dxSign, dySign), preferring same Z-level
+      const candidates = bins
+        .filter((b) => {
+          if (b.id === fromBinId) return false;
+          const dx = b.xMeters - fromBin.xMeters;
+          const dy = b.yMeters - fromBin.yMeters;
+          if (dxSign < 0 && dx >= -0.1) return false;
+          if (dxSign > 0 && dx <= 0.1) return false;
+          if (dySign < 0 && dy >= -0.1) return false;
+          if (dySign > 0 && dy <= 0.1) return false;
+          return true;
+        })
+        .sort((a, b) => {
+          const levelPenaltyA = Math.abs(a.level - fromBin.level) * 2.5;
+          const levelPenaltyB = Math.abs(b.level - fromBin.level) * 2.5;
+          const distA =
+            Math.hypot(a.xMeters - fromBin.xMeters, a.yMeters - fromBin.yMeters) +
+            levelPenaltyA;
+          const distB =
+            Math.hypot(b.xMeters - fromBin.xMeters, b.yMeters - fromBin.yMeters) +
+            levelPenaltyB;
+          return distA - distB;
+        });
+
+      if (candidates.length > 0) {
+        handleMoveSingleCargoToBin(fromBinId, skuId, candidates[0].id);
+      } else {
+        const stepX = dxSign * (config.aisleSpacingM ?? 1.5);
+        const stepY = dySign * (config.baySpacingM ?? 1.2);
+        handleMoveSingleCargoToFloor(
+          fromBinId,
+          skuId,
+          fromBin.xMeters + stepX,
+          fromBin.yMeters + stepY
+        );
+      }
+    },
+    [
+      bins,
+      config.aisleSpacingM,
+      config.baySpacingM,
+      handleMoveSingleCargoToBin,
+      handleMoveSingleCargoToFloor,
+    ]
   );
 
   const handleMoveSkuToLevel = useCallback(
@@ -98,8 +390,9 @@ export function useWarehouseTransforms({
       const sameColBin = fromBin
         ? bins.find(
             (b) =>
-              b.aisle === fromBin.aisle &&
-              b.bay === fromBin.bay &&
+              (Math.hypot(b.xMeters - fromBin.xMeters, b.yMeters - fromBin.yMeters) <
+                0.35 ||
+                (b.aisle === fromBin.aisle && b.bay === fromBin.bay)) &&
               b.level === targetLevel
           )
         : null;
@@ -110,33 +403,9 @@ export function useWarehouseTransforms({
         null;
       if (!targetBin) return;
 
-      pushWorkspaceUndo();
-      setPinnedPlacements((prev) => {
-        const filtered = prev
-          .map((p) =>
-            p.binId === fromBinId && p.skuId === skuId
-              ? { ...p, count: p.count - 1 }
-              : p
-          )
-          .filter((p) => p.count > 0);
-        const existingIdx = filtered.findIndex(
-          (p) => p.binId === targetBin.id && p.skuId === skuId
-        );
-        if (existingIdx === -1) {
-          return [...filtered, { binId: targetBin.id, skuId, count: 1 }];
-        }
-        return filtered.map((p, i) =>
-          i === existingIdx ? { ...p, count: p.count + 1 } : p
-        );
-      });
-      setSelectedBinId(targetBin.id);
-      showToast(
-        lang === 'ko'
-          ? `물품을 [${targetBin.id}] (Z${targetLevel}층) 선반으로 이동했습니다.`
-          : `Moved item to [${targetBin.id}] (Level Z${targetLevel}).`
-      );
+      handleMoveSingleCargoToBin(fromBinId, skuId, targetBin.id);
     },
-    [bins, lang, pushWorkspaceUndo, setPinnedPlacements, setSelectedBinId, showToast]
+    [bins, handleMoveSingleCargoToBin]
   );
 
   const handleAddBinAbove = useCallback(
@@ -223,6 +492,69 @@ export function useWarehouseTransforms({
       handleAddBin(newBin);
     },
     [bins, config, handleAddBin]
+  );
+
+  // Move ONLY a single individual shelf bin (낱개 선반 칸) in 3D X/Y/Z without moving other levels in its column
+  const handleMoveSingleBin = useCallback(
+    (binId: string, newX: number, newY: number, newLevel?: number) => {
+      const target = bins.find((b) => b.id === binId);
+      if (!target) return;
+      pushWorkspaceUndo();
+      const aisleSp = Math.max(0.8, config.aisleSpacingM ?? 3.4);
+      const baySp = Math.max(0.6, config.baySpacingM ?? 1.45);
+      const newAisle = Math.max(1, Math.round(newX / aisleSp) + 1);
+      const newBay = Math.max(1, Math.round((newY - 1.8) / baySp) + 1);
+      const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75, 5.55];
+      const maxWeights = [1200, 750, 600, 420, 280, 200, 160, 140];
+
+      const nextLevel =
+        newLevel !== undefined ? Math.max(1, Math.min(8, newLevel)) : target.level;
+      const nextZ =
+        newLevel !== undefined
+          ? levelHeights[nextLevel - 1] ??
+            Number(((nextLevel - 1) * 0.82 + 0.05).toFixed(2))
+          : target.zMeters;
+
+      const nextBins = bins.map((b) => {
+        if (b.id !== binId) return b;
+        return {
+          ...b,
+          xMeters: Number(newX.toFixed(2)),
+          yMeters: Number(newY.toFixed(2)),
+          zMeters: nextZ,
+          level: nextLevel,
+          maxWeightKg:
+            newLevel !== undefined
+              ? maxWeights[nextLevel - 1] ?? b.maxWeightKg
+              : b.maxWeightKg,
+          isGoldenZone:
+            nextZ >= config.goldenZoneMinM && nextZ <= config.goldenZoneMaxM,
+          aisle: newAisle,
+          bay: newBay,
+        };
+      });
+      setCustomBinsOverride(nextBins);
+      setExtraBins([]);
+      setRemovedBinIds([]);
+      showToast(
+        lang === 'ko'
+          ? `낱개 선반 칸 [${binId}] 위치 이동: (${newX.toFixed(2)}m, ${newY.toFixed(2)}m, Z${nextLevel}층)`
+          : `Moved single bin [${binId}] to (${newX.toFixed(2)}m, ${newY.toFixed(2)}m, Z${nextLevel})`
+      );
+    },
+    [
+      bins,
+      config.aisleSpacingM,
+      config.baySpacingM,
+      config.goldenZoneMaxM,
+      config.goldenZoneMinM,
+      lang,
+      pushWorkspaceUndo,
+      setCustomBinsOverride,
+      setExtraBins,
+      setRemovedBinIds,
+      showToast,
+    ]
   );
 
   const handleMoveRackColumn = useCallback(
@@ -492,6 +824,7 @@ export function useWarehouseTransforms({
       setPinnedPlacements([]);
       setSelectedBinId(null);
       setSelectedPropId(null);
+      setSelectedCargo(null);
       setCameraResetTick((n) => n + 1);
       setAppView('workspace');
     },
@@ -505,9 +838,13 @@ export function useWarehouseTransforms({
       setPinnedPlacements,
       setRemovedBinIds,
       setSelectedBinId,
+      setSelectedCargo,
       setSelectedPropId,
     ]
   );
+
+  const activePropsList =
+    config.interiorProps ?? effectiveInteriorProps ?? [];
 
   const handleAddInteriorProp = useCallback(
     (type: InteriorPropType, customX?: number, customY?: number) => {
@@ -515,7 +852,7 @@ export function useWarehouseTransforms({
       const cat =
         INTERIOR_PROP_CATALOG.find((c) => c.type === type) ??
         INTERIOR_PROP_CATALOG[0];
-      const existing = config.interiorProps ?? [];
+      const existing = activePropsList;
       const offsetIdx = existing.length;
       const newProp: InteriorProp = {
         id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -535,10 +872,11 @@ export function useWarehouseTransforms({
       };
       setConfigPatch((prev) => ({
         ...prev,
-        interiorProps: [...(prev.interiorProps ?? config.interiorProps ?? []), newProp],
+        interiorProps: [...(prev.interiorProps ?? activePropsList), newProp],
       }));
       setSelectedPropId(newProp.id);
       setSelectedBinId(null);
+      setSelectedCargo(null);
       showToast(
         lang === 'ko'
           ? `3D 인테리어 추가됨: ${newProp.label}`
@@ -546,11 +884,12 @@ export function useWarehouseTransforms({
       );
     },
     [
-      config.interiorProps,
+      activePropsList,
       lang,
       pushWorkspaceUndo,
       setConfigPatch,
       setSelectedBinId,
+      setSelectedCargo,
       setSelectedPropId,
       showToast,
     ]
@@ -561,17 +900,17 @@ export function useWarehouseTransforms({
       pushWorkspaceUndo();
       setConfigPatch((prev) => ({
         ...prev,
-        interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
+        interiorProps: (prev.interiorProps ?? activePropsList).map(
           (p) => (p.id === id ? { ...p, ...patch } : p)
         ),
       }));
     },
-    [config.interiorProps, pushWorkspaceUndo, setConfigPatch]
+    [activePropsList, pushWorkspaceUndo, setConfigPatch]
   );
 
   const handleDuplicateInteriorProp = useCallback(
     (id: string) => {
-      const src = (config.interiorProps ?? []).find((p) => p.id === id);
+      const src = activePropsList.find((p) => p.id === id);
       if (!src) return;
       pushWorkspaceUndo();
       const copy: InteriorProp = {
@@ -582,11 +921,11 @@ export function useWarehouseTransforms({
       };
       setConfigPatch((prev) => ({
         ...prev,
-        interiorProps: [...(prev.interiorProps ?? config.interiorProps ?? []), copy],
+        interiorProps: [...(prev.interiorProps ?? activePropsList), copy],
       }));
       setSelectedPropId(copy.id);
     },
-    [config.interiorProps, pushWorkspaceUndo, setConfigPatch, setSelectedPropId]
+    [activePropsList, pushWorkspaceUndo, setConfigPatch, setSelectedPropId]
   );
 
   const handleDeleteInteriorProp = useCallback(
@@ -594,13 +933,13 @@ export function useWarehouseTransforms({
       pushWorkspaceUndo();
       setConfigPatch((prev) => ({
         ...prev,
-        interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).filter(
+        interiorProps: (prev.interiorProps ?? activePropsList).filter(
           (p) => p.id !== id
         ),
       }));
       setSelectedPropId((curr) => (curr === id ? null : curr));
     },
-    [config.interiorProps, pushWorkspaceUndo, setConfigPatch, setSelectedPropId]
+    [activePropsList, pushWorkspaceUndo, setConfigPatch, setSelectedPropId]
   );
 
   const handleAutoPopulateInterior = useCallback(() => {
@@ -674,13 +1013,485 @@ export function useWarehouseTransforms({
     showToast,
   ]);
 
+  const handleResizeSingleBin = useCallback(
+    (
+      binId: string,
+      patch: {
+        binLengthCm?: number;
+        binWidthCm?: number;
+        binHeightCm?: number;
+        maxWeightKg?: number;
+      },
+      scope: ShelfResizeScope = 'single'
+    ) => {
+      const target = bins.find((b) => b.id === binId) ?? bins[0];
+      if (!target) return;
+      pushWorkspaceUndo();
+
+      const clampL = (v: number) => Math.max(20, Math.min(300, Math.round(v)));
+      const clampW = (v: number) => Math.max(20, Math.min(300, Math.round(v)));
+      const clampH = (v: number) => Math.max(15, Math.min(250, Math.round(v)));
+      const clampKg = (v: number) => Math.max(10, Math.min(5000, Math.round(v)));
+
+      const matchesScope = (b: BinSpec) => {
+        if (scope === 'all') return true;
+        if (scope === 'column') {
+          return (
+            Math.hypot(b.xMeters - target.xMeters, b.yMeters - target.yMeters) <
+              0.35 ||
+            (b.aisle === target.aisle && b.bay === target.bay)
+          );
+        }
+        return b.id === binId;
+      };
+
+      const updatedBins = bins.map((b) => {
+        if (!matchesScope(b)) return b;
+        return {
+          ...b,
+          binLengthCm:
+            patch.binLengthCm !== undefined
+              ? clampL(patch.binLengthCm)
+              : b.binLengthCm,
+          binWidthCm:
+            patch.binWidthCm !== undefined
+              ? clampW(patch.binWidthCm)
+              : b.binWidthCm,
+          binHeightCm:
+            patch.binHeightCm !== undefined
+              ? clampH(patch.binHeightCm)
+              : b.binHeightCm,
+          maxWeightKg:
+            patch.maxWeightKg !== undefined
+              ? clampKg(patch.maxWeightKg)
+              : b.maxWeightKg,
+        };
+      });
+
+      // Prevent vertical 3D overlap within each rack column when binHeightCm changes
+      const byCol = new Map<string, BinSpec[]>();
+      for (const b of updatedBins) {
+        const key = `${b.xMeters.toFixed(2)}_${b.yMeters.toFixed(2)}`;
+        const list = byCol.get(key) ?? [];
+        list.push(b);
+        byCol.set(key, list);
+      }
+
+      const zAdjustedIds = new Map<string, number>();
+      for (const colBins of byCol.values()) {
+        colBins.sort((a, b) => a.level - b.level);
+        for (let i = 1; i < colBins.length; i++) {
+          const prevBin = colBins[i - 1];
+          const prevZ = zAdjustedIds.get(prevBin.id) ?? prevBin.zMeters;
+          const minNextZ = Number(
+            (prevZ + prevBin.binHeightCm / 100 + 0.08).toFixed(2)
+          );
+          const curBin = colBins[i];
+          if (curBin.zMeters < minNextZ || patch.binHeightCm !== undefined) {
+            const defaultLevelZ =
+              [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75, 5.55][
+                curBin.level - 1
+              ] ?? Number(((curBin.level - 1) * 0.82 + 0.05).toFixed(2));
+            const nextZ = Math.max(defaultLevelZ, minNextZ);
+            zAdjustedIds.set(curBin.id, nextZ);
+          }
+        }
+      }
+
+      const finalBins = updatedBins.map((b) => {
+        const nextZ = zAdjustedIds.get(b.id) ?? b.zMeters;
+        return {
+          ...b,
+          zMeters: nextZ,
+          isGoldenZone:
+            nextZ >= config.goldenZoneMinM && nextZ <= config.goldenZoneMaxM,
+        };
+      });
+
+      if (scope === 'all') {
+        setConfigPatch((prev) => ({
+          ...prev,
+          ...(patch.binLengthCm !== undefined
+            ? { binLengthCm: clampL(patch.binLengthCm) }
+            : {}),
+          ...(patch.binWidthCm !== undefined
+            ? { binWidthCm: clampW(patch.binWidthCm) }
+            : {}),
+          ...(patch.binHeightCm !== undefined
+            ? { binHeightCm: clampH(patch.binHeightCm) }
+            : {}),
+        }));
+      }
+
+      setCustomBinsOverride(finalBins);
+      setExtraBins([]);
+      setRemovedBinIds([]);
+    },
+    [
+      bins,
+      config.goldenZoneMaxM,
+      config.goldenZoneMinM,
+      pushWorkspaceUndo,
+      setConfigPatch,
+      setCustomBinsOverride,
+      setExtraBins,
+      setRemovedBinIds,
+    ]
+  );
+
+  const handleMoveDepot = useCallback(
+    (newX: number, newY: number) => {
+      pushWorkspaceUndo();
+      const nx = Number(newX.toFixed(2));
+      const ny = Number(newY.toFixed(2));
+      setConfigPatch((prev) => ({
+        ...prev,
+        depotXMeters: nx,
+        depotYMeters: ny,
+      }));
+      showToast(
+        lang === 'ko'
+          ? `★ 출입구/피킹 출발지 위치 이동: (${nx}m, ${ny}m)`
+          : `★ Moved I/O Depot to (${nx}m, ${ny}m)`
+      );
+    },
+    [lang, pushWorkspaceUndo, setConfigPatch, showToast]
+  );
+
+  const handleAddObstacleAt = useCallback(
+    (x: number, y: number, label?: string) => {
+      pushWorkspaceUndo();
+      const nx = Number((Math.round(x / 0.25) * 0.25).toFixed(2));
+      const ny = Number((Math.round(y / 0.25) * 0.25).toFixed(2));
+      const aisleSp = Math.max(0.8, config.aisleSpacingM ?? 3.4);
+      const baySp = Math.max(0.6, config.baySpacingM ?? 1.45);
+      const newObs: WarehouseObstacle = {
+        id: `obs-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+        aisle: Math.max(1, Math.round(nx / aisleSp) + 1),
+        bay: Math.max(1, Math.round((ny - 1.8) / baySp) + 1),
+        xMeters: nx,
+        yMeters: ny,
+        label: label || (lang === 'ko' ? '기둥' : 'PILLAR'),
+      };
+      setConfigPatch((prev) => ({
+        ...prev,
+        obstacles: [...(prev.obstacles ?? config.obstacles ?? []), newObs],
+      }));
+      showToast(
+        lang === 'ko'
+          ? `3D 기둥/장애물 추가됨: (${nx}m, ${ny}m)`
+          : `Added 3D Pillar/Obstacle at (${nx}m, ${ny}m)`
+      );
+      return newObs;
+    },
+    [
+      config.aisleSpacingM,
+      config.baySpacingM,
+      config.obstacles,
+      lang,
+      pushWorkspaceUndo,
+      setConfigPatch,
+      showToast,
+    ]
+  );
+
+  const handleUpdateObstacle = useCallback(
+    (id: string, patch: Partial<WarehouseObstacle>) => {
+      pushWorkspaceUndo();
+      const aisleSp = Math.max(0.8, config.aisleSpacingM ?? 3.4);
+      const baySp = Math.max(0.6, config.baySpacingM ?? 1.45);
+      setConfigPatch((prev) => ({
+        ...prev,
+        obstacles: (prev.obstacles ?? config.obstacles ?? []).map((o) => {
+          if (o.id !== id) return o;
+          const nx =
+            patch.xMeters !== undefined
+              ? Number(patch.xMeters.toFixed(2))
+              : o.xMeters;
+          const ny =
+            patch.yMeters !== undefined
+              ? Number(patch.yMeters.toFixed(2))
+              : o.yMeters;
+          return {
+            ...o,
+            ...patch,
+            xMeters: nx,
+            yMeters: ny,
+            aisle: Math.max(1, Math.round(nx / aisleSp) + 1),
+            bay: Math.max(1, Math.round((ny - 1.8) / baySp) + 1),
+          };
+        }),
+      }));
+    },
+    [
+      config.aisleSpacingM,
+      config.baySpacingM,
+      config.obstacles,
+      pushWorkspaceUndo,
+      setConfigPatch,
+    ]
+  );
+
+  const handleDeleteObstacle = useCallback(
+    (id: string) => {
+      pushWorkspaceUndo();
+      setConfigPatch((prev) => ({
+        ...prev,
+        obstacles: (prev.obstacles ?? config.obstacles ?? []).filter(
+          (o) => o.id !== id
+        ),
+      }));
+      showToast(
+        lang === 'ko' ? '기둥/장애물이 삭제되었습니다.' : 'Deleted obstacle.'
+      );
+    },
+    [config.obstacles, lang, pushWorkspaceUndo, setConfigPatch, showToast]
+  );
+
+  const handlePlaceCustomBoxInBin = useCallback(
+    (input: CustomBoxPlacementInput) => {
+      const targetBin = bins.find((b) => b.id === input.binId) ?? bins[0];
+      if (!targetBin) return;
+
+      pushWorkspaceUndo();
+      const qty = Math.max(1, Math.min(40, Math.round(input.quantity ?? 1)));
+      const boxL = Math.max(5, Math.min(280, Math.round(input.lengthCm)));
+      const boxW = Math.max(5, Math.min(280, Math.round(input.widthCm)));
+      const boxH = Math.max(5, Math.min(240, Math.round(input.heightCm)));
+      const boxKg = Math.max(0.1, Math.min(1000, Number((input.weightKg ?? 4).toFixed(1))));
+      const autoExpand = input.autoExpandBin ?? true;
+
+      const targetAlloc = allocations.find((a) => a.bin.id === targetBin.id);
+      const existingWeight = targetAlloc?.currentWeightKg ?? 0;
+
+      // Auto-expand the shelf bin if the configured box size exceeds bin internal bounds
+      const needsLengthExpand = boxL > targetBin.binLengthCm;
+      const needsWidthExpand = boxW > targetBin.binWidthCm;
+      const needsHeightExpand = boxH > targetBin.binHeightCm;
+      const needsWeightExpand =
+        existingWeight + boxKg * qty > targetBin.maxWeightKg;
+
+      if (
+        autoExpand &&
+        (needsLengthExpand ||
+          needsWidthExpand ||
+          needsHeightExpand ||
+          needsWeightExpand)
+      ) {
+        const nextBins = bins.map((b) =>
+          b.id === targetBin.id
+            ? {
+                ...b,
+                binLengthCm: Math.max(b.binLengthCm, boxL + 4),
+                binWidthCm: Math.max(b.binWidthCm, boxW + 4),
+                binHeightCm: Math.max(b.binHeightCm, boxH + 4),
+                maxWeightKg: Math.max(
+                  b.maxWeightKg,
+                  Math.ceil(existingWeight + boxKg * qty + 20)
+                ),
+              }
+            : b
+        );
+        setCustomBinsOverride(nextBins);
+        setExtraBins([]);
+        setRemovedBinIds([]);
+      }
+
+      const idSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+      const skuCode =
+        input.skuCode?.trim() || `BOX-${boxL}x${boxW}x${boxH}`;
+      const name =
+        input.name?.trim() ||
+        (lang === 'ko'
+          ? `맞춤 박스 ${boxL}×${boxW}×${boxH}cm (Custom Box)`
+          : `Custom Box ${boxL}×${boxW}×${boxH}cm`);
+      const abcClass: ABCClass =
+        input.abcClass ?? (targetBin.isGoldenZone ? 'A' : 'B');
+      const color = input.color || '#22d3ee';
+      const fragile = Boolean(input.fragile);
+
+      const newSku: SKUItem = {
+        id: `sku-custom-${Date.now()}-${idSuffix}`,
+        skuCode,
+        name,
+        category: 'CustomBox',
+        abcClass,
+        dailyPicks: abcClass === 'A' ? 110 : abcClass === 'B' ? 50 : 18,
+        lengthCm: boxL,
+        widthCm: boxW,
+        heightCm: boxH,
+        weightKg: boxKg,
+        quantity: qty,
+        fragile,
+        color,
+      };
+
+      setSkus((prev) => [newSku, ...prev]);
+      setPinnedPlacements((prev) => [
+        { binId: targetBin.id, skuId: newSku.id, count: qty },
+        ...prev,
+      ]);
+      setSelectedBinId(targetBin.id);
+      setSelectedCargo({
+        binId: targetBin.id,
+        boxIndex: 0,
+        skuId: newSku.id,
+        skuCode: newSku.skuCode,
+        name: newSku.name,
+        weightKg: newSku.weightKg,
+        lengthCm: newSku.lengthCm,
+        widthCm: newSku.widthCm,
+        heightCm: newSku.heightCm,
+        color: newSku.color,
+      });
+
+      showToast(
+        lang === 'ko'
+          ? `선반 [${targetBin.id}]에 맞춤 박스 (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) ${qty}개를 넣었습니다.`
+          : `Placed ${qty}× custom box (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) into shelf [${targetBin.id}].`
+      );
+    },
+    [
+      allocations,
+      bins,
+      lang,
+      pushWorkspaceUndo,
+      setCustomBinsOverride,
+      setExtraBins,
+      setPinnedPlacements,
+      setRemovedBinIds,
+      setSelectedBinId,
+      setSelectedCargo,
+      setSkus,
+      showToast,
+    ]
+  );
+
+  const handleUpdateBoxDimensions = useCallback(
+    (
+      skuId: string,
+      patch: {
+        lengthCm?: number;
+        widthCm?: number;
+        heightCm?: number;
+        weightKg?: number;
+        name?: string;
+        color?: string;
+        fragile?: boolean;
+      },
+      binIdToAutoExpand?: string
+    ) => {
+      pushWorkspaceUndo();
+      const clampedL =
+        patch.lengthCm !== undefined
+          ? Math.max(5, Math.min(280, Math.round(patch.lengthCm)))
+          : undefined;
+      const clampedW =
+        patch.widthCm !== undefined
+          ? Math.max(5, Math.min(280, Math.round(patch.widthCm)))
+          : undefined;
+      const clampedH =
+        patch.heightCm !== undefined
+          ? Math.max(5, Math.min(240, Math.round(patch.heightCm)))
+          : undefined;
+      const clampedKg =
+        patch.weightKg !== undefined
+          ? Math.max(0.1, Math.min(1000, Number(patch.weightKg.toFixed(1))))
+          : undefined;
+
+      if (binIdToAutoExpand) {
+        const targetBin = bins.find((b) => b.id === binIdToAutoExpand);
+        if (
+          targetBin &&
+          ((clampedL !== undefined && clampedL > targetBin.binLengthCm) ||
+            (clampedW !== undefined && clampedW > targetBin.binWidthCm) ||
+            (clampedH !== undefined && clampedH > targetBin.binHeightCm))
+        ) {
+          const nextBins = bins.map((b) =>
+            b.id === targetBin.id
+              ? {
+                  ...b,
+                  binLengthCm: Math.max(
+                    b.binLengthCm,
+                    (clampedL ?? b.binLengthCm) + 4
+                  ),
+                  binWidthCm: Math.max(
+                    b.binWidthCm,
+                    (clampedW ?? b.binWidthCm) + 4
+                  ),
+                  binHeightCm: Math.max(
+                    b.binHeightCm,
+                    (clampedH ?? b.binHeightCm) + 4
+                  ),
+                }
+              : b
+          );
+          setCustomBinsOverride(nextBins);
+          setExtraBins([]);
+          setRemovedBinIds([]);
+        }
+      }
+
+      setSkus((prev) =>
+        prev.map((s) =>
+          s.id === skuId
+            ? {
+                ...s,
+                lengthCm: clampedL ?? s.lengthCm,
+                widthCm: clampedW ?? s.widthCm,
+                heightCm: clampedH ?? s.heightCm,
+                weightKg: clampedKg ?? s.weightKg,
+                name: patch.name !== undefined ? patch.name : s.name,
+                color: patch.color !== undefined ? patch.color : s.color,
+                fragile: patch.fragile !== undefined ? patch.fragile : s.fragile,
+              }
+            : s
+        )
+      );
+
+      setSelectedCargo((prev) =>
+        prev && prev.skuId === skuId
+          ? {
+              ...prev,
+              lengthCm: clampedL ?? prev.lengthCm,
+              widthCm: clampedW ?? prev.widthCm,
+              heightCm: clampedH ?? prev.heightCm,
+              weightKg: clampedKg ?? prev.weightKg,
+              name: patch.name !== undefined ? patch.name : prev.name,
+              color: patch.color !== undefined ? patch.color : prev.color,
+            }
+          : prev
+      );
+    },
+    [
+      bins,
+      pushWorkspaceUndo,
+      setCustomBinsOverride,
+      setExtraBins,
+      setRemovedBinIds,
+      setSelectedCargo,
+      setSkus,
+    ]
+  );
+
   return {
     handleAddBin,
     handleDeleteBin,
     handlePinCargo,
+    handlePlaceCustomBoxInBin,
+    handleUpdateBoxDimensions,
+    handleResizeSingleBin,
+    handleMoveDepot,
+    handleAddObstacleAt,
+    handleUpdateObstacle,
+    handleDeleteObstacle,
+    handleMoveSingleCargoToBin,
+    handleMoveSingleCargoToFloor,
+    handleNudgeSingleCargo,
     handleMoveSkuToLevel,
     handleAddBinAbove,
     handleAddBinAtFloor,
+    handleMoveSingleBin,
     handleMoveRackColumn,
     handleTranslateWholeTemplate,
     handleRotateWholeTemplate90,

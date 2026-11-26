@@ -13,6 +13,7 @@ import {
   Upload,
 } from 'lucide-react';
 import { type LangCode } from '../i18n/translations';
+import type { CustomBoxPlacementInput } from '../hooks/useWarehouseTransforms';
 import type {
   ABCClass,
   BinSpec,
@@ -43,6 +44,7 @@ interface SimulationEditorPanelProps {
   onResetSpaceEdits: () => void;
   onChangeSkus: (next: SKUItem[]) => void;
   onPinCargo: (binId: string, skuId: string, delta: number) => void;
+  onPlaceCustomBoxInBin?: (input: CustomBoxPlacementInput) => void;
   onClearAllPins: () => void;
   lang?: LangCode;
 }
@@ -84,10 +86,20 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   onResetSpaceEdits,
   onChangeSkus,
   onPinCargo,
+  onPlaceCustomBoxInBin,
   onClearAllPins,
   lang = 'ko',
 }) => {
   const [step, setStep] = useState<'space' | 'cargo'>('space');
+  const [targetPlacementBinId, setTargetPlacementBinId] = useState<string>(
+    selectedBinId ?? ''
+  );
+
+  useEffect(() => {
+    if (selectedBinId) {
+      setTargetPlacementBinId(selectedBinId);
+    }
+  }, [selectedBinId]);
 
   // Step 1: Custom Bin Add Form
   const [newAisle, setNewAisle] = useState(1);
@@ -167,6 +179,23 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
   const handleAddCargo = (e: React.FormEvent) => {
     e.preventDefault();
+    if (targetPlacementBinId && onPlaceCustomBoxInBin) {
+      onPlaceCustomBoxInBin({
+        binId: targetPlacementBinId,
+        skuCode: skuCode.trim() || `BOX-${lengthCm}x${widthCm}x${heightCm}`,
+        name: skuName.trim() || 'Custom Cargo',
+        abcClass,
+        lengthCm: Math.max(5, Math.min(280, lengthCm)),
+        widthCm: Math.max(5, Math.min(280, widthCm)),
+        heightCm: Math.max(5, Math.min(240, heightCm)),
+        weightKg: Math.max(0.2, weightKg),
+        quantity: Math.max(1, Math.min(40, quantity)),
+        fragile,
+        color: PALETTE[skus.length % PALETTE.length],
+        autoExpandBin: true,
+      });
+      return;
+    }
     const newSku: SKUItem = {
       id: `sku-${Date.now()}`,
       skuCode: skuCode.trim() || 'CUSTOM',
@@ -174,9 +203,9 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
       category: 'Designed',
       abcClass,
       dailyPicks: Math.max(1, dailyPicks),
-      lengthCm: Math.max(10, Math.min(maxL, lengthCm)),
-      widthCm: Math.max(10, Math.min(maxW, widthCm)),
-      heightCm: Math.max(10, Math.min(maxH, heightCm)),
+      lengthCm: Math.max(8, Math.min(maxL, lengthCm)),
+      widthCm: Math.max(8, Math.min(maxW, widthCm)),
+      heightCm: Math.max(8, Math.min(maxH, heightCm)),
       weightKg: Math.max(0.5, weightKg),
       quantity: Math.max(1, Math.min(40, quantity)),
       fragile,
@@ -610,8 +639,84 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           {/* Design New Cargo */}
           <form
             onSubmit={handleAddCargo}
-            className="grid grid-cols-3 gap-2 rounded-xl border border-slate-800 bg-slate-950/70 p-2.5 text-[11px]"
+            className="grid grid-cols-3 gap-2 rounded-xl border border-emerald-500/35 bg-slate-950/70 p-2.5 text-[11px]"
           >
+            <div className="col-span-3 flex items-center justify-between">
+              <span className="font-bold text-emerald-300">
+                {lang === 'ko'
+                  ? '맞춤 박스 사이즈 설정 & 선반 투입'
+                  : 'Custom Box Size & Shelf Placement'}
+              </span>
+              <span className="font-mono text-[10px] text-cyan-300">
+                {lengthCm}×{widthCm}×{heightCm} cm
+              </span>
+            </div>
+
+            {/* Target Shelf Bin Selector */}
+            <div className="col-span-3">
+              <span className="text-[10px] text-slate-400">
+                {lang === 'ko'
+                  ? '투입할 목표 선반 선택 (특정 선반 지정 또는 자동 배치)'
+                  : 'Target Shelf Bin'}
+              </span>
+              <select
+                value={targetPlacementBinId}
+                onChange={(e) => setTargetPlacementBinId(e.target.value)}
+                className="mt-0.5 w-full rounded border border-emerald-500/40 bg-slate-900 px-2 py-1 text-[11px] font-semibold text-emerald-200"
+              >
+                <option value="">
+                  {lang === 'ko'
+                    ? '자동 최적 선반 배치 (3D 엔진 자동 할당)'
+                    : 'Auto Optimal Placement (3D Engine)'}
+                </option>
+                {bins.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {lang === 'ko'
+                      ? `선반 [${b.id}]에 바로 넣기 (Z${b.level}층 · 규격 ${b.binLengthCm}×${b.binWidthCm}×${b.binHeightCm}cm)`
+                      : `Place Directly in [${b.id}] (Z${b.level} · ${b.binLengthCm}×${b.binWidthCm}×${b.binHeightCm}cm)`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Quick Box Dimension Presets */}
+            <div className="col-span-3">
+              <div className="mb-1 text-[10px] text-slate-400">
+                {lang === 'ko'
+                  ? '빠른 박스 사이즈 선택 (가로×세로×높이 cm):'
+                  : 'Quick Box Size Presets (L×W×H cm):'}
+              </div>
+              <div className="grid grid-cols-4 gap-1 text-[10px]">
+                {[
+                  { label: lang === 'ko' ? '소형 25×20×15' : 'S 25×20×15', l: 25, w: 20, h: 15, kg: 2 },
+                  { label: lang === 'ko' ? '중형 40×30×24' : 'M 40×30×24', l: 40, w: 30, h: 24, kg: 5 },
+                  { label: lang === 'ko' ? '대형 60×40×35' : 'L 60×40×35', l: 60, w: 40, h: 35, kg: 10 },
+                  {
+                    label: lang === 'ko' ? '선반 1/2칸' : 'Half Bin',
+                    l: Math.max(12, Math.floor(maxL / 2)),
+                    w: Math.max(12, maxW - 4),
+                    h: Math.max(12, Math.floor(maxH * 0.75)),
+                    kg: 7,
+                  },
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => {
+                      setLengthCm(p.l);
+                      setWidthCm(p.w);
+                      setHeightCm(p.h);
+                      setWeightKg(p.kg);
+                      setSkuCode(`BOX-${p.l}x${p.w}x${p.h}`);
+                    }}
+                    className="truncate rounded border border-slate-700 bg-slate-900 px-1.5 py-1 font-medium text-slate-200 hover:border-emerald-400 hover:text-emerald-300"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <input
               value={skuCode}
               onChange={(e) => setSkuCode(e.target.value)}
@@ -739,7 +844,13 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               className="col-span-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/90 py-1.5 font-semibold text-slate-950 hover:bg-emerald-400"
             >
               <Plus className="h-3.5 w-3.5" />
-              {lang === 'ko' ? '새 수납 물품 추가' : 'Create Cargo SKU'}
+              {targetPlacementBinId
+                ? lang === 'ko'
+                  ? `선반 [${targetPlacementBinId}]에 ${lengthCm}×${widthCm}×${heightCm}cm 박스 ${quantity}개 바로 넣기`
+                  : `Place ${quantity}× (${lengthCm}×${widthCm}×${heightCm}cm) Box in [${targetPlacementBinId}]`
+                : lang === 'ko'
+                  ? `새 수납 박스 추가 (${lengthCm}×${widthCm}×${heightCm}cm ×${quantity}개)`
+                  : `Create Cargo Box (${lengthCm}×${widthCm}×${heightCm}cm ×${quantity})`}
             </button>
           </form>
 
@@ -934,83 +1045,116 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                           {lang === 'ko' ? '가끔 (C)' : 'Class C'}
                         </option>
                       </select>
-                      <div>
-                        <span className="text-slate-500">L(cm)</span>
-                        <input
-                          type="number"
-                          value={sku.lengthCm}
-                          onChange={(e) =>
-                            onChangeSkus(
-                              skus.map((s) =>
-                                s.id === sku.id
-                                  ? {
-                                      ...s,
-                                      lengthCm: parseInputInt(
-                                        e.target.value,
-                                        s.lengthCm,
-                                        8,
-                                        maxL
-                                      ),
-                                    }
-                                  : s
+                      <div className="col-span-3 grid grid-cols-4 gap-1.5">
+                        <div>
+                          <span className="text-slate-500">
+                            {lang === 'ko' ? '가로 L(cm)' : 'L(cm)'}
+                          </span>
+                          <input
+                            type="number"
+                            value={sku.lengthCm}
+                            onChange={(e) =>
+                              onChangeSkus(
+                                skus.map((s) =>
+                                  s.id === sku.id
+                                    ? {
+                                        ...s,
+                                        lengthCm: parseInputInt(
+                                          e.target.value,
+                                          s.lengthCm,
+                                          5,
+                                          280
+                                        ),
+                                      }
+                                    : s
+                                )
                               )
-                            )
-                          }
-                          className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-slate-500">W(cm)</span>
-                        <input
-                          type="number"
-                          value={sku.widthCm}
-                          onChange={(e) =>
-                            onChangeSkus(
-                              skus.map((s) =>
-                                s.id === sku.id
-                                  ? {
-                                      ...s,
-                                      widthCm: parseInputInt(
-                                        e.target.value,
-                                        s.widthCm,
-                                        8,
-                                        maxW
-                                      ),
-                                    }
-                                  : s
+                            }
+                            className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-slate-500">
+                            {lang === 'ko' ? '세로 W(cm)' : 'W(cm)'}
+                          </span>
+                          <input
+                            type="number"
+                            value={sku.widthCm}
+                            onChange={(e) =>
+                              onChangeSkus(
+                                skus.map((s) =>
+                                  s.id === sku.id
+                                    ? {
+                                        ...s,
+                                        widthCm: parseInputInt(
+                                          e.target.value,
+                                          s.widthCm,
+                                          5,
+                                          280
+                                        ),
+                                      }
+                                    : s
+                                )
                               )
-                            )
-                          }
-                          className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-slate-500">
-                          {lang === 'ko' ? '무게(kg)' : 'kg'}
-                        </span>
-                        <input
-                          type="number"
-                          step="0.5"
-                          value={sku.weightKg}
-                          onChange={(e) =>
-                            onChangeSkus(
-                              skus.map((s) =>
-                                s.id === sku.id
-                                  ? {
-                                      ...s,
-                                      weightKg: parseInputFloat(
-                                        e.target.value,
-                                        s.weightKg,
-                                        0.2,
-                                        500
-                                      ),
-                                    }
-                                  : s
+                            }
+                            className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-slate-500">
+                            {lang === 'ko' ? '높이 H(cm)' : 'H(cm)'}
+                          </span>
+                          <input
+                            type="number"
+                            value={sku.heightCm}
+                            onChange={(e) =>
+                              onChangeSkus(
+                                skus.map((s) =>
+                                  s.id === sku.id
+                                    ? {
+                                        ...s,
+                                        heightCm: parseInputInt(
+                                          e.target.value,
+                                          s.heightCm,
+                                          5,
+                                          240
+                                        ),
+                                      }
+                                    : s
+                                )
                               )
-                            )
-                          }
-                          className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
-                        />
+                            }
+                            className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-slate-500">
+                            {lang === 'ko' ? '무게(kg)' : 'kg'}
+                          </span>
+                          <input
+                            type="number"
+                            step="0.5"
+                            value={sku.weightKg}
+                            onChange={(e) =>
+                              onChangeSkus(
+                                skus.map((s) =>
+                                  s.id === sku.id
+                                    ? {
+                                        ...s,
+                                        weightKg: parseInputFloat(
+                                          e.target.value,
+                                          s.weightKg,
+                                          0.2,
+                                          500
+                                        ),
+                                      }
+                                    : s
+                                )
+                              )
+                            }
+                            className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-slate-100"
+                          />
+                        </div>
                       </div>
                     </div>
                   )}

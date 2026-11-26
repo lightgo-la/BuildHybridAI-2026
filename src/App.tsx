@@ -9,35 +9,22 @@ import {
   useState,
 } from 'react';
 import {
-  Boxes,
   Camera,
-  ChevronLeft,
-  ChevronRight,
-  CloudUpload,
   Compass,
   Copy,
-  Cpu,
   Flame,
   Home,
   Keyboard,
-  Languages,
   Layers,
-  LayoutGrid,
-  Map as MapIcon,
   Move,
-  Palette,
-  Pin,
   Play,
   Plus,
   Redo2,
   RotateCcw,
   RotateCw,
-  Ruler,
-  Settings,
   Sparkles,
   Sun,
   Trash2,
-  Truck,
   Undo2,
 } from 'lucide-react';
 import { DESIGN_THEMES } from './data/designThemes';
@@ -65,22 +52,41 @@ import {
 import type {
   BinAllocation,
   BinSpec,
+  DragScope,
   EquipmentMode,
   InteriorProp,
   OptimizationPreset,
   PinnedCargoPlacement,
   RoomEnclosureStyle,
   SKUItem,
+  SelectedCargoBox,
   ViewLayerMode,
   WarehouseConfig,
+  WarehouseObstacle,
   WarehouseScenario,
 } from './types/warehouse';
 import { useWarehouseShortcuts } from './hooks/useWarehouseShortcuts';
 import { useWarehouseTransforms } from './hooks/useWarehouseTransforms';
+import { getEffectiveInteriorProps } from './utils/threeContentBuilder';
 import {
   exportSkusToCSV,
   exportSlottingResultToCSV,
 } from './utils/csvExporter';
+import {
+  type WorkspaceHistorySnapshot,
+  loadCustomMaps,
+  loadDesignSettings,
+  loadLang,
+  loadSavedWorkspaceSession,
+  loadScene3DBg,
+  saveCustomMaps,
+  saveDesignSettings,
+  saveLang,
+  saveScene3DBg,
+  saveWorkspaceSession,
+} from './utils/workspaceStorage';
+import { TopHeaderBar } from './components/TopHeaderBar';
+import { WorkspaceQuickStrip } from './components/WorkspaceQuickStrip';
 import { Warehouse3DViewport } from './components/Warehouse3DViewport';
 import { KPIComparisonBar } from './components/KPIComparisonBar';
 import { HybridAICopilotPanel } from './components/HybridAICopilotPanel';
@@ -89,7 +95,6 @@ import {
   SpaceOptimizerPanel,
 } from './components/SpaceOptimizerPanel';
 import {
-  DEFAULT_DESIGN_LAYOUT,
   type DesignLayoutSettings,
   DesignStudioMenu,
 } from './components/DesignStudioMenu';
@@ -98,7 +103,6 @@ import { BinInspectorPanel } from './components/BinInspectorPanel';
 import { EverydayHomeView } from './components/EverydayHomeView';
 import { InteriorStudioModal } from './components/InteriorStudioModal';
 import {
-  DEFAULT_SCENE_3D_BACKGROUND,
   SCENE_3D_PRESETS,
   Scene3DBackgroundModal,
   type Scene3DBackgroundSettings,
@@ -128,95 +132,6 @@ const FirebaseSetupModal = lazy(() =>
     default: m.FirebaseSetupModal,
   }))
 );
-
-interface WorkspaceHistorySnapshot {
-  skus: SKUItem[];
-  configPatch: Partial<WarehouseConfig>;
-  customBinsOverride: BinSpec[] | null;
-  extraBins: BinSpec[];
-  removedBinIds: string[];
-  pinnedPlacements: PinnedCargoPlacement[];
-}
-
-const DESIGN_STORAGE_KEY = 'cubislot_design_layout_v1';
-const CUSTOM_MAPS_KEY = 'cubislot_custom_maps_v1';
-const LANG_STORAGE_KEY = 'cubislot_lang_v1';
-const SCENE_3D_BG_KEY = 'cubislot_scene_3d_bg_v1';
-const WORKSPACE_SESSION_KEY = 'cubislot_active_workspace_v1';
-
-interface SavedWorkspaceSession {
-  scenarioId: string;
-  skus: SKUItem[];
-  configPatch: Partial<WarehouseConfig>;
-  customBinsOverride: BinSpec[] | null;
-  extraBins: BinSpec[];
-  removedBinIds: string[];
-  pinnedPlacements: PinnedCargoPlacement[];
-}
-
-function loadSavedWorkspaceSession(): SavedWorkspaceSession | null {
-  try {
-    const raw = localStorage.getItem(WORKSPACE_SESSION_KEY);
-    if (raw) {
-      return JSON.parse(raw) as SavedWorkspaceSession;
-    }
-  } catch {
-    // ignore storage errors
-  }
-  return null;
-}
-
-function loadScene3DBg(): Scene3DBackgroundSettings {
-  try {
-    const raw = localStorage.getItem(SCENE_3D_BG_KEY);
-    if (raw) {
-      return {
-        ...DEFAULT_SCENE_3D_BACKGROUND,
-        ...(JSON.parse(raw) as Partial<Scene3DBackgroundSettings>),
-      };
-    }
-  } catch {
-    // ignore storage errors
-  }
-  return DEFAULT_SCENE_3D_BACKGROUND;
-}
-
-function loadLang(): LangCode {
-  try {
-    const saved = localStorage.getItem(LANG_STORAGE_KEY);
-    if (saved === 'ko' || saved === 'en') return saved;
-  } catch {
-    // ignore storage errors
-  }
-  return 'ko';
-}
-
-function loadCustomMaps(): WarehouseScenario[] {
-  try {
-    const raw = localStorage.getItem(CUSTOM_MAPS_KEY);
-    if (raw) {
-      return JSON.parse(raw) as WarehouseScenario[];
-    }
-  } catch {
-    // ignore malformed storage
-  }
-  return [];
-}
-
-function loadDesignSettings(): DesignLayoutSettings {
-  try {
-    const raw = localStorage.getItem(DESIGN_STORAGE_KEY);
-    if (raw) {
-      return {
-        ...DEFAULT_DESIGN_LAYOUT,
-        ...(JSON.parse(raw) as Partial<DesignLayoutSettings>),
-      };
-    }
-  } catch {
-    // ignore malformed storage
-  }
-  return DEFAULT_DESIGN_LAYOUT;
-}
 
 export function App() {
   const [customMaps, setCustomMaps] = useState<WarehouseScenario[]>(loadCustomMaps);
@@ -264,20 +179,15 @@ export function App() {
   const lastUndoPushMsRef = useRef<number>(0);
 
   useEffect(() => {
-    try {
-      const payload: SavedWorkspaceSession = {
-        scenarioId,
-        skus,
-        configPatch,
-        customBinsOverride,
-        extraBins,
-        removedBinIds,
-        pinnedPlacements,
-      };
-      localStorage.setItem(WORKSPACE_SESSION_KEY, JSON.stringify(payload));
-    } catch {
-      // ignore storage quota errors
-    }
+    saveWorkspaceSession({
+      scenarioId,
+      skus,
+      configPatch,
+      customBinsOverride,
+      extraBins,
+      removedBinIds,
+      pinnedPlacements,
+    });
   }, [
     scenarioId,
     skus,
@@ -403,11 +313,16 @@ export function App() {
   const [cameraResetTick, setCameraResetTick] = useState(0);
   const [animateRoute, setAnimateRoute] = useState(true);
   const [dragMoveMode, setDragMoveMode] = useState(false);
-  const [dragScope, setDragScope] = useState<'column' | 'whole_template'>(
-    'whole_template'
-  );
+  const [dragScope, setDragScope] = useState<DragScope>('single_cargo');
   const [selectedBinId, setSelectedBinId] = useState<string | null>(null);
   const [selectedPropId, setSelectedPropId] = useState<string | null>(null);
+  const [selectedObstacleId, setSelectedObstacleId] = useState<string | null>(
+    null
+  );
+  const [selectedDepot, setSelectedDepot] = useState<boolean>(false);
+  const [selectedCargo, setSelectedCargo] = useState<SelectedCargoBox | null>(
+    null
+  );
   const [interiorModalOpen, setInteriorModalOpen] = useState(false);
   const [interiorInitialTab, setInteriorInitialTab] = useState<
     'interior' | 'shortcuts'
@@ -427,6 +342,7 @@ export function App() {
   const [mapEditorOpen, setMapEditorOpen] = useState(false);
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
   const [simpleMode, setSimpleMode] = useState(true);
+  const [showAdvanced3DTools, setShowAdvanced3DTools] = useState(false);
   const [mapFilter, setMapFilter] = useState<'all' | 'pro' | 'everyday'>('all');
   const [contextMenu, setContextMenu] = useState<ViewportContextState | null>(
     null
@@ -445,19 +361,11 @@ export function App() {
   );
 
   useEffect(() => {
-    try {
-      localStorage.setItem(SCENE_3D_BG_KEY, JSON.stringify(sceneBg));
-    } catch {
-      // ignore storage errors
-    }
+    saveScene3DBg(sceneBg);
   }, [sceneBg]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(designSettings));
-    } catch {
-      // ignore storage quota errors
-    }
+    saveDesignSettings(designSettings);
     const root = document.documentElement;
     root.style.fontSize = `${(16 * designSettings.uiScalePct) / 100}px`;
     root.style.setProperty('--t-bg', activeTheme.bg);
@@ -523,17 +431,16 @@ export function App() {
     setLevelFilter('all');
     setSelectedBinId(null);
     setSelectedPropId(null);
+    setSelectedObstacleId(null);
+    setSelectedDepot(false);
+    setSelectedCargo(null);
     setCameraResetTick((t) => t + 1);
   };
 
   const handleSaveCustomScenario = useCallback((customMap: WarehouseScenario) => {
     setCustomMaps((prev) => {
       const next = [...prev, customMap];
-      try {
-        localStorage.setItem(CUSTOM_MAPS_KEY, JSON.stringify(next));
-      } catch {
-        // ignore storage quota errors
-      }
+      saveCustomMaps(next);
       return next;
     });
     setScenarioId(customMap.id);
@@ -543,11 +450,7 @@ export function App() {
     (id: string) => {
       setCustomMaps((prev) => {
         const next = prev.filter((m) => m.id !== id);
-        try {
-          localStorage.setItem(CUSTOM_MAPS_KEY, JSON.stringify(next));
-        } catch {
-          // ignore
-        }
+        saveCustomMaps(next);
         return next;
       });
       if (scenarioId === id) {
@@ -670,21 +573,83 @@ export function App() {
   const toggleLanguage = useCallback(() => {
     setLang((prev) => {
       const next: LangCode = prev === 'ko' ? 'en' : 'ko';
-      try {
-        localStorage.setItem(LANG_STORAGE_KEY, next);
-      } catch {
-        // ignore storage errors
-      }
+      saveLang(next);
       return next;
     });
   }, []);
 
+  const effectiveInteriorProps = useMemo(() => {
+    const aisleSp = config.aisleSpacingM ?? 3.4;
+    const depotX =
+      config.depotXMeters ?? ((Math.max(1, config.aisles) - 1) * aisleSp) / 2;
+    const depotZ = config.depotYMeters ?? 0;
+    const xs = [
+      ...shownResult.allocations.map((a) => a.bin.xMeters),
+      ...(config.obstacles ?? []).map((o) => o.xMeters),
+      depotX,
+      ...(config.floorWidthM ? [-1.0, -1.0 + config.floorWidthM] : []),
+    ];
+    const zs = [
+      ...shownResult.allocations.map((a) => a.bin.yMeters),
+      ...(config.obstacles ?? []).map((o) => o.yMeters),
+      depotZ,
+      ...(config.floorDepthM ? [-1.0, -1.0 + config.floorDepthM] : []),
+    ];
+    const minX = Math.min(-1.0, ...(xs.length ? xs.map((x) => x - 1.2) : [-1.0]));
+    const minZ = Math.min(-1.0, ...(zs.length ? zs.map((z) => z - 1.2) : [-1.0]));
+    const maxX = Math.max(
+      minX + (config.floorWidthM ?? 0),
+      ...(xs.length ? xs.map((x) => x + 1.5) : [10])
+    );
+    const maxZ = Math.max(
+      minZ + (config.floorDepthM ?? 0),
+      ...(zs.length ? zs.map((z) => z + 1.5) : [10])
+    );
+    return getEffectiveInteriorProps({
+      scenarioName: activeScenario.name,
+      config,
+      bounds: {
+        minX,
+        minZ,
+        maxX,
+        maxZ,
+        width: Math.max(12, maxX - minX),
+        depth: Math.max(12, maxZ - minZ),
+        centerX: (minX + maxX) / 2,
+        centerZ: (minZ + maxZ) / 2,
+      },
+      depotX,
+      depotZ,
+    });
+  }, [activeScenario.name, config, shownResult.allocations]);
+
   const selectedProp: InteriorProp | null = useMemo(() => {
     if (!selectedPropId) return null;
     return (
-      (config.interiorProps ?? []).find((p) => p.id === selectedPropId) ?? null
+      effectiveInteriorProps.find((p) => p.id === selectedPropId) ?? null
     );
-  }, [config.interiorProps, selectedPropId]);
+  }, [effectiveInteriorProps, selectedPropId]);
+
+  const selectedObstacle: WarehouseObstacle | null = useMemo(() => {
+    if (!selectedObstacleId) return null;
+    return (
+      (config.obstacles ?? []).find((o) => o.id === selectedObstacleId) ?? null
+    );
+  }, [config.obstacles, selectedObstacleId]);
+
+  const activeDepotX =
+    config.depotXMeters ??
+    ((Math.max(1, config.aisles) - 1) * (config.aisleSpacingM ?? 3.4)) / 2;
+  const activeDepotZ = config.depotYMeters ?? 0;
+
+  const handleChangeFloorColor = useCallback((nextColor: string) => {
+    setSceneBg((prev) => ({
+      ...prev,
+      presetId: 'custom',
+      useThemeDefault: false,
+      floorColor: nextColor,
+    }));
+  }, []);
 
   const showToast = useCallback((msg: string) => {
     setShortcutToast(msg);
@@ -700,9 +665,20 @@ export function App() {
     handleAddBin,
     handleDeleteBin,
     handlePinCargo,
+    handlePlaceCustomBoxInBin,
+    handleUpdateBoxDimensions,
+    handleResizeSingleBin,
+    handleMoveDepot,
+    handleAddObstacleAt,
+    handleUpdateObstacle,
+    handleDeleteObstacle,
+    handleMoveSingleCargoToBin,
+    handleMoveSingleCargoToFloor,
+    handleNudgeSingleCargo,
     handleMoveSkuToLevel,
     handleAddBinAbove,
     handleAddBinAtFloor,
+    handleMoveSingleBin,
     handleMoveRackColumn,
     handleTranslateWholeTemplate,
     handleRotateWholeTemplate90,
@@ -716,10 +692,13 @@ export function App() {
     handleAutoPopulateInterior,
   } = useWarehouseTransforms({
     bins,
+    allocations: shownResult.allocations,
     config,
+    effectiveInteriorProps,
     lang,
     pushWorkspaceUndo,
     showToast,
+    setSkus,
     setConfigPatch,
     setCustomBinsOverride,
     setExtraBins,
@@ -727,6 +706,7 @@ export function App() {
     setPinnedPlacements,
     setSelectedBinId,
     setSelectedPropId,
+    setSelectedCargo,
     setCameraResetTick,
     setAppView,
   });
@@ -738,6 +718,11 @@ export function App() {
     dragScope,
     selectedBin,
     selectedProp,
+    selectedObstacle,
+    selectedDepot,
+    depotX: activeDepotX,
+    depotZ: activeDepotZ,
+    selectedCargo,
     showToast,
     toggleLanguage,
     handleWorkspaceUndo,
@@ -746,7 +731,13 @@ export function App() {
     handleDeleteBin,
     handleDeleteInteriorProp,
     handleUpdateInteriorProp,
+    handleUpdateObstacle,
+    handleDeleteObstacle,
+    handleMoveDepot,
+    handleMoveSingleBin,
     handleMoveRackColumn,
+    handleNudgeSingleCargo,
+    handlePinCargo,
     handleTranslateWholeTemplate,
     setCameraPreset,
     setCameraResetTick,
@@ -761,6 +752,7 @@ export function App() {
     setViewLayer,
     setAppView,
     setLevelFilter,
+    setSelectedCargo,
   });
 
   const handleApplyFirebaseConfig = async (cfg: FirebaseRuntimeConfig) => {
@@ -809,208 +801,27 @@ export function App() {
         });
       }}
     >
-      {/* Top Bar */}
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/90 px-4 py-2.5">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-9 w-9 items-center justify-center rounded-xl shadow-lg"
-            style={{
-              backgroundColor: activeTheme.accent,
-              color: activeTheme.accentText,
-            }}
-          >
-            <Boxes className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold tracking-tight text-white">
-                CubiSlot 3D
-              </h1>
-              <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold text-cyan-300">
-                #BuildHybridAI 2026 · Web/Chrome
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400">
-              {t(lang, 'appSubtitle')} · {activeTheme.name} ·{' '}
-              {designSettings.uiScalePct}%
-            </p>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          {/* App View Mode Switcher: Everyday Home <-> 3D Workspace */}
-          <div className="flex overflow-hidden rounded-lg border border-slate-700 bg-slate-950 p-0.5">
-            <button
-              type="button"
-              onClick={() => setAppView('home')}
-              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${
-                appView === 'home'
-                  ? 'bg-emerald-500 text-slate-950'
-                  : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              <Home className="h-3.5 w-3.5" />
-              {t(lang, 'navHome')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setAppView('workspace')}
-              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition ${
-                appView === 'workspace'
-                  ? 'bg-cyan-500 text-slate-950'
-                  : 'text-slate-300 hover:text-white'
-              }`}
-            >
-              <Boxes className="h-3.5 w-3.5" />
-              {t(lang, 'navWorkspace')}
-            </button>
-          </div>
-
-          {/* Guided 3-Step Flow */}
-          <button
-            type="button"
-            onClick={() => setTemplateGalleryOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 font-semibold text-slate-100 hover:border-cyan-500/50"
-            title="Step 1: Choose from 24 Pro & Everyday Templates"
-          >
-            <LayoutGrid className="h-3.5 w-3.5 text-cyan-400" />
-            1. {t(lang, 'navTemplates')} ({WAREHOUSE_TEMPLATES.length})
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMapEditorOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 font-semibold text-slate-100 hover:border-emerald-500/50"
-            title="Step 2: Drag & Resize Space on 2D Free Canvas"
-          >
-            <MapIcon className="h-3.5 w-3.5 text-emerald-400" />
-            2. {t(lang, 'navMapCanvas')}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCadModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 font-medium text-slate-100 hover:border-cyan-500/50"
-            title="Step 3: Export 2D CAD Blueprint (.DXF / .SVG)"
-          >
-            <Ruler className="h-3.5 w-3.5 text-cyan-400" />
-            3. {t(lang, 'navCad')}
-          </button>
-
-          {/* Language Switcher (Korean / English) */}
-          <button
-            type="button"
-            onClick={toggleLanguage}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 hover:border-amber-400/60"
-            title="Switch Language (한국어 / English)"
-          >
-            <Languages className="h-3.5 w-3.5" />
-            {lang === 'ko' ? '한국어/EN' : 'EN/한국어'}
-          </button>
-
-          {/* Easy / Pro Terminology Toggle */}
-          <button
-            type="button"
-            onClick={() => setSimpleMode((v) => !v)}
-            className="rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-[11px] font-semibold text-cyan-300 hover:border-cyan-500/50"
-            title="Switch between Easy Everyday labels and Pro Engineering terms"
-          >
-            {simpleMode ? t(lang, 'easyModeOn') : t(lang, 'proModeOn')}
-          </button>
-
-          {/* Instant 24-Theme Switcher + Design & Size Studio */}
-          <div
-            className="flex items-center overflow-hidden rounded-lg border"
-            style={{
-              borderColor: activeTheme.accent,
-              backgroundColor: activeTheme.surfaceAlt,
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => cycleTheme(-1)}
-              className="px-1.5 py-1.5 hover:opacity-80"
-              style={{ color: activeTheme.accent }}
-              title="Previous Theme"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </button>
-            <select
-              value={designSettings.themeId}
-              onChange={(e) =>
-                setDesignSettings((prev) => ({
-                  ...prev,
-                  themeId: e.target.value,
-                }))
-              }
-              className="max-w-[130px] bg-transparent px-1 py-1.5 text-[11px] font-semibold focus:outline-none"
-              style={{ color: activeTheme.text }}
-              title="Switch among 24 design themes"
-            >
-              {DESIGN_THEMES.map((t) => (
-                <option
-                  key={t.id}
-                  value={t.id}
-                  style={{
-                    backgroundColor: activeTheme.surface,
-                    color: activeTheme.text,
-                  }}
-                >
-                  {t.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => cycleTheme(1)}
-              className="px-1.5 py-1.5 hover:opacity-80"
-              style={{ color: activeTheme.accent }}
-              title="Next Theme"
-            >
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setDesignMenuOpen(true)}
-              className="inline-flex items-center gap-1 border-l px-2 py-1.5 font-semibold transition"
-              style={{
-                borderColor: activeTheme.border,
-                backgroundColor: activeTheme.accent,
-                color: activeTheme.accentText,
-              }}
-              title="Open 24-Theme Gallery & UI Size Sliders"
-            >
-              <Palette className="h-3.5 w-3.5" />
-              {t(lang, 'themeSizeBtn')}
-            </button>
-          </div>
-
-          {!simpleMode && (
-            <button
-              type="button"
-              onClick={handleSaveSnapshot}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1.5 text-slate-200 hover:border-cyan-500/40"
-              title="Save KPI snapshot to Firestore"
-            >
-              <CloudUpload className="h-3.5 w-3.5 text-cyan-400" />
-              {t(lang, 'saveRun')}
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => setSetupOpen(true)}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 font-medium ${
-              firebaseState.configured
-                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                : 'border-amber-500/40 bg-amber-500/10 text-amber-300'
-            }`}
-          >
-            <Settings className="h-3.5 w-3.5" />
-            {firebaseState.configured ? t(lang, 'firebaseOk') : t(lang, 'firebaseSetup')}
-          </button>
-        </div>
-      </header>
+      <TopHeaderBar
+        lang={lang}
+        appView={appView}
+        simpleMode={simpleMode}
+        activeTheme={activeTheme}
+        designSettings={designSettings}
+        firebaseConfigured={firebaseState.configured}
+        onChangeAppView={setAppView}
+        onOpenTemplateGallery={() => setTemplateGalleryOpen(true)}
+        onOpenMapEditor={() => setMapEditorOpen(true)}
+        onOpenCadModal={() => setCadModalOpen(true)}
+        onToggleLanguage={toggleLanguage}
+        onToggleSimpleMode={() => setSimpleMode((v) => !v)}
+        onCycleTheme={cycleTheme}
+        onSelectThemeId={(themeId) =>
+          setDesignSettings((prev) => ({ ...prev, themeId }))
+        }
+        onOpenDesignMenu={() => setDesignMenuOpen(true)}
+        onSaveSnapshot={handleSaveSnapshot}
+        onOpenFirebaseSetup={() => setSetupOpen(true)}
+      />
 
       {appView === 'home' ? (
         <EverydayHomeView
@@ -1030,237 +841,50 @@ export function App() {
         />
       ) : (
         <>
-          {/* Clean Single-Line Quick Space Strip + Direct 24-Template Jump */}
-          {designSettings.showMapStrip && (
-            <section className="theme-surface flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-slate-900/50 px-4 py-1.5 text-[11px]">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="font-semibold text-cyan-300">
-                  {activeScenario.name}
-                </span>
-                <span className="text-slate-500">·</span>
-                <div className="flex overflow-hidden rounded-md border border-slate-700 bg-slate-950 text-[10px]">
-                  {(
-                    [
-                      ['all', t(lang, 'filterAll')],
-                      ['pro', t(lang, 'filterPro')],
-                      ['everyday', t(lang, 'filterEveryday')],
-                    ] as const
-                  ).map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => setMapFilter(key)}
-                      className={`px-2 py-0.5 ${
-                        mapFilter === key
-                          ? 'bg-cyan-500/20 font-semibold text-cyan-300'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <select
-                  value={
-                    WAREHOUSE_TEMPLATES.some((x) => x.id === scenarioId)
-                      ? scenarioId
-                      : ''
-                  }
-                  onChange={(e) => {
-                    if (e.target.value) handleSelectScenario(e.target.value);
-                  }}
-                  className="max-w-[215px] rounded-md border border-slate-700 bg-slate-950 px-2 py-0.5 text-[10px] font-medium text-emerald-300 focus:border-cyan-500 focus:outline-none"
-                  title={t(lang, 'allTemplatesJump')}
-                >
-                  <option value="">{t(lang, 'allTemplatesJump')}</option>
-                  {WAREHOUSE_TEMPLATES.filter((tpl) => {
-                    if (mapFilter === 'everyday') return tpl.persona === 'everyday';
-                    if (mapFilter === 'pro') return tpl.persona === 'professional';
-                    return true;
-                  }).map((tpl) => (
-                    <option key={tpl.id} value={tpl.id}>
-                      {tpl.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="flex flex-wrap items-center gap-1">
-                  {[...SAMPLE_SCENARIOS, ...customMaps]
-                    .filter((sc) => {
-                      const isEvery =
-                        sc.id.startsWith('everyday') || sc.id.startsWith('tpl-life');
-                      if (mapFilter === 'everyday') return isEvery;
-                      if (mapFilter === 'pro') return !isEvery;
-                      return true;
-                    })
-                    .map((sc) => {
-                      const selected = sc.id === scenarioId;
-                      const isCustom = customMaps.some((c) => c.id === sc.id);
-                      return (
-                        <div
-                          key={sc.id}
-                          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 transition ${
-                            selected
-                              ? 'bg-cyan-950/35 font-semibold text-white'
-                              : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white'
-                          }`}
-                          style={
-                            selected ? { borderColor: activeTheme.accent } : undefined
-                          }
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleSelectScenario(sc.id)}
-                          >
-                            {sc.name.replace(/^Map \d+ · |^Everyday \d+ · /, '')}
-                          </button>
-                          {isCustom && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteCustomScenario(sc.id)}
-                              className="text-slate-400 hover:text-rose-400"
-                              title="Delete custom map"
-                            >
-                              <Trash2 className="h-2.5 w-2.5" />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {simpleMode && !showBeginnerGuide && (
-                  <button
-                    type="button"
-                    onClick={() => setShowBeginnerGuide(true)}
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
-                  >
-                    <Sparkles className="h-3 w-3" />
-                    {lang === 'ko' ? '초보자 가이드 열기' : 'Show Quick Guide'}
-                  </button>
-                )}
-                {!simpleMode && (
-                  <div className="flex overflow-hidden rounded-md border border-slate-700 bg-slate-950 text-[10px]">
-                    <button
-                      type="button"
-                      onClick={() => setEquipmentMode('reach_truck')}
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 ${
-                        equipmentMode === 'reach_truck'
-                          ? 'bg-cyan-500/20 font-semibold text-cyan-300'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      <Truck className="h-3 w-3" />
-                      Reach
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEquipmentMode('asrs_crane')}
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 ${
-                        equipmentMode === 'asrs_crane'
-                          ? 'bg-cyan-500/20 font-semibold text-cyan-300'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      <Cpu className="h-3 w-3" />
-                      AS/RS
-                    </button>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
-
-          {firestoreNotice && (
-            <div className="border-b border-slate-800 bg-slate-900 px-4 py-1.5 text-right text-[11px] text-cyan-300">
-              {firestoreNotice}
-            </div>
-          )}
-
-          {/* 3-Step Interactive Beginner Onboarding Bar (Visible in Simple Mode) */}
-          {simpleMode && showBeginnerGuide && (
-            <section className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/30 bg-emerald-950/25 px-4 py-2 text-xs">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
-                  <Sparkles className="h-3 w-3" />
-                  {lang === 'ko'
-                    ? '초보자 3단계 빠른 시작:'
-                    : '3-Step Quick Start:'}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => setTemplateGalleryOpen(true)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-cyan-400"
-                >
-                  <span className="font-bold text-cyan-400">STEP 1</span>
-                  {lang === 'ko'
-                    ? '우리집·매장 공간 템플릿 고르기'
-                    : 'Choose Space Template'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next =
-                      activeLayout === 'optimized_3d'
-                        ? 'baseline_2d'
-                        : 'optimized_3d';
-                    setActiveLayout(next);
-                    showToast(
-                      lang === 'ko'
-                        ? next === 'optimized_3d'
-                          ? '3D 자동 최적 정리 적용됨'
-                          : '정리 전(2D 일반 배치) 화면으로 전환됨'
-                        : `Switched to ${next}`
-                    );
-                  }}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-emerald-400"
-                >
-                  <span className="font-bold text-emerald-400">STEP 2</span>
-                  {lang === 'ko'
-                    ? `정리 전(2D) ↔ 3D 자동 정리 비교 (${activeLayout === 'optimized_3d' ? '현재: 3D 정리 후' : '현재: 정리 전'})`
-                    : 'Compare Before (2D) ↔ After (3D)'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const targetAlloc =
-                      shownResult.allocations.find(
-                        (a) => a.bin.isGoldenZone && a.boxes.length > 0
-                      ) ??
-                      shownResult.allocations[0] ??
-                      null;
-                    if (targetAlloc) {
-                      setSelectedBinId(targetAlloc.bin.id);
-                      setLeftTab('inspector');
-                      showToast(
-                        lang === 'ko'
-                          ? `선반 [${targetAlloc.bin.id}] 선택됨: 좌측 패널에서 물건을 바로 넣어보세요`
-                          : `Selected [${targetAlloc.bin.id}] in Inspector`
-                      );
-                    }
-                  }}
-                  className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-amber-400"
-                >
-                  <span className="font-bold text-amber-400">STEP 3</span>
-                  {lang === 'ko'
-                    ? '추천 선반 클릭해 내 물건 바로 넣어보기'
-                    : 'Select Golden Zone Shelf & Place Item'}
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowBeginnerGuide(false)}
-                className="text-[11px] text-slate-400 hover:text-white"
-              >
-                {lang === 'ko' ? '가이드 접기 ×' : 'Hide ×'}
-              </button>
-            </section>
-          )}
+          <WorkspaceQuickStrip
+            lang={lang}
+            showMapStrip={designSettings.showMapStrip}
+            activeScenarioName={activeScenario.name}
+            scenarioId={scenarioId}
+            mapFilter={mapFilter}
+            customMaps={customMaps}
+            activeTheme={activeTheme}
+            simpleMode={simpleMode}
+            showBeginnerGuide={showBeginnerGuide}
+            equipmentMode={equipmentMode}
+            firestoreNotice={firestoreNotice}
+            activeLayout={activeLayout}
+            allocations={shownResult.allocations}
+            onChangeMapFilter={setMapFilter}
+            onSelectScenario={handleSelectScenario}
+            onDeleteCustomScenario={handleDeleteCustomScenario}
+            onChangeShowBeginnerGuide={setShowBeginnerGuide}
+            onChangeEquipmentMode={setEquipmentMode}
+            onOpenTemplateGallery={() => setTemplateGalleryOpen(true)}
+            onToggleActiveLayout={() => {
+              const next =
+                activeLayout === 'optimized_3d'
+                  ? 'baseline_2d'
+                  : 'optimized_3d';
+              setActiveLayout(next);
+              showToast(
+                lang === 'ko'
+                  ? next === 'optimized_3d'
+                    ? '3D 자동 최적 정리 적용됨'
+                    : '정리 전(2D 일반 배치) 화면으로 전환됨'
+                  : `Switched to ${next}`
+              );
+            }}
+            onSelectRecommendedBin={(targetAlloc) => {
+              setSelectedBinId(targetAlloc.bin.id);
+              setLeftTab('inspector');
+              showToast(
+                lang === 'ko'
+                  ? `선반 [${targetAlloc.bin.id}] 선택됨: 좌측 패널에서 물건을 바로 넣어보세요`
+                  : `Selected [${targetAlloc.bin.id}] in Inspector`
+              );
+            }}
+          />
 
           {/* KPI ROI Strip */}
           {designSettings.showKpiBar && (
@@ -1316,10 +940,19 @@ export function App() {
             </button>
             <button
               type="button"
-              onClick={() => setLeftTab('inspector')}
+              onClick={() => {
+                if (!selectedBin) {
+                  const target =
+                    shownResult.allocations.find((a) => a.bin.isGoldenZone) ??
+                    shownResult.allocations[0] ??
+                    null;
+                  if (target) setSelectedBinId(target.bin.id);
+                }
+                setLeftTab('inspector');
+              }}
               className={`flex-1 py-2.5 ${
                 leftTab === 'inspector'
-                  ? 'border-b-2 text-cyan-300'
+                  ? 'border-b-2 font-bold text-emerald-300'
                   : 'text-slate-400 hover:text-white'
               }`}
               style={
@@ -1329,8 +962,37 @@ export function App() {
               }
             >
               3. {t(lang, 'tabInspect')}
+              {selectedBin ? ` (${selectedBin.bin.id})` : ''}
             </button>
           </div>
+
+          {/* Beginner 1-Click Direct Shortcut to Shelf & Box Size Builder when on Tab 1 or Tab 2 */}
+          {leftTab !== 'inspector' && (
+            <div className="border-b border-slate-800/80 bg-emerald-950/25 px-3.5 py-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const target =
+                    selectedBin ??
+                    shownResult.allocations.find((a) => a.bin.isGoldenZone) ??
+                    shownResult.allocations[0] ??
+                    null;
+                  if (target) setSelectedBinId(target.bin.id);
+                  setLeftTab('inspector');
+                }}
+                className="flex w-full items-center justify-between rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 text-left text-[11px] font-semibold text-emerald-200 transition hover:bg-emerald-500/25"
+              >
+                <span>
+                  {lang === 'ko'
+                    ? '📦 선반 크기 변경 / 박스 사이즈 설정해서 넣기'
+                    : '📦 Resize Shelf / Set Box Size & Place'}
+                </span>
+                <span className="rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950">
+                  {lang === 'ko' ? '열기 →' : 'Open →'}
+                </span>
+              </button>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto p-3.5 text-xs">
             {leftTab === 'optimizer' ? (
@@ -1370,21 +1032,32 @@ export function App() {
                   ) {
                     setCustomBinsOverride(null);
                   } else if (
-                    customBinsOverride !== null &&
-                    (patch.binLengthCm !== undefined ||
-                      patch.binWidthCm !== undefined ||
-                      patch.binHeightCm !== undefined)
+                    patch.binLengthCm !== undefined ||
+                    patch.binWidthCm !== undefined ||
+                    patch.binHeightCm !== undefined
                   ) {
-                    setCustomBinsOverride((prev) =>
-                      prev
-                        ? prev.map((b) => ({
-                            ...b,
-                            binLengthCm: patch.binLengthCm ?? b.binLengthCm,
-                            binWidthCm: patch.binWidthCm ?? b.binWidthCm,
-                            binHeightCm: patch.binHeightCm ?? b.binHeightCm,
-                          }))
-                        : null
-                    );
+                    if (customBinsOverride !== null) {
+                      setCustomBinsOverride((prev) =>
+                        prev
+                          ? prev.map((b) => ({
+                              ...b,
+                              binLengthCm: patch.binLengthCm ?? b.binLengthCm,
+                              binWidthCm: patch.binWidthCm ?? b.binWidthCm,
+                              binHeightCm: patch.binHeightCm ?? b.binHeightCm,
+                            }))
+                          : null
+                      );
+                    }
+                    if (extraBins.length > 0) {
+                      setExtraBins((prev) =>
+                        prev.map((b) => ({
+                          ...b,
+                          binLengthCm: patch.binLengthCm ?? b.binLengthCm,
+                          binWidthCm: patch.binWidthCm ?? b.binWidthCm,
+                          binHeightCm: patch.binHeightCm ?? b.binHeightCm,
+                        }))
+                      );
+                    }
                   }
                 }}
                 onAddBin={handleAddBin}
@@ -1404,6 +1077,7 @@ export function App() {
                   );
                 }}
                 onPinCargo={handlePinCargo}
+                onPlaceCustomBoxInBin={handlePlaceCustomBoxInBin}
                 onClearAllPins={() => {
                   pushWorkspaceUndo();
                   setPinnedPlacements([]);
@@ -1412,12 +1086,19 @@ export function App() {
             ) : (
               <BinInspectorPanel
                 selectedBin={selectedBin}
+                allAllocations={shownResult.allocations}
+                selectedCargo={selectedCargo}
                 pickRoute={shownResult.pickRoute}
                 activeLayout={activeLayout}
                 accentColor={activeTheme.accent}
                 simpleMode={simpleMode}
                 skus={skus}
+                onSelectBin={handleSelectBin}
+                onSelectCargo={setSelectedCargo}
                 onPinCargo={handlePinCargo}
+                onPlaceCustomBoxInBin={handlePlaceCustomBoxInBin}
+                onUpdateBoxDimensions={handleUpdateBoxDimensions}
+                onResizeSingleBin={handleResizeSingleBin}
                 onMoveSkuToLevel={handleMoveSkuToLevel}
                 onClearBinPins={(binId) => {
                   pushWorkspaceUndo();
@@ -1599,289 +1280,394 @@ export function App() {
             </div>
           </div>
 
-          {/* Easy Direct 3D Edit Dock + Whole-Template 3D Drag & Transform Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-slate-950/80 px-3 py-1.5 text-[10px]">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="font-semibold text-cyan-300">
-                {t(lang, 'quickEditBarLabel')}:
-              </span>
-
-              {/* 3D Drag Mode + Scope Switcher: Whole Template vs Single Rack */}
-              <div className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900">
+          {/* Beginner-Friendly Direct 3D Edit Bar + Collapsible Advanced Transform Drawer */}
+          <div className="border-b border-slate-800/80 bg-slate-950/85 px-3 py-1.5 text-[10px]">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => {
-                    if (dragMoveMode && dragScope === 'whole_template') {
-                      setDragMoveMode(false);
-                    } else {
-                      setDragMoveMode(true);
-                      setDragScope('whole_template');
+                    const target =
+                      selectedBin ??
+                      shownResult.allocations.find((a) => a.bin.isGoldenZone) ??
+                      shownResult.allocations[0] ??
+                      null;
+                    if (target) {
+                      setSelectedBinId(target.bin.id);
+                      setLeftTab('inspector');
                       showToast(
                         lang === 'ko'
-                          ? '전체 템플릿 3D 드래그 이동 켜짐: 마우스로 선반을 끌어 템플릿 전체를 이동하세요.'
-                          : 'Whole-Template 3D Drag Move ON: Drag any rack in 3D to move the entire template.'
+                          ? `선반 [${target.bin.id}] 박스·선반 사이즈 설정 패널을 열었습니다.`
+                          : `Opened Box & Shelf Size Configurator for [${target.bin.id}].`
                       );
                     }
                   }}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 font-semibold transition ${
-                    dragMoveMode && dragScope === 'whole_template'
-                      ? 'bg-emerald-500 text-slate-950'
-                      : 'text-emerald-300 hover:bg-slate-800'
-                  }`}
+                  className="inline-flex items-center gap-1 rounded-md border border-emerald-400/60 bg-emerald-500/20 px-2.5 py-1 font-bold text-emerald-200 hover:bg-emerald-500/30"
                   title={
                     lang === 'ko'
-                      ? '3D 화면에서 마우스로 드래그하여 템플릿 전체(선반·장애물·가구·입출고장)를 한꺼번에 이동합니다'
-                      : 'Drag anywhere on the racks in 3D to move the entire template layout together'
+                      ? '선택한 선반의 크기를 바꾸거나 가로·세로·높이 박스 사이즈를 직접 설정해서 바로 넣습니다'
+                      : 'Resize shelf or configure custom box dimensions (L×W×H cm) and place into shelf'
                   }
                 >
-                  <Move className="h-3 w-3" />
+                  <Plus className="h-3.5 w-3.5 text-emerald-300" />
                   {lang === 'ko'
-                    ? dragMoveMode && dragScope === 'whole_template'
-                      ? '전체 템플릿 드래그 중'
-                      : '전체 템플릿 드래그 이동'
-                    : dragMoveMode && dragScope === 'whole_template'
-                      ? 'Whole Template Drag: ON'
-                      : 'Move Whole Template'}
+                    ? selectedBin
+                      ? `선반(${selectedBin.bin.id}) 크기·맞춤 박스 넣기`
+                      : '선반 크기·맞춤 박스 넣기'
+                    : 'Shelf & Custom Box Size'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (dragMoveMode && dragScope === 'column') {
-                      setDragMoveMode(false);
-                    } else {
-                      setDragMoveMode(true);
-                      setDragScope('column');
+
+                {selectedBin ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleAddBinAbove(selectedBin)}
+                      className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+                    >
+                      <Plus className="h-3 w-3" />
+                      {t(lang, 'quickAddLevel')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBin(selectedBin.bin.id)}
+                      className="inline-flex items-center gap-1 rounded-md border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 font-semibold text-rose-300 hover:bg-rose-500/25"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      {t(lang, 'quickDeleteBin')}
+                    </button>
+                  </>
+                ) : null}
+
+                {/* 3D Workspace Undo / Redo Buttons */}
+                <div className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900">
+                  <button
+                    type="button"
+                    disabled={undoStack.length === 0}
+                    onClick={() => {
+                      handleWorkspaceUndo();
                       showToast(
                         lang === 'ko'
-                          ? '개별 선반 기둥 3D 드래그 이동 켜짐'
-                          : 'Single Rack Column 3D Drag Move ON'
+                          ? '3D 편집 실행 취소 (Undo)'
+                          : 'Undo 3D Edit'
                       );
+                    }}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
+                    title="Undo 3D Workspace Edit (Ctrl+Z)"
+                  >
+                    <Undo2 className="h-3 w-3 text-cyan-400" />
+                    {lang === 'ko' ? '실행취소' : 'Undo'}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={redoStack.length === 0}
+                    onClick={() => {
+                      handleWorkspaceRedo();
+                      showToast(
+                        lang === 'ko'
+                          ? '3D 편집 다시 실행 (Redo)'
+                          : 'Redo 3D Edit'
+                      );
+                    }}
+                    className="inline-flex items-center gap-1 border-l border-slate-700 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
+                    title="Redo 3D Workspace Edit (Ctrl+Y / Ctrl+Shift+Z)"
+                  >
+                    <Redo2 className="h-3 w-3 text-cyan-400" />
+                    {lang === 'ko' ? '다시실행' : 'Redo'}
+                  </button>
+                </div>
+
+                {pinnedPlacements.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      pushWorkspaceUndo();
+                      setPinnedPlacements([]);
+                    }}
+                    className="rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-300 hover:bg-amber-500/25"
+                  >
+                    {t(lang, 'quickClearPins')} ({pinnedPlacements.length})
+                  </button>
+                )}
+                {(extraBins.length > 0 ||
+                  removedBinIds.length > 0 ||
+                  customBinsOverride !== null) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      pushWorkspaceUndo();
+                      setCustomBinsOverride(null);
+                      setExtraBins([]);
+                      setRemovedBinIds([]);
+                      setPinnedPlacements([]);
+                    }}
+                    className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-slate-300 hover:border-cyan-400"
+                  >
+                    {t(lang, 'quickResetBins')}
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {/* Instant 1-Click Map Floor Color Swatches & Color Picker */}
+                <div className="flex items-center gap-1 rounded-md border border-cyan-500/35 bg-slate-900 px-1.5 py-0.5">
+                  <span className="font-semibold text-cyan-300">
+                    {lang === 'ko' ? '바닥색상:' : 'Floor:'}
+                  </span>
+                  {[
+                    ['#e2e8f0', lang === 'ko' ? '라이트타일' : 'Light Tile'],
+                    ['#e7d5b8', lang === 'ko' ? '우드마루' : 'Warm Wood'],
+                    ['#cbd5e1', lang === 'ko' ? '콘크리트' : 'Concrete'],
+                    ['#bbf7d0', lang === 'ko' ? '에폭시그린' : 'Epoxy Green'],
+                    ['#172554', lang === 'ko' ? '블루도면' : 'Blueprint'],
+                    ['#1e293b', lang === 'ko' ? '다크슬레이트' : 'Dark Slate'],
+                  ].map(([col, title]) => (
+                    <button
+                      key={col}
+                      type="button"
+                      onClick={() => handleChangeFloorColor(col)}
+                      title={title}
+                      className={`h-3.5 w-3.5 rounded-full border ${
+                        !sceneBg.useThemeDefault &&
+                        sceneBg.floorColor.toLowerCase() === col
+                          ? 'scale-110 border-white ring-1 ring-cyan-400'
+                          : 'border-slate-600'
+                      }`}
+                      style={{ backgroundColor: col }}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={
+                      sceneBg.useThemeDefault
+                        ? activeTheme.scene.floor
+                        : sceneBg.floorColor
                     }
-                  }}
-                  className={`border-l border-slate-700 px-2 py-0.5 font-semibold transition ${
-                    dragMoveMode && dragScope === 'column'
-                      ? 'bg-cyan-500 text-slate-950'
-                      : 'text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  {lang === 'ko' ? '개별 선반 이동' : 'Single Rack'}
-                </button>
-              </div>
-
-              {/* Whole-Template 1-Click Transform Controls (Move / Rotate 90° / Spacing / Center) */}
-              <div className="flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/30 px-1.5 py-0.5">
-                <span className="font-semibold text-emerald-300">
-                  {lang === 'ko' ? '전체 수정:' : 'Template:'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleTranslateWholeTemplate(-0.5, 0)}
-                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                  title={lang === 'ko' ? '전체 좌측 0.5m 이동' : 'Move All Left 0.5m'}
-                >
-                  ←
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTranslateWholeTemplate(0.5, 0)}
-                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                  title={lang === 'ko' ? '전체 우측 0.5m 이동' : 'Move All Right 0.5m'}
-                >
-                  →
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTranslateWholeTemplate(0, -0.5)}
-                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                  title={lang === 'ko' ? '전체 전면 0.5m 이동' : 'Move All Front 0.5m'}
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleTranslateWholeTemplate(0, 0.5)}
-                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                  title={lang === 'ko' ? '전체 후면 0.5m 이동' : 'Move All Back 0.5m'}
-                >
-                  ↓
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleRotateWholeTemplate90();
-                    showToast(
+                    onChange={(e) => handleChangeFloorColor(e.target.value)}
+                    className="h-4 w-5 cursor-pointer border-0 bg-transparent"
+                    title={
                       lang === 'ko'
-                        ? '전체 템플릿 90° 회전 완료'
-                        : 'Rotated Whole Template 90°'
-                    );
-                  }}
-                  className="inline-flex items-center gap-0.5 rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 text-emerald-300 hover:border-emerald-400"
-                  title={lang === 'ko' ? '전체 템플릿 90° 회전' : 'Rotate Whole Template 90°'}
-                >
-                  <RotateCw className="h-2.5 w-2.5" />
-                  90°
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleScaleWholeTemplateSpacing(1.12)}
-                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                  title={lang === 'ko' ? '전체 선반 간격 넓히기 (+12%)' : 'Expand Template Spacing (+12%)'}
-                >
-                  {lang === 'ko' ? '간격+' : 'Span+'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleScaleWholeTemplateSpacing(0.88)}
-                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                  title={lang === 'ko' ? '전체 선반 간격 좁히기 (-12%)' : 'Compact Template Spacing (-12%)'}
-                >
-                  {lang === 'ko' ? '간격-' : 'Span-'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCenterWholeTemplate}
-                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 text-cyan-300 hover:border-cyan-400"
-                  title={lang === 'ko' ? '전체 템플릿 중앙 정렬' : 'Center Whole Template'}
-                >
-                  {lang === 'ko' ? '중앙정렬' : 'Center'}
-                </button>
-              </div>
+                        ? '맵 바닥 색상 직접 선택'
+                        : 'Pick Custom Map Floor Color'
+                    }
+                  />
+                </div>
 
-              {selectedBin ? (
-                <>
-                  <span className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-white">
-                    {selectedBin.bin.id}
+                {/* Instant 1-Click 3D Background Brightness Pills */}
+                <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900 px-1.5 py-0.5">
+                  <Sun className="h-3 w-3 text-amber-400" />
+                  {[
+                    ['daylight-studio', lang === 'ko' ? '밝은스튜디오' : 'Daylight'],
+                    ['warm-home', lang === 'ko' ? '따뜻한홈' : 'Warm Home'],
+                    ['pure-white', lang === 'ko' ? '화이트쇼룸' : 'White'],
+                    ['cyber-night', lang === 'ko' ? '다크트윈' : 'Dark'],
+                  ].map(([pid, label]) => (
+                    <button
+                      key={pid}
+                      type="button"
+                      onClick={() => {
+                        const found = SCENE_3D_PRESETS.find((x) => x.id === pid);
+                        if (found) {
+                          setSceneBg((prev) => ({
+                            ...prev,
+                            presetId: found.id,
+                            ...found.settings,
+                          }));
+                        }
+                      }}
+                      className={`rounded px-1.5 py-0.5 font-medium ${
+                        sceneBg.presetId === pid
+                          ? 'bg-amber-500/25 text-amber-200 font-bold'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Toggle Advanced Whole-Template & Drag-Scope Tools in Simple Mode */}
+                {simpleMode && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvanced3DTools((v) => !v)}
+                    className={`rounded-md border px-2 py-0.5 font-semibold transition ${
+                      showAdvanced3DTools || dragMoveMode
+                        ? 'border-cyan-400 bg-cyan-500/20 text-cyan-200'
+                        : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-400'
+                    }`}
+                  >
+                    {lang === 'ko'
+                      ? showAdvanced3DTools
+                        ? '고급 이동·전체변환 접기 ▴'
+                        : '고급 이동·전체변환 ▾'
+                      : showAdvanced3DTools
+                        ? 'Hide Advanced ▴'
+                        : 'Advanced Tools ▾'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Collapsible Secondary Bar: Drag Scope Switcher & Whole-Template Transforms */}
+            {(!simpleMode || showAdvanced3DTools || dragMoveMode) && (
+              <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-800/80 pt-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="font-semibold text-cyan-300">
+                    {lang === 'ko' ? '드래그 범위:' : 'Drag Scope:'}
+                  </span>
+                  <div className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (dragMoveMode && dragScope === 'single_cargo') {
+                          setDragMoveMode(false);
+                        } else {
+                          setDragMoveMode(true);
+                          setDragScope('single_cargo');
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 font-semibold transition ${
+                        dragMoveMode && dragScope === 'single_cargo'
+                          ? 'bg-amber-400 text-slate-950'
+                          : 'text-amber-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      <Move className="h-3 w-3" />
+                      {lang === 'ko' ? '낱개 물건 이동' : 'Single Item'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (dragMoveMode && dragScope === 'single_bin') {
+                          setDragMoveMode(false);
+                        } else {
+                          setDragMoveMode(true);
+                          setDragScope('single_bin');
+                        }
+                      }}
+                      className={`border-l border-slate-700 px-2 py-0.5 font-semibold transition ${
+                        dragMoveMode && dragScope === 'single_bin'
+                          ? 'bg-sky-400 text-slate-950'
+                          : 'text-sky-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      {lang === 'ko' ? '낱개 선반 칸 이동' : 'Single Bin'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (dragMoveMode && dragScope === 'column') {
+                          setDragMoveMode(false);
+                        } else {
+                          setDragMoveMode(true);
+                          setDragScope('column');
+                        }
+                      }}
+                      className={`border-l border-slate-700 px-2 py-0.5 font-semibold transition ${
+                        dragMoveMode && dragScope === 'column'
+                          ? 'bg-cyan-500 text-slate-950'
+                          : 'text-slate-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      {lang === 'ko' ? '선반 기둥 이동' : 'Rack Column'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (dragMoveMode && dragScope === 'whole_template') {
+                          setDragMoveMode(false);
+                        } else {
+                          setDragMoveMode(true);
+                          setDragScope('whole_template');
+                        }
+                      }}
+                      className={`border-l border-slate-700 px-2 py-0.5 font-semibold transition ${
+                        dragMoveMode && dragScope === 'whole_template'
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'text-emerald-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      {lang === 'ko' ? '전체 템플릿 이동' : 'Whole Template'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Whole-Template 1-Click Transform Controls */}
+                <div className="flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/30 px-1.5 py-0.5">
+                  <span className="font-semibold text-emerald-300">
+                    {lang === 'ko' ? '전체 공간 변환:' : 'Whole Space:'}
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleAddBinAbove(selectedBin)}
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+                    onClick={() => handleTranslateWholeTemplate(-0.5, 0)}
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
+                    title={lang === 'ko' ? '전체 좌측 0.5m 이동' : 'Move All Left 0.5m'}
                   >
-                    <Plus className="h-3 w-3" />
-                    {t(lang, 'quickAddLevel')}
+                    ←
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleDeleteBin(selectedBin.bin.id)}
-                    className="inline-flex items-center gap-1 rounded-md border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 font-semibold text-rose-300 hover:bg-rose-500/25"
+                    onClick={() => handleTranslateWholeTemplate(0.5, 0)}
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
+                    title={lang === 'ko' ? '전체 우측 0.5m 이동' : 'Move All Right 0.5m'}
                   >
-                    <Trash2 className="h-3 w-3" />
-                    {t(lang, 'quickDeleteBin')}
+                    →
                   </button>
-                  {skus[0] && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handlePinCargo(selectedBin.bin.id, skus[0].id, 1)
-                      }
-                      className="inline-flex items-center gap-1 rounded-md border border-cyan-500/40 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-300 hover:bg-cyan-500/25"
-                    >
-                      <Pin className="h-3 w-3" />
-                      {skus[0].skuCode} {t(lang, 'quickPinTopSku')}
-                    </button>
-                  )}
-                </>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              {/* 3D Workspace Undo / Redo Buttons */}
-              <div className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900">
-                <button
-                  type="button"
-                  disabled={undoStack.length === 0}
-                  onClick={() => {
-                    handleWorkspaceUndo();
-                    showToast(
-                      lang === 'ko'
-                        ? '3D 편집 실행 취소 (Undo)'
-                        : 'Undo 3D Edit'
-                    );
-                  }}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
-                  title="Undo 3D Workspace Edit (Ctrl+Z)"
-                >
-                  <Undo2 className="h-3 w-3 text-cyan-400" />
-                  {lang === 'ko' ? '실행취소' : 'Undo'}
-                </button>
-                <button
-                  type="button"
-                  disabled={redoStack.length === 0}
-                  onClick={() => {
-                    handleWorkspaceRedo();
-                    showToast(
-                      lang === 'ko'
-                        ? '3D 편집 다시 실행 (Redo)'
-                        : 'Redo 3D Edit'
-                    );
-                  }}
-                  className="inline-flex items-center gap-1 border-l border-slate-700 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
-                  title="Redo 3D Workspace Edit (Ctrl+Y / Ctrl+Shift+Z)"
-                >
-                  <Redo2 className="h-3 w-3 text-cyan-400" />
-                  {lang === 'ko' ? '다시실행' : 'Redo'}
-                </button>
-              </div>
-
-              {/* Instant 1-Click 3D Background Brightness Pills */}
-              <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900 px-1.5 py-0.5">
-                <Sun className="h-3 w-3 text-amber-400" />
-                {[
-                  ['daylight-studio', lang === 'ko' ? '밝은스튜디오' : 'Daylight'],
-                  ['warm-home', lang === 'ko' ? '따뜻한홈' : 'Warm Home'],
-                  ['pure-white', lang === 'ko' ? '화이트쇼룸' : 'White'],
-                  ['cyber-night', lang === 'ko' ? '다크트윈' : 'Dark'],
-                ].map(([pid, label]) => (
                   <button
-                    key={pid}
+                    type="button"
+                    onClick={() => handleTranslateWholeTemplate(0, -0.5)}
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
+                    title={lang === 'ko' ? '전체 전면 0.5m 이동' : 'Move All Front 0.5m'}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTranslateWholeTemplate(0, 0.5)}
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
+                    title={lang === 'ko' ? '전체 후면 0.5m 이동' : 'Move All Back 0.5m'}
+                  >
+                    ↓
+                  </button>
+                  <button
                     type="button"
                     onClick={() => {
-                      const found = SCENE_3D_PRESETS.find((x) => x.id === pid);
-                      if (found) {
-                        setSceneBg((prev) => ({
-                          ...prev,
-                          presetId: found.id,
-                          ...found.settings,
-                        }));
-                      }
+                      handleRotateWholeTemplate90();
+                      showToast(
+                        lang === 'ko'
+                          ? '전체 템플릿 90° 회전 완료'
+                          : 'Rotated Whole Template 90°'
+                      );
                     }}
-                    className={`rounded px-1.5 py-0.5 font-medium ${
-                      sceneBg.presetId === pid
-                        ? 'bg-amber-500/25 text-amber-200 font-bold'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className="inline-flex items-center gap-0.5 rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 text-emerald-300 hover:border-emerald-400"
                   >
-                    {label}
+                    <RotateCw className="h-2.5 w-2.5" />
+                    90°
                   </button>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => handleScaleWholeTemplateSpacing(1.12)}
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
+                  >
+                    {lang === 'ko' ? '간격+' : 'Span+'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleScaleWholeTemplateSpacing(0.88)}
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
+                  >
+                    {lang === 'ko' ? '간격-' : 'Span-'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCenterWholeTemplate}
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 text-cyan-300 hover:border-cyan-400"
+                  >
+                    {lang === 'ko' ? '중앙정렬' : 'Center'}
+                  </button>
+                </div>
               </div>
-
-              {pinnedPlacements.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setPinnedPlacements([])}
-                  className="rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 font-semibold text-amber-300 hover:bg-amber-500/25"
-                >
-                  {t(lang, 'quickClearPins')} ({pinnedPlacements.length})
-                </button>
-              )}
-              {(extraBins.length > 0 ||
-                removedBinIds.length > 0 ||
-                customBinsOverride !== null) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCustomBinsOverride(null);
-                    setExtraBins([]);
-                    setRemovedBinIds([]);
-                    setPinnedPlacements([]);
-                  }}
-                  className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-slate-300 hover:border-cyan-400"
-                >
-                  {t(lang, 'quickResetBins')}
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
           <div className="relative flex-1">
@@ -1889,6 +1675,626 @@ export function App() {
             {shortcutToast && (
               <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-cyan-400/60 bg-slate-950/90 px-4 py-1.5 text-xs font-bold text-cyan-200 shadow-2xl backdrop-blur">
                 {shortcutToast}
+              </div>
+            )}
+
+            {/* On-Screen Selected 3D Individual Cargo Item (낱개 물건) Quick Move Floating Bar */}
+            {selectedCargo && !selectedProp && (
+              <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-amber-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
+                <span
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: selectedCargo.color }}
+                />
+                <span className="font-bold text-amber-300">
+                  {selectedCargo.name.split(' (')[0]}
+                </span>
+                <span className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-cyan-300">
+                  {selectedCargo.binId}
+                </span>
+
+                {/* Inline Live Box Size (L×W×H cm) Quick Inputs directly on the 3D Floating Bar */}
+                <div className="flex items-center gap-1 rounded-md border border-emerald-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
+                  <span className="font-semibold text-emerald-300">
+                    {lang === 'ko' ? '박스치수:' : 'Size:'}
+                  </span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={280}
+                    value={selectedCargo.lengthCm}
+                    onChange={(e) =>
+                      handleUpdateBoxDimensions(
+                        selectedCargo.skuId,
+                        {
+                          lengthCm: Math.max(
+                            5,
+                            Math.min(280, Number(e.target.value) || 10)
+                          ),
+                        },
+                        selectedCargo.binId
+                      )
+                    }
+                    className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
+                    title={lang === 'ko' ? '가로 L (cm)' : 'Length L (cm)'}
+                  />
+                  <span className="text-slate-500">×</span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={280}
+                    value={selectedCargo.widthCm}
+                    onChange={(e) =>
+                      handleUpdateBoxDimensions(
+                        selectedCargo.skuId,
+                        {
+                          widthCm: Math.max(
+                            5,
+                            Math.min(280, Number(e.target.value) || 10)
+                          ),
+                        },
+                        selectedCargo.binId
+                      )
+                    }
+                    className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
+                    title={lang === 'ko' ? '세로 W (cm)' : 'Width W (cm)'}
+                  />
+                  <span className="text-slate-500">×</span>
+                  <input
+                    type="number"
+                    min={5}
+                    max={240}
+                    value={selectedCargo.heightCm}
+                    onChange={(e) =>
+                      handleUpdateBoxDimensions(
+                        selectedCargo.skuId,
+                        {
+                          heightCm: Math.max(
+                            5,
+                            Math.min(240, Number(e.target.value) || 10)
+                          ),
+                        },
+                        selectedCargo.binId
+                      )
+                    }
+                    className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
+                    title={lang === 'ko' ? '높이 H (cm)' : 'Height H (cm)'}
+                  />
+                  <span className="text-slate-400">cm</span>
+                </div>
+
+                <span className="text-[10px] text-slate-400">
+                  {lang === 'ko' ? '낱개 이동:' : 'Move Item:'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleNudgeSingleCargo(
+                      selectedCargo.binId,
+                      selectedCargo.skuId,
+                      -1,
+                      0
+                    )
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
+                  title={lang === 'ko' ? '좌측 인접 선반으로 이동 (←)' : 'Move to Left Bin (←)'}
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleNudgeSingleCargo(
+                      selectedCargo.binId,
+                      selectedCargo.skuId,
+                      1,
+                      0
+                    )
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
+                  title={lang === 'ko' ? '우측 인접 선반으로 이동 (→)' : 'Move to Right Bin (→)'}
+                >
+                  →
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleNudgeSingleCargo(
+                      selectedCargo.binId,
+                      selectedCargo.skuId,
+                      0,
+                      -1
+                    )
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
+                  title={lang === 'ko' ? '전면 인접 선반으로 이동 (↑)' : 'Move to Front Bin (↑)'}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleNudgeSingleCargo(
+                      selectedCargo.binId,
+                      selectedCargo.skuId,
+                      0,
+                      1
+                    )
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
+                  title={lang === 'ko' ? '후면 인접 선반으로 이동 (↓)' : 'Move to Back Bin (↓)'}
+                >
+                  ↓
+                </button>
+                <div className="flex items-center gap-0.5 border-l border-slate-800 pl-1">
+                  {Array.from(
+                    { length: Math.max(config.levels, zBreakdown.length) },
+                    (_, i) => i + 1
+                  ).map((lv) => (
+                    <button
+                      key={lv}
+                      type="button"
+                      onClick={() =>
+                        handleMoveSkuToLevel(
+                          selectedCargo.binId,
+                          selectedCargo.skuId,
+                          lv
+                        )
+                      }
+                      className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300 hover:border-emerald-400"
+                      title={
+                        lang === 'ko'
+                          ? `이 물건 1개를 Z${lv}층으로 이동`
+                          : `Move this item to Z${lv}`
+                      }
+                    >
+                      Z{lv}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handlePinCargo(selectedCargo.binId, selectedCargo.skuId, 1)
+                  }
+                  className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
+                  title={lang === 'ko' ? '이 칸에 동일 물건 +1 추가' : 'Add +1 here'}
+                >
+                  +1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetGolden =
+                      shownResult.allocations.find(
+                        (a) =>
+                          a.bin.id !== selectedCargo.binId &&
+                          a.bin.isGoldenZone &&
+                          a.cubicUtilizationPct < 80
+                      ) ??
+                      shownResult.allocations.find(
+                        (a) => a.bin.id !== selectedCargo.binId
+                      );
+                    if (targetGolden) {
+                      handleMoveSingleCargoToBin(
+                        selectedCargo.binId,
+                        selectedCargo.skuId,
+                        targetGolden.bin.id,
+                        'all'
+                      );
+                    }
+                  }}
+                  className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
+                  title={
+                    lang === 'ko'
+                      ? '이 칸에 있는 같은 품목 묶음 전체를 추천 골든존 선반으로 일괄 이동'
+                      : 'Move entire SKU batch in this bin to Golden Zone'
+                  }
+                >
+                  {lang === 'ko' ? '묶음 전체이동' : 'Move Batch'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handlePinCargo(selectedCargo.binId, selectedCargo.skuId, -1);
+                    setSelectedCargo(null);
+                  }}
+                  className="rounded border border-rose-500/40 bg-rose-500/20 p-1 text-rose-300 hover:bg-rose-500/30"
+                  title={lang === 'ko' ? '이 낱개 물건 1개 빼기 (Del)' : 'Remove 1 unit (Del)'}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedCargo(null)}
+                  className="ml-1 text-slate-400 hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* On-Screen Selected Shelf Bin (선반 사이즈 실시간 변경 & 위치 이동) Floating Bar */}
+            {selectedBin &&
+              !selectedCargo &&
+              !selectedProp &&
+              !selectedObstacle &&
+              !selectedDepot && (
+                <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-sky-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
+                  <span className="font-bold text-sky-300">
+                    {lang === 'ko'
+                      ? `선반 [${selectedBin.bin.id}]`
+                      : `Shelf [${selectedBin.bin.id}]`}
+                  </span>
+
+                  {/* Live Shelf Dimensions (L×W×H cm) Quick Inputs directly on 3D Floating Bar */}
+                  <div className="flex items-center gap-1 rounded-md border border-cyan-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
+                    <span className="font-semibold text-cyan-300">
+                      {lang === 'ko' ? '선반치수:' : 'Shelf Size:'}
+                    </span>
+                    <input
+                      type="number"
+                      min={20}
+                      max={300}
+                      value={selectedBin.bin.binLengthCm}
+                      onChange={(e) =>
+                        handleResizeSingleBin(
+                          selectedBin.bin.id,
+                          {
+                            binLengthCm: Math.max(
+                              20,
+                              Math.min(300, Number(e.target.value) || 60)
+                            ),
+                          },
+                          dragScope === 'single_bin'
+                            ? 'single'
+                            : dragScope === 'whole_template'
+                              ? 'all'
+                              : 'column'
+                        )
+                      }
+                      className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
+                      title={lang === 'ko' ? '선반 가로 L (cm)' : 'Shelf Length L (cm)'}
+                    />
+                    <span className="text-slate-500">×</span>
+                    <input
+                      type="number"
+                      min={20}
+                      max={300}
+                      value={selectedBin.bin.binWidthCm}
+                      onChange={(e) =>
+                        handleResizeSingleBin(
+                          selectedBin.bin.id,
+                          {
+                            binWidthCm: Math.max(
+                              20,
+                              Math.min(300, Number(e.target.value) || 50)
+                            ),
+                          },
+                          dragScope === 'single_bin'
+                            ? 'single'
+                            : dragScope === 'whole_template'
+                              ? 'all'
+                              : 'column'
+                        )
+                      }
+                      className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
+                      title={lang === 'ko' ? '선반 깊이 W (cm)' : 'Shelf Width W (cm)'}
+                    />
+                    <span className="text-slate-500">×</span>
+                    <input
+                      type="number"
+                      min={15}
+                      max={250}
+                      value={selectedBin.bin.binHeightCm}
+                      onChange={(e) =>
+                        handleResizeSingleBin(
+                          selectedBin.bin.id,
+                          {
+                            binHeightCm: Math.max(
+                              15,
+                              Math.min(250, Number(e.target.value) || 40)
+                            ),
+                          },
+                          dragScope === 'single_bin'
+                            ? 'single'
+                            : dragScope === 'whole_template'
+                              ? 'all'
+                              : 'column'
+                        )
+                      }
+                      className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
+                      title={lang === 'ko' ? '선반 높이 H (cm)' : 'Shelf Height H (cm)'}
+                    />
+                    <span className="text-slate-400">cm</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleResizeSingleBin(
+                          selectedBin.bin.id,
+                          {
+                            binLengthCm: Math.round(
+                              selectedBin.bin.binLengthCm * 0.9
+                            ),
+                            binWidthCm: Math.round(
+                              selectedBin.bin.binWidthCm * 0.9
+                            ),
+                            binHeightCm: Math.round(
+                              selectedBin.bin.binHeightCm * 0.9
+                            ),
+                          },
+                          'single'
+                        )
+                      }
+                      className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[9px] text-slate-300 hover:border-cyan-400"
+                      title={lang === 'ko' ? '이 선반 칸 -10% 축소' : 'Scale this bin -10%'}
+                    >
+                      -10%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleResizeSingleBin(
+                          selectedBin.bin.id,
+                          {
+                            binLengthCm: Math.round(
+                              selectedBin.bin.binLengthCm * 1.1
+                            ),
+                            binWidthCm: Math.round(
+                              selectedBin.bin.binWidthCm * 1.1
+                            ),
+                            binHeightCm: Math.round(
+                              selectedBin.bin.binHeightCm * 1.1
+                            ),
+                          },
+                          'single'
+                        )
+                      }
+                      className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[9px] text-slate-300 hover:border-cyan-400"
+                      title={lang === 'ko' ? '이 선반 칸 +10% 확대' : 'Scale this bin +10%'}
+                    >
+                      +10%
+                    </button>
+                  </div>
+
+                  {/* Move Individual Bin or Rack Column */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleMoveSingleBin(
+                        selectedBin.bin.id,
+                        Number((selectedBin.bin.xMeters - 0.25).toFixed(2)),
+                        selectedBin.bin.yMeters
+                      )
+                    }
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
+                    title={lang === 'ko' ? '좌측 0.25m 이동' : 'Move Left'}
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleMoveSingleBin(
+                        selectedBin.bin.id,
+                        Number((selectedBin.bin.xMeters + 0.25).toFixed(2)),
+                        selectedBin.bin.yMeters
+                      )
+                    }
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
+                    title={lang === 'ko' ? '우측 0.25m 이동' : 'Move Right'}
+                  >
+                    →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleMoveSingleBin(
+                        selectedBin.bin.id,
+                        selectedBin.bin.xMeters,
+                        Number((selectedBin.bin.yMeters - 0.25).toFixed(2))
+                      )
+                    }
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
+                    title={lang === 'ko' ? '전면 0.25m 이동' : 'Move Front'}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleMoveSingleBin(
+                        selectedBin.bin.id,
+                        selectedBin.bin.xMeters,
+                        Number((selectedBin.bin.yMeters + 0.25).toFixed(2))
+                      )
+                    }
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
+                    title={lang === 'ko' ? '후면 0.25m 이동' : 'Move Back'}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleMoveSingleBin(
+                        selectedBin.bin.id,
+                        selectedBin.bin.xMeters,
+                        selectedBin.bin.yMeters,
+                        Math.max(1, selectedBin.bin.level - 1)
+                      )
+                    }
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:border-sky-400"
+                  >
+                    {lang === 'ko' ? '층↓' : 'Z-'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleMoveSingleBin(
+                        selectedBin.bin.id,
+                        selectedBin.bin.xMeters,
+                        selectedBin.bin.yMeters,
+                        Math.min(8, selectedBin.bin.level + 1)
+                      )
+                    }
+                    className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:border-sky-400"
+                  >
+                    {lang === 'ko' ? '층↑' : 'Z+'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBinId(null)}
+                    className="ml-1 text-slate-400 hover:text-white"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+            {/* On-Screen Selected 3D Pillar / Obstacle Quick Edit Floating Bar */}
+            {selectedObstacle && (
+              <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-yellow-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
+                <span className="font-bold text-yellow-300">
+                  {lang === 'ko'
+                    ? `기둥/장애물: ${selectedObstacle.label}`
+                    : `Obstacle: ${selectedObstacle.label}`}
+                </span>
+                <span className="font-mono text-[10px] text-slate-400">
+                  ({selectedObstacle.xMeters}m, {selectedObstacle.yMeters}m)
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleUpdateObstacle(selectedObstacle.id, {
+                      xMeters: Number((selectedObstacle.xMeters - 0.25).toFixed(2)),
+                    })
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-yellow-400"
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleUpdateObstacle(selectedObstacle.id, {
+                      xMeters: Number((selectedObstacle.xMeters + 0.25).toFixed(2)),
+                    })
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-yellow-400"
+                >
+                  →
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleUpdateObstacle(selectedObstacle.id, {
+                      yMeters: Number((selectedObstacle.yMeters - 0.25).toFixed(2)),
+                    })
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-yellow-400"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleUpdateObstacle(selectedObstacle.id, {
+                      yMeters: Number((selectedObstacle.yMeters + 0.25).toFixed(2)),
+                    })
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-yellow-400"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleDeleteObstacle(selectedObstacle.id);
+                    setSelectedObstacleId(null);
+                  }}
+                  className="rounded border border-rose-500/40 bg-rose-500/20 p-1 text-rose-300 hover:bg-rose-500/30"
+                  title="Delete Obstacle (Del)"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedObstacleId(null)}
+                  className="ml-1 text-slate-400 hover:text-white"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* On-Screen Selected 3D I/O Depot / Entry Point Quick Edit Floating Bar */}
+            {selectedDepot && (
+              <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-sky-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
+                <span className="font-bold text-sky-300">
+                  {lang === 'ko'
+                    ? '★ 출입구 / 피킹 출발지 (I/O Depot)'
+                    : '★ I/O Depot / Entry Point'}
+                </span>
+                <span className="font-mono text-[10px] text-slate-400">
+                  ({activeDepotX.toFixed(2)}m, {activeDepotZ.toFixed(2)}m)
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleMoveDepot(activeDepotX - 0.5, activeDepotZ)
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
+                >
+                  ←
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleMoveDepot(activeDepotX + 0.5, activeDepotZ)
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
+                >
+                  →
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleMoveDepot(activeDepotX, activeDepotZ - 0.5)
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleMoveDepot(activeDepotX, activeDepotZ + 0.5)
+                  }
+                  className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
+                >
+                  ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleMoveDepot(
+                      ((Math.max(1, config.aisles) - 1) *
+                        (config.aisleSpacingM ?? 3.4)) /
+                        2,
+                      0
+                    )
+                  }
+                  className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-500/25"
+                >
+                  {lang === 'ko' ? '정면 중앙 복원' : 'Reset Center'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDepot(false)}
+                  className="ml-1 text-slate-400 hover:text-white"
+                >
+                  ×
+                </button>
               </div>
             )}
 
@@ -2019,19 +2425,32 @@ export function App() {
               viewLayer={viewLayer}
               selectedBinId={selectedBinId}
               selectedPropId={selectedPropId}
+              selectedObstacleId={selectedObstacleId}
+              selectedDepot={selectedDepot}
+              selectedCargo={selectedCargo}
               levelFilter={levelFilter}
               theme={activeTheme}
               sceneBg={sceneBg}
               onSelectBin={handleSelectBin}
               onSelectProp={setSelectedPropId}
+              onSelectObstacle={setSelectedObstacleId}
+              onSelectDepot={setSelectedDepot}
+              onSelectCargo={setSelectedCargo}
               onContextAction={setContextMenu}
               dragMoveMode={dragMoveMode}
               dragScope={dragScope}
+              onMoveSingleBin={handleMoveSingleBin}
               onMoveRackColumn={handleMoveRackColumn}
               onMoveWholeTemplate={handleTranslateWholeTemplate}
               onMoveInteriorProp={(propId, nx, ny) =>
                 handleUpdateInteriorProp(propId, { xMeters: nx, yMeters: ny })
               }
+              onMoveObstacle={(obsId, nx, ny) =>
+                handleUpdateObstacle(obsId, { xMeters: nx, yMeters: ny })
+              }
+              onMoveDepot={handleMoveDepot}
+              onMoveSingleCargoToBin={handleMoveSingleCargoToBin}
+              onMoveSingleCargoToFloor={handleMoveSingleCargoToFloor}
               cameraPreset={cameraPreset}
               cameraResetTick={cameraResetTick}
               animateRoute={animateRoute}
@@ -2210,6 +2629,12 @@ export function App() {
               } else if (action.kind === 'enable_smart_fit') {
                 setAllowRotationAndCoPack(true);
                 setActiveLayout('optimized_3d');
+              } else if (action.kind === 'switch_view_heatmap') {
+                setViewLayer('heatmap');
+              } else if (action.kind === 'switch_view_golden_zone') {
+                setViewLayer('golden_zone');
+              } else if (action.kind === 'switch_equipment_asrs') {
+                setEquipmentMode('asrs_crane');
               } else {
                 setActiveLayout('optimized_3d');
               }
@@ -2244,6 +2669,9 @@ export function App() {
         canUndo={undoStack.length > 0}
         canRedo={redoStack.length > 0}
         scenePresetId={sceneBg.presetId}
+        floorColor={
+          sceneBg.useThemeDefault ? activeTheme.scene.floor : sceneBg.floorColor
+        }
         xrayBins={sceneBg.xrayBins}
         appView={appView}
         simpleMode={simpleMode}
@@ -2257,6 +2685,17 @@ export function App() {
         onPinSkuToBin={(binId, skuId, delta = 1) =>
           handlePinCargo(binId, skuId, delta)
         }
+        onPlaceCustomBoxInBin={handlePlaceCustomBoxInBin}
+        onResizeSingleBin={handleResizeSingleBin}
+        onChangeFloorColor={handleChangeFloorColor}
+        onAddObstacleAtFloor={(x, z) => {
+          const obs = handleAddObstacleAt(x, z);
+          setSelectedObstacleId(obs.id);
+        }}
+        onMoveDepotToFloor={(x, z) => {
+          handleMoveDepot(x, z);
+          setSelectedDepot(true);
+        }}
         onMoveSkuToLevel={handleMoveSkuToLevel}
         onClearBinPins={(binId) => {
           pushWorkspaceUndo();
@@ -2424,6 +2863,12 @@ export function App() {
             config={config}
             bins={bins}
             scenario={activeScenario}
+            floorColor={
+              sceneBg.useThemeDefault
+                ? activeTheme.scene.floor
+                : sceneBg.floorColor
+            }
+            onChangeFloorColor={handleChangeFloorColor}
             lang={lang}
             onApplyMapEdits={({ configPatch: nextPatch, customBins }) => {
               pushWorkspaceUndo();
@@ -2464,7 +2909,7 @@ export function App() {
             initialTab={interiorInitialTab}
             onClose={() => setInteriorModalOpen(false)}
             lang={lang}
-            interiorProps={config.interiorProps ?? []}
+            interiorProps={effectiveInteriorProps}
             selectedPropId={selectedPropId}
             roomEnclosure={config.roomEnclosure ?? 'cutaway_corner'}
             wallColor={config.wallColor ?? '#b45309'}

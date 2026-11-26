@@ -31,8 +31,13 @@ export function generateWarehouseBins(config: WarehouseConfig): BinSpec[] {
 
   for (let a = 1; a <= config.aisles; a++) {
     for (let b = 1; b <= config.baysPerAisle; b++) {
+      const customPitchM =
+        binHeightCm > 72 ? Number((binHeightCm / 100 + 0.12).toFixed(2)) : null;
       for (let l = 1; l <= config.levels; l++) {
-        const zMeters = LEVEL_HEIGHTS_M[l - 1] ?? (l - 1) * 0.82 + 0.05;
+        const zMeters =
+          customPitchM !== null
+            ? Number((0.05 + (l - 1) * customPitchM).toFixed(2))
+            : LEVEL_HEIGHTS_M[l - 1] ?? Number(((l - 1) * 0.82 + 0.05).toFixed(2));
         const maxWeightKg = LEVEL_MAX_WEIGHTS_KG[l - 1] ?? 200;
         const isGoldenZone =
           zMeters >= config.goldenZoneMinM && zMeters <= config.goldenZoneMaxM;
@@ -843,4 +848,66 @@ export function computeZLevelBreakdown(
     });
   }
   return summaries;
+}
+
+export function buildTransferredSkuPins(
+  prevPins: PinnedCargoPlacement[],
+  allocations: BinAllocation[],
+  fromBinId: string,
+  toBinId: string | null,
+  skuId: string,
+  transferCount: number | 'all' = 1
+): { nextPins: PinnedCargoPlacement[]; movedCount: number } {
+  const currentCounts = new Map<string, number>();
+  for (const alloc of allocations) {
+    const cnt = alloc.boxes.filter((b) => b.skuId === skuId).length;
+    if (cnt > 0) {
+      currentCounts.set(alloc.bin.id, cnt);
+    }
+  }
+
+  if (currentCounts.size === 0) {
+    for (const p of prevPins) {
+      if (p.skuId === skuId && p.count > 0) {
+        currentCounts.set(p.binId, (currentCounts.get(p.binId) ?? 0) + p.count);
+      }
+    }
+  }
+
+  const fromCount = currentCounts.get(fromBinId) ?? 0;
+  const actualMove =
+    transferCount === 'all'
+      ? Math.max(1, fromCount)
+      : Math.max(1, Math.min(fromCount || 1, transferCount));
+
+  if (fromCount <= actualMove) {
+    currentCounts.delete(fromBinId);
+  } else {
+    currentCounts.set(fromBinId, fromCount - actualMove);
+  }
+
+  if (toBinId) {
+    currentCounts.set(toBinId, (currentCounts.get(toBinId) ?? 0) + actualMove);
+  }
+
+  const otherSkuPins = prevPins.filter((p) => p.skuId !== skuId);
+  const updatedSkuPins: PinnedCargoPlacement[] = [];
+
+  if (toBinId && currentCounts.has(toBinId)) {
+    updatedSkuPins.push({
+      binId: toBinId,
+      skuId,
+      count: currentCounts.get(toBinId)!,
+    });
+  }
+  for (const [bId, count] of currentCounts.entries()) {
+    if (bId !== toBinId && count > 0) {
+      updatedSkuPins.push({ binId: bId, skuId, count });
+    }
+  }
+
+  return {
+    nextPins: [...updatedSkuPins, ...otherSkuPins],
+    movedCount: actualMove,
+  };
 }

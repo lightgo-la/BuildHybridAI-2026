@@ -33,7 +33,10 @@ export interface HybridAIAction {
     | 'apply_preset_safety'
     | 'apply_preset_density'
     | 'enable_smart_fit'
-    | 'switch_3d_optimized';
+    | 'switch_3d_optimized'
+    | 'switch_view_heatmap'
+    | 'switch_view_golden_zone'
+    | 'switch_equipment_asrs';
 }
 
 export interface HybridAIResponse {
@@ -47,49 +50,105 @@ export interface HybridAIResponse {
   error?: string;
 }
 
-function extractBinIdsFromText(text: string): string[] {
+export function extractBinIdsFromText(text: string): string[] {
   const matches = text.match(/\b(?:C\d+-)?A\d+-B\d+-Z\d+\b/g) ?? [];
   return [...new Set(matches)];
 }
 
-function deriveRecommendedActions(
+export function deriveRecommendedActions(
   prompt: string,
-  context: string,
+  _context: string,
   text: string
 ): HybridAIAction[] {
-  const combined = `${prompt}\n${context}\n${text}`.toLowerCase();
+  const promptLower = prompt.toLowerCase();
+  const combined = `${prompt}\n${text}`.toLowerCase();
   const actions: HybridAIAction[] = [];
 
-  if (/safety|heavy|weight|hazard|z1|안전|무거운|중량|하중|위험/.test(combined)) {
-    actions.push({
-      id: 'act-safety',
-      labelKo: '안전 최우선(Max Safety) 적용',
-      labelEn: 'Apply Max-Safety Preset',
-      kind: 'apply_preset_safety',
-    });
+  const candidates: Array<{
+    regex: RegExp;
+    items: HybridAIAction[];
+  }> = [
+    {
+      regex: /heatmap|congest|bottleneck|frequency|히트맵|병목|혼잡|집중/,
+      items: [
+        {
+          id: 'act-view-heatmap',
+          labelKo: '3D 피킹 히트맵 보기',
+          labelEn: 'Show 3D Pick Heatmap',
+          kind: 'switch_view_heatmap',
+        },
+      ],
+    },
+    {
+      regex: /asrs|as\/rs|crane|chebyshev|shuttle|크레인|자동화|스태커/,
+      items: [
+        {
+          id: 'act-equip-asrs',
+          labelKo: 'AS/RS 크레인 모드 전환',
+          labelEn: 'Switch to AS/RS Crane Mode',
+          kind: 'switch_equipment_asrs',
+        },
+      ],
+    },
+    {
+      regex: /safety|heavy|weight|hazard|z1|안전|무거운|중량|하중|위험/,
+      items: [
+        {
+          id: 'act-safety',
+          labelKo: '안전 최우선(Max Safety) 적용',
+          labelEn: 'Apply Max-Safety Preset',
+          kind: 'apply_preset_safety',
+        },
+      ],
+    },
+    {
+      regex: /speed|cycle|fast|golden|pick|동선|빠른|속도|골든존|피킹/,
+      items: [
+        {
+          id: 'act-speed',
+          labelKo: '빠른 동선(Fast Pick) 적용',
+          labelEn: 'Apply Fast-Pick Preset',
+          kind: 'apply_preset_speed',
+        },
+        {
+          id: 'act-view-golden',
+          labelKo: '3D 골든존 레이어 보기',
+          labelEn: 'Highlight 3D Golden Zone',
+          kind: 'switch_view_golden_zone',
+        },
+      ],
+    },
+    {
+      regex: /density|cubic|waste|honeycomb|space|공간|빈틈|압축|적재율|합포장/,
+      items: [
+        {
+          id: 'act-density',
+          labelKo: '공간 압축(Max Density) 적용',
+          labelEn: 'Apply Max-Density Preset',
+          kind: 'apply_preset_density',
+        },
+        {
+          id: 'act-smartfit',
+          labelKo: '6축 회전·합포장 활성화',
+          labelEn: 'Enable 6-Axis Co-Packing',
+          kind: 'enable_smart_fit',
+        },
+      ],
+    },
+  ];
+
+  // Prioritize actions directly mentioned in the user's prompt first, then AI response text
+  for (const cand of candidates) {
+    if (cand.regex.test(promptLower)) {
+      actions.push(...cand.items);
+    }
   }
-  if (/speed|cycle|fast|golden|pick|동선|빠른|속도|골든존|피킹/.test(combined)) {
-    actions.push({
-      id: 'act-speed',
-      labelKo: '빠른 동선(Fast Pick) 적용',
-      labelEn: 'Apply Fast-Pick Preset',
-      kind: 'apply_preset_speed',
-    });
+  for (const cand of candidates) {
+    if (!cand.regex.test(promptLower) && cand.regex.test(combined)) {
+      actions.push(...cand.items);
+    }
   }
-  if (/density|cubic|waste|honeycomb|space|공간|빈틈|압축|적재율|합포장/.test(combined)) {
-    actions.push({
-      id: 'act-density',
-      labelKo: '공간 압축(Max Density) 적용',
-      labelEn: 'Apply Max-Density Preset',
-      kind: 'apply_preset_density',
-    });
-    actions.push({
-      id: 'act-smartfit',
-      labelKo: '6축 회전·합포장 활성화',
-      labelEn: 'Enable 6-Axis Co-Packing',
-      kind: 'enable_smart_fit',
-    });
-  }
+
   if (actions.length === 0) {
     actions.push({
       id: 'act-opt3d',
@@ -98,13 +157,23 @@ function deriveRecommendedActions(
       kind: 'switch_3d_optimized',
     });
   }
-  return actions.slice(0, 3);
+
+  const deduped: HybridAIAction[] = [];
+  const seen = new Set<string>();
+  for (const act of actions) {
+    if (!seen.has(act.id)) {
+      seen.add(act.id);
+      deduped.push(act);
+    }
+  }
+  return deduped.slice(0, 4);
 }
 
 async function tryDirectChromePromptApi(
   systemText: string,
   fullPrompt: string
 ): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
   const win = window as unknown as {
     LanguageModel?: {
       create?: (opts?: unknown) => Promise<{
@@ -145,7 +214,7 @@ async function tryDirectChromePromptApi(
   return null;
 }
 
-function generateLocalDeterministicAudit(
+export function generateLocalDeterministicAudit(
   prompt: string,
   context: string
 ): string {
@@ -158,6 +227,7 @@ function generateLocalDeterministicAudit(
   const lines = context.split('\n');
   const baseLine = lines.find((l) => l.startsWith('Baseline 2D KPIs:')) ?? '';
   const optLine = lines.find((l) => l.startsWith('Optimized 3D KPIs:')) ?? '';
+  const deltaLine = lines.find((l) => l.startsWith('3D Improvement Deltas:')) ?? '';
   const topLine = lines.find((l) => l.startsWith('Top Active Bins:')) ?? '';
   const focusLine = lines.find((l) => l.startsWith('Focused Bin')) ?? '';
 
@@ -166,9 +236,10 @@ function generateLocalDeterministicAudit(
       `[로컬 온디바이스 슬로팅 엔진 정량 분석 리포트]`,
       `1. **3D 공간·골든존 진단**:`,
       `   - ${optLine || '3D 최적화 배치가 활성화되어 있습니다.'}`,
-      `   - ${baseLine ? `기존 2D 대비 비교: ${baseLine}` : ''}`,
+      baseLine ? `   - 기존 2D 대비 비교: ${baseLine}` : '',
+      deltaLine ? `   - 개선 효과 요약: ${deltaLine.replace('3D Improvement Deltas:', '').trim()}` : '',
       `2. **핵심 점검 대상 선반 (클릭하여 3D 포커스)**: **${binListStr}**`,
-      `   - ${topLine.replace('Top Active Bins:', '최상위 피킹 집중 칸:')}`,
+      topLine ? `   - ${topLine.replace('Top Active Bins:', '최상위 피킹 집중 칸:')}` : '',
       focusLine ? `   - 현재 선택 칸 상세: ${focusLine}` : '',
       `3. **권장 액션 3가지**:`,
       `   - 고빈도 Class A 품목은 허리~가슴 높이 골든존(**${primaryBins[0] ?? 'A1-B1-Z2'}**)에 집중 배치해 수직 리프트 피로도를 줄이세요.`,
@@ -183,9 +254,10 @@ function generateLocalDeterministicAudit(
     `[Local On-Device Slotting Engine Quantitative Audit]`,
     `1. **3D Cubic & Golden Zone Telemetry**:`,
     `   - ${optLine}`,
-    `   - ${baseLine}`,
+    baseLine ? `   - ${baseLine}` : '',
+    deltaLine ? `   - ${deltaLine}` : '',
     `2. **Priority Action Bins (Click chip below to focus in 3D)**: **${binListStr}**`,
-    `   - ${topLine}`,
+    topLine ? `   - ${topLine}` : '',
     focusLine ? `   - ${focusLine}` : '',
     `3. **Recommended Engineering Actions**:`,
     `   - Keep high-velocity Class-A SKUs aligned to Golden Zone shelves (**${primaryBins[0] ?? 'A1-B1-Z2'}**) to minimize mast vertical travel.`,
@@ -204,6 +276,13 @@ const MODE_MAP: Record<HybridModeChoice, InferenceMode> = {
 };
 
 export async function checkChromeGeminiNanoStatus(): Promise<ChromeNanoDiagnostics> {
+  if (typeof window === 'undefined') {
+    return {
+      supportedApi: false,
+      availability: 'unavailable',
+      detail: 'Non-browser environment.',
+    };
+  }
   const win = window as unknown as {
     LanguageModel?: {
       availability?: () => Promise<string>;
@@ -273,6 +352,10 @@ export function buildWarehousePromptContext(
   const b = baseline.kpis;
   const o = optimized.kpis;
 
+  const cubicDelta = Number((o.cubicUtilizationPct - b.cubicUtilizationPct).toFixed(1));
+  const cycleSaved = Number((b.avgCycleTimeSec - o.avgCycleTimeSec).toFixed(1));
+  const goldenDelta = Number((o.goldenZoneHitRatePct - b.goldenZoneHitRatePct).toFixed(1));
+
   const topCongested = [...optimized.allocations]
     .filter((a) => a.boxes.length > 0)
     .sort((a, b) => b.dailyPickLoad - a.dailyPickLoad)
@@ -288,9 +371,10 @@ export function buildWarehousePromptContext(
     : 'No single bin focused.';
 
   return [
-    `Warehouse Config: ${config.aisles} aisles x ${config.baysPerAisle} bays x ${config.levels} levels, equipment=${config.equipmentMode}, Golden Zone=${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m.`,
+    `Warehouse Config: ${config.aisles} aisles x ${config.baysPerAisle} bays x ${config.levels} levels, equipment=${config.equipmentMode}, preset=${config.optimizationPreset ?? 'balanced'}, Golden Zone=${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m.`,
     `Baseline 2D KPIs: CubicUtil=${b.cubicUtilizationPct}%, HoneycombingWaste=${b.honeycombingWastePct}%, AvgCycle=${b.avgCycleTimeSec}s, GoldenZoneHit=${b.goldenZoneHitRatePct}%, ErgonomicsScore=${b.ergonomicsScore}/100, SafetyViolations=${b.safetyViolations}.`,
-    `Optimized 3D KPIs: CubicUtil=${o.cubicUtilizationPct}%, HoneycombingWaste=${o.honeycombingWastePct}%, AvgCycle=${o.avgCycleTimeSec}s, GoldenZoneHit=${o.goldenZoneHitRatePct}%, ErgonomicsScore=${o.ergonomicsScore}/100, SafetyViolations=${o.safetyViolations}.`,
+    `Optimized 3D KPIs: CubicUtil=${o.cubicUtilizationPct}%, HoneycombingWaste=${o.honeycombingWastePct}%, AvgCycle=${o.avgCycleTimeSec}s, GoldenZoneHit=${o.goldenZoneHitRatePct}%, ErgonomicsScore=${o.ergonomicsScore}/100, SafetyViolations=${o.safetyViolations}, UnplacedUnits=${optimized.unplacedUnits}.`,
+    `3D Improvement Deltas: CubicUtilDelta=${cubicDelta >= 0 ? '+' : ''}${cubicDelta}%p, CycleTimeSaved=${cycleSaved >= 0 ? '+' : ''}${cycleSaved}s, GoldenZoneHitDelta=${goldenDelta >= 0 ? '+' : ''}${goldenDelta}%p.`,
     `Top Active Bins: ${topCongested}`,
     binDetail,
   ].join('\n');

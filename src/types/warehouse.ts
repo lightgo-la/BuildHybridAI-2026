@@ -4,6 +4,25 @@ export type EquipmentMode = 'reach_truck' | 'asrs_crane';
 
 export type ViewLayerMode = 'slotting' | 'heatmap' | 'golden_zone';
 
+export type DragScope =
+  | 'single_cargo'
+  | 'single_bin'
+  | 'column'
+  | 'whole_template';
+
+export interface SelectedCargoBox {
+  binId: string;
+  boxIndex: number;
+  skuId: string;
+  skuCode: string;
+  name: string;
+  weightKg: number;
+  lengthCm: number;
+  widthCm: number;
+  heightCm: number;
+  color: string;
+}
+
 export interface SKUItem {
   id: string;
   skuCode: string;

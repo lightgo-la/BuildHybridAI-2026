@@ -2,17 +2,25 @@ import { type Dispatch, type SetStateAction, useEffect } from 'react';
 import type { LangCode } from '../i18n/translations';
 import type {
   BinAllocation,
+  DragScope,
   InteriorProp,
+  SelectedCargoBox,
   ViewLayerMode,
+  WarehouseObstacle,
 } from '../types/warehouse';
 
 interface UseWarehouseShortcutsParams {
   lang: LangCode;
   mapEditorOpen: boolean;
   dragMoveMode: boolean;
-  dragScope: 'column' | 'whole_template';
+  dragScope: DragScope;
   selectedBin: BinAllocation | null;
   selectedProp: InteriorProp | null;
+  selectedObstacle?: WarehouseObstacle | null;
+  selectedDepot?: boolean;
+  depotX?: number;
+  depotZ?: number;
+  selectedCargo: SelectedCargoBox | null;
   showToast: (msg: string) => void;
   toggleLanguage: () => void;
   handleWorkspaceUndo: () => void;
@@ -21,12 +29,31 @@ interface UseWarehouseShortcutsParams {
   handleDeleteBin: (binId: string) => void;
   handleDeleteInteriorProp: (id: string) => void;
   handleUpdateInteriorProp: (id: string, patch: Partial<InteriorProp>) => void;
+  handleUpdateObstacle?: (
+    id: string,
+    patch: Partial<WarehouseObstacle>
+  ) => void;
+  handleDeleteObstacle?: (id: string) => void;
+  handleMoveDepot?: (newX: number, newY: number) => void;
+  handleMoveSingleBin: (
+    binId: string,
+    newX: number,
+    newY: number,
+    newLevel?: number
+  ) => void;
   handleMoveRackColumn: (
     oldX: number,
     oldY: number,
     newX: number,
     newY: number
   ) => void;
+  handleNudgeSingleCargo: (
+    fromBinId: string,
+    skuId: string,
+    dxSign: number,
+    dySign: number
+  ) => void;
+  handlePinCargo: (binId: string, skuId: string, delta?: number) => void;
   handleTranslateWholeTemplate: (dx: number, dy: number) => void;
   setCameraPreset: Dispatch<SetStateAction<'iso' | 'top' | 'elevation'>>;
   setCameraResetTick: Dispatch<SetStateAction<number>>;
@@ -41,6 +68,7 @@ interface UseWarehouseShortcutsParams {
   setViewLayer: Dispatch<SetStateAction<ViewLayerMode>>;
   setAppView: Dispatch<SetStateAction<'workspace' | 'home'>>;
   setLevelFilter: Dispatch<SetStateAction<number | 'all'>>;
+  setSelectedCargo: Dispatch<SetStateAction<SelectedCargoBox | null>>;
 }
 
 export function useWarehouseShortcuts({
@@ -50,6 +78,11 @@ export function useWarehouseShortcuts({
   dragScope,
   selectedBin,
   selectedProp,
+  selectedObstacle = null,
+  selectedDepot = false,
+  depotX = 0,
+  depotZ = 0,
+  selectedCargo,
   showToast,
   toggleLanguage,
   handleWorkspaceUndo,
@@ -58,7 +91,13 @@ export function useWarehouseShortcuts({
   handleDeleteBin,
   handleDeleteInteriorProp,
   handleUpdateInteriorProp,
+  handleUpdateObstacle,
+  handleDeleteObstacle,
+  handleMoveDepot,
+  handleMoveSingleBin,
   handleMoveRackColumn,
+  handleNudgeSingleCargo,
+  handlePinCargo,
   handleTranslateWholeTemplate,
   setCameraPreset,
   setCameraResetTick,
@@ -73,6 +112,7 @@ export function useWarehouseShortcuts({
   setViewLayer,
   setAppView,
   setLevelFilter,
+  setSelectedCargo,
 }: UseWarehouseShortcutsParams): void {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -207,7 +247,17 @@ export function useWarehouseShortcuts({
             : `[+] Added level above ${selectedBin.bin.id}`
         );
       } else if (key === 'Delete' || key === 'Backspace') {
-        if (selectedProp) {
+        if (selectedCargo) {
+          handlePinCargo(selectedCargo.binId, selectedCargo.skuId, -1);
+          setSelectedCargo(null);
+          showToast(
+            lang === 'ko'
+              ? `[Del] ${selectedCargo.name} 1개 제거됨`
+              : `[Del] Removed 1 unit of ${selectedCargo.name}`
+          );
+        } else if (selectedObstacle && handleDeleteObstacle) {
+          handleDeleteObstacle(selectedObstacle.id);
+        } else if (selectedProp) {
           handleDeleteInteriorProp(selectedProp.id);
           showToast(
             lang === 'ko'
@@ -239,15 +289,48 @@ export function useWarehouseShortcuts({
         const dx =
           key === 'ArrowLeft' ? -0.25 : key === 'ArrowRight' ? 0.25 : 0;
         const dy = key === 'ArrowUp' ? -0.25 : key === 'ArrowDown' ? 0.25 : 0;
-        if (selectedProp) {
+        const dxSign = key === 'ArrowLeft' ? -1 : key === 'ArrowRight' ? 1 : 0;
+        const dySign = key === 'ArrowUp' ? -1 : key === 'ArrowDown' ? 1 : 0;
+
+        if (selectedObstacle && handleUpdateObstacle) {
+          e.preventDefault();
+          handleUpdateObstacle(selectedObstacle.id, {
+            xMeters: Number((selectedObstacle.xMeters + dx).toFixed(2)),
+            yMeters: Number((selectedObstacle.yMeters + dy).toFixed(2)),
+          });
+        } else if (selectedDepot && handleMoveDepot) {
+          e.preventDefault();
+          handleMoveDepot(
+            Number((depotX + dx).toFixed(2)),
+            Number((depotZ + dy).toFixed(2))
+          );
+        } else if (selectedProp) {
           e.preventDefault();
           handleUpdateInteriorProp(selectedProp.id, {
             xMeters: Number((selectedProp.xMeters + dx).toFixed(2)),
             yMeters: Number((selectedProp.yMeters + dy).toFixed(2)),
           });
+        } else if (
+          selectedCargo &&
+          (!dragMoveMode || dragScope === 'single_cargo')
+        ) {
+          e.preventDefault();
+          handleNudgeSingleCargo(
+            selectedCargo.binId,
+            selectedCargo.skuId,
+            dxSign,
+            dySign
+          );
         } else if (dragMoveMode && dragScope === 'whole_template') {
           e.preventDefault();
           handleTranslateWholeTemplate(dx * 2, dy * 2);
+        } else if (selectedBin && dragScope === 'single_bin') {
+          e.preventDefault();
+          handleMoveSingleBin(
+            selectedBin.bin.id,
+            Number((selectedBin.bin.xMeters + dx).toFixed(2)),
+            Number((selectedBin.bin.yMeters + dy).toFixed(2))
+          );
         } else if (selectedBin) {
           e.preventDefault();
           handleMoveRackColumn(
@@ -271,14 +354,25 @@ export function useWarehouseShortcuts({
     handleDeleteBin,
     handleDeleteInteriorProp,
     handleMoveRackColumn,
+    handleMoveSingleBin,
+    handleNudgeSingleCargo,
+    handlePinCargo,
     handleTranslateWholeTemplate,
     handleUpdateInteriorProp,
+    handleUpdateObstacle,
+    handleDeleteObstacle,
+    handleMoveDepot,
     handleWorkspaceRedo,
     handleWorkspaceUndo,
     lang,
     mapEditorOpen,
     selectedBin,
+    selectedCargo,
     selectedProp,
+    selectedObstacle,
+    selectedDepot,
+    depotX,
+    depotZ,
     setActiveLayout,
     setAppView,
     setCadModalOpen,
@@ -290,6 +384,7 @@ export function useWarehouseShortcuts({
     setLevelFilter,
     setMapEditorOpen,
     setSceneBgModalOpen,
+    setSelectedCargo,
     setTemplateGalleryOpen,
     setViewLayer,
     showToast,

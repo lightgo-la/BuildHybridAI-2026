@@ -12,7 +12,7 @@
 ![Language KO & EN](https://img.shields.io/badge/i18n-Korean%20%26%20English-10B981)
 ![Hackathon BuildHybridAI 2026](https://img.shields.io/badge/Hackathon-%23BuildHybridAI%202026-FF6D00?logo=googledevelopers&logoColor=white)
 ![License Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache&logoColor=white)
-![Release v1.1.0](https://img.shields.io/badge/Release-v1.1.0-8A2BE2)
+![Release v1.2.0](https://img.shields.io/badge/Release-v1.2.0-8A2BE2)
 
 <img width="2528" height="1280" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/44075604-0476-44f7-8866-5acf4f59f8ce" />
 
@@ -47,7 +47,10 @@
 
 4. **Interactive 3D Digital Twin Studio (`src/components/Warehouse3DViewport.tsx`, `src/utils/threeContentBuilder.ts`)**
    - **`THREE.InstancedMesh` Draw-Call Batching & LRU Texture Cache**: Batches rack uprights, shelf decks, Golden Zone volume bands, structural pillars, bottle crates, and pallet runners into GPU-instanced meshes with bounded LRU `CanvasTexture` disposal and `requestAnimationFrame`-throttled hover raycasting.
-   - **Whole-Template & Single-Rack 3D Drag-Move + Global Undo/Redo (`Ctrl+Z` / `Ctrl+Y`)**: Drag the entire template layout (or individual rack columns and 3D furniture) live at 60fps across a fixed 1m floor grid without parallax jumps, plus 1-click **90° Whole-Template Rotation**, **Span+/Span- Spacing Scaling**, **Center Alignment**, and 350ms-coalesced **3D Workspace Undo/Redo**.
+   - **Single-Item & Batch Cargo 3D Drag-Drop with Auto-Swap & Ghost Preview**: Click or drag individual 3D boxes (`Shift + Drag` for batch transfer) between any shelf bins with live validity ghost previews (`Green: Safe Fit`, `Amber: 1:1 Auto-Swap`, `Red: NIOSH Z3+ Heavy Warning`).
+   - **Custom Box & Shelf Dimension Studio (`src/components/BinInspectorPanel.tsx`)**: Resize any shelf bin (`W × D × H cm`, single bin / entire column / all shelves) with automatic Z-elevation pitch scaling so tall shelves never overlap vertically, and insert custom-sized boxes (`6 Quick Box Presets` or custom `W × D × H cm` + weight) directly into the target bin.
+   - **Interactive 3D Props, Pillars, Depot & Whole-Template Transforms (`Ctrl+Z` / `Ctrl+Y`)**: Click and drag individual boxes, shelf bins, rack columns, whole templates, 3D interior furniture/appliances, structural pillars/obstacles, and the Depot (`★ IN/OUT`) live at 60fps across a fixed floor grid, plus 1-click **90° Whole-Template Rotation**, **Span+/Span- Spacing Scaling**, **Quick Floor Color Swatches & Picker**, and 350ms-coalesced **3D Workspace Undo/Redo**.
+   - **Beginner-Friendly Guided UX (`Easy Mode`)**: Features a 3-step onboarding bar (`STEP 1→2→3`), action-oriented Korean/English tabs, a slimmed beginner 3D toolbar with collapsible advanced tools, real-time 3D hover guidance cards, and an all-in-one right-click context command center (`src/components/ViewportContextMenu.tsx`).
    - **3D Space Interior & Furniture Builder (`src/components/InteriorStudioModal.tsx`)**: Place, drag, rotate, scale, and recolor 12 types of 3D furniture, appliances, doors, and windows + 4 room wall styles.
    - **3D Background & Lighting Studio (`src/components/Scene3DBackgroundModal.tsx`)**: 12 lighting/backdrop presets + custom color pickers and floor materials.
 

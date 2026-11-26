@@ -104,6 +104,8 @@ interface MapEditorModalProps {
   config: WarehouseConfig;
   bins: BinSpec[];
   scenario: WarehouseScenario;
+  floorColor?: string;
+  onChangeFloorColor?: (color: string) => void;
   lang?: LangCode;
   onApplyMapEdits: (params: {
     configPatch: Partial<WarehouseConfig>;
@@ -182,6 +184,8 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   config,
   bins,
   scenario,
+  floorColor = '#071326',
+  onChangeFloorColor,
   lang = 'ko',
   onApplyMapEdits,
   onSaveCustomScenario,
@@ -922,6 +926,45 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 />
               </div>
 
+              {/* Map Floor Color Picker (2D & 3D Synced) */}
+              {onChangeFloorColor && (
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 text-[10px]">
+                  <span className="font-semibold text-[var(--t-text)]">
+                    {isKo ? '맵 바닥 색상 (2D·3D 연동):' : 'Map Floor Color:'}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {[
+                      ['#e2e8f0', isKo ? '라이트타일' : 'Light Tile'],
+                      ['#e7d5b8', isKo ? '우드마루' : 'Warm Wood'],
+                      ['#cbd5e1', isKo ? '콘크리트' : 'Concrete'],
+                      ['#bbf7d0', isKo ? '에폭시그린' : 'Epoxy Green'],
+                      ['#172554', isKo ? '블루도면' : 'Blueprint'],
+                      ['#1e293b', isKo ? '다크슬레이트' : 'Dark Slate'],
+                    ].map(([col, title]) => (
+                      <button
+                        key={col}
+                        type="button"
+                        onClick={() => onChangeFloorColor(col)}
+                        title={title}
+                        className={`h-4 w-4 rounded-full border ${
+                          floorColor.toLowerCase() === col
+                            ? 'scale-110 border-white ring-1 ring-cyan-400'
+                            : 'border-slate-500'
+                        }`}
+                        style={{ backgroundColor: col }}
+                      />
+                    ))}
+                    <input
+                      type="color"
+                      value={floorColor}
+                      onChange={(e) => onChangeFloorColor(e.target.value)}
+                      className="h-5 w-6 cursor-pointer border-0 bg-transparent"
+                      title={isKo ? '바닥 색상 직접 선택' : 'Pick Floor Color'}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Quick Scale All Racks */}
               <div className="flex items-center justify-between gap-1.5 pt-0.5 text-[10px]">
                 <span className="text-[var(--t-muted)]">
@@ -1486,7 +1529,8 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   y={toScreenY(-1.0 + floorDepthM)}
                   width={floorWidthM * basePxPerM}
                   height={floorDepthM * basePxPerM}
-                  fill="rgba(14, 165, 233, 0.05)"
+                  fill={floorColor}
+                  fillOpacity={0.28}
                   stroke="#38bdf8"
                   strokeWidth="1.5"
                   strokeDasharray="6,4"
