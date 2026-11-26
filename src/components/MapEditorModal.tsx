@@ -3486,13 +3486,21 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
       {ctxMenu && (
         <div
-          style={{
-            left: `${Math.min(ctxMenu.clientX, window.innerWidth - 285)}px`,
-            top: `${Math.min(ctxMenu.clientY, window.innerHeight - 450)}px`,
+          className="fixed inset-0 z-[59]"
+          onMouseDown={() => setCtxMenu(null)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setCtxMenu(null);
           }}
-          className="fixed z-[60] w-68 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface)] p-2 text-xs text-[var(--t-text)] shadow-2xl"
-          onMouseDown={(e) => e.stopPropagation()}
         >
+          <div
+            style={{
+              left: `${Math.max(8, Math.min(ctxMenu.clientX, window.innerWidth - 290))}px`,
+              top: `${Math.max(8, Math.min(ctxMenu.clientY, window.innerHeight - 480))}px`,
+            }}
+            className="fixed z-[60] max-h-[84vh] w-68 overflow-y-auto rounded-xl border border-[var(--t-border)] bg-[var(--t-surface)] p-2 text-xs text-[var(--t-text)] shadow-2xl"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
           {ctxRack ? (
             <>
               <div className="flex items-center justify-between border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
@@ -3791,6 +3799,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               </button>
             </>
           )}
+          </div>
         </div>
       )}
     </div>

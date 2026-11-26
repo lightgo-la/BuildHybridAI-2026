@@ -773,6 +773,15 @@ export function App() {
   useWarehouseShortcuts({
     lang,
     mapEditorOpen,
+    anyModalOpen:
+      mapEditorOpen ||
+      interiorModalOpen ||
+      sceneBgModalOpen ||
+      cadModalOpen ||
+      templateGalleryOpen ||
+      setupOpen ||
+      designMenuOpen,
+    alwaysOptimizedLock,
     dragMoveMode,
     dragScope,
     selectedBin,
@@ -2246,7 +2255,7 @@ export function App() {
             )}
           </div>
 
-          <div className="relative flex-1">
+          <div className="relative flex flex-1 flex-col overflow-hidden">
             {shortcutToast && (
               <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-cyan-400/60 bg-slate-950/90 px-4 py-1.5 text-xs font-bold text-cyan-200 shadow-2xl backdrop-blur">
                 {shortcutToast}
@@ -2497,6 +2506,54 @@ export function App() {
                       ? `선반 [${selectedBin.bin.id}]`
                       : `Shelf [${selectedBin.bin.id}]`}
                   </span>
+
+                  <div className="flex items-center gap-1 rounded-md border border-emerald-500/45 bg-slate-900/95 px-1.5 py-0.5 text-[10px]">
+                    <span className="font-semibold text-emerald-300">
+                      {lang === 'ko' ? '박스개수:' : 'Boxes:'}
+                    </span>
+                    {[0, 1, 2, 4, 6].map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() =>
+                          handleSetBinTotalBoxQuota(
+                            selectedBin.bin.id,
+                            q,
+                            skus[0]?.id
+                          )
+                        }
+                        className={`rounded border px-1 py-0.2 font-mono font-bold ${
+                          selectedBin.boxes.length === q
+                            ? 'border-emerald-400 bg-emerald-500 text-slate-950'
+                            : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-emerald-400'
+                        }`}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={selectedBin.boxes.length}
+                      onChange={(e) =>
+                        handleSetBinTotalBoxQuota(
+                          selectedBin.bin.id,
+                          Math.max(
+                            0,
+                            Math.min(100, Math.round(Number(e.target.value) || 0))
+                          ),
+                          skus[0]?.id
+                        )
+                      }
+                      className="w-10 rounded border border-emerald-500/50 bg-slate-950 px-1 py-0.2 text-center font-mono font-bold text-amber-300"
+                      title={
+                        lang === 'ko'
+                          ? '이 선반 칸의 총 박스 개수를 숫자로 직접 입력'
+                          : 'Enter exact total box count for this shelf bin'
+                      }
+                    />
+                  </div>
 
                   <div className="flex items-center gap-1 rounded-md border border-cyan-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
                     <span className="font-semibold text-cyan-300">
@@ -2985,64 +3042,248 @@ export function App() {
             )}
 
             {main2DPlanMode !== 'full_2d' && (
-              <Warehouse3DViewport
-                allocations={shownResult.allocations}
-                pickRoute={shownResult.pickRoute}
-                config={config}
-                scenarioName={activeScenario.name}
-                viewLayer={viewLayer}
-                selectedBinId={selectedBinId}
-                selectedPropId={selectedPropId}
-                selectedObstacleId={selectedObstacleId}
-                selectedDepot={selectedDepot}
-                selectedCargo={selectedCargo}
-                levelFilter={levelFilter}
-                theme={activeTheme}
-                sceneBg={sceneBg}
-                onSelectBin={handleSelectBin}
-                onSelectProp={setSelectedPropId}
-                onSelectObstacle={setSelectedObstacleId}
-                onSelectDepot={setSelectedDepot}
-                onSelectCargo={setSelectedCargo}
-                onContextAction={setContextMenu}
-                dragMoveMode={dragMoveMode}
-                dragScope={dragScope}
-                onMoveSingleBin={handleMoveSingleBin}
-                onMoveRackColumn={handleMoveRackColumn}
-                onMoveWholeTemplate={handleTranslateWholeTemplate}
-                onMoveInteriorProp={(propId, nx, ny) =>
-                  handleUpdateInteriorProp(propId, { xMeters: nx, yMeters: ny })
-                }
-                onMoveObstacle={(obsId, nx, ny) =>
-                  handleUpdateObstacle(obsId, { xMeters: nx, yMeters: ny })
-                }
-                onMoveDepot={handleMoveDepot}
-                onMoveSingleCargoToBin={handleMoveSingleCargoToBin}
-                onMoveSingleCargoToFloor={handleMoveSingleCargoToFloor}
-                cameraPreset={cameraPreset}
-                cameraResetTick={cameraResetTick}
-                cameraFocusTick={cameraFocusTick}
-                autoZoomEnabled={autoZoomEnabled}
-                onToggleAutoZoom={() =>
-                  setAutoZoomEnabled((prev) => {
-                    const next = !prev;
-                    showToast(
-                      next
-                        ? lang === 'ko'
-                          ? '✨ 스마트 카메라 자동줌 켜짐: 물체 클릭 시 자동 확대 · 빈 바닥 클릭 시 전체 복귀'
-                          : '✨ Smart Auto-Zoom ON'
-                        : lang === 'ko'
-                          ? '수동 카메라 줌 모드로 전환되었습니다'
-                          : 'Smart Auto-Zoom OFF'
-                    );
-                    return next;
-                  })
-                }
-                onEnableAnimateRoute={() => setAnimateRoute(true)}
-                onChangeCameraPreset={setCameraPreset}
-                animateRoute={animateRoute}
-                lang={lang}
-              />
+              <div className="relative min-h-[420px] flex-1">
+                <Warehouse3DViewport
+                  allocations={shownResult.allocations}
+                  pickRoute={shownResult.pickRoute}
+                  config={config}
+                  scenarioName={activeScenario.name}
+                  viewLayer={viewLayer}
+                  selectedBinId={selectedBinId}
+                  selectedPropId={selectedPropId}
+                  selectedObstacleId={selectedObstacleId}
+                  selectedDepot={selectedDepot}
+                  selectedCargo={selectedCargo}
+                  levelFilter={levelFilter}
+                  theme={activeTheme}
+                  sceneBg={sceneBg}
+                  onSelectBin={handleSelectBin}
+                  onSelectProp={setSelectedPropId}
+                  onSelectObstacle={setSelectedObstacleId}
+                  onSelectDepot={setSelectedDepot}
+                  onSelectCargo={setSelectedCargo}
+                  onContextAction={setContextMenu}
+                  dragMoveMode={dragMoveMode}
+                  dragScope={dragScope}
+                  onMoveSingleBin={handleMoveSingleBin}
+                  onMoveRackColumn={handleMoveRackColumn}
+                  onMoveWholeTemplate={handleTranslateWholeTemplate}
+                  onMoveInteriorProp={(propId, nx, ny) =>
+                    handleUpdateInteriorProp(propId, { xMeters: nx, yMeters: ny })
+                  }
+                  onMoveObstacle={(obsId, nx, ny) =>
+                    handleUpdateObstacle(obsId, { xMeters: nx, yMeters: ny })
+                  }
+                  onMoveDepot={handleMoveDepot}
+                  onMoveSingleCargoToBin={handleMoveSingleCargoToBin}
+                  onMoveSingleCargoToFloor={handleMoveSingleCargoToFloor}
+                  cameraPreset={cameraPreset}
+                  cameraResetTick={cameraResetTick}
+                  cameraFocusTick={cameraFocusTick}
+                  autoZoomEnabled={autoZoomEnabled}
+                  onToggleAutoZoom={() =>
+                    setAutoZoomEnabled((prev) => {
+                      const next = !prev;
+                      showToast(
+                        next
+                          ? lang === 'ko'
+                            ? '✨ 스마트 카메라 자동줌 켜짐: 물체 클릭 시 자동 확대 · 빈 바닥 클릭 시 전체 복귀'
+                            : '✨ Smart Auto-Zoom ON'
+                          : lang === 'ko'
+                            ? '수동 카메라 줌 모드로 전환되었습니다'
+                            : 'Smart Auto-Zoom OFF'
+                      );
+                      return next;
+                    })
+                  }
+                  onEnableAnimateRoute={() => setAnimateRoute(true)}
+                  onChangeCameraPreset={setCameraPreset}
+                  animateRoute={animateRoute}
+                  lang={lang}
+                />
+
+                <div className="absolute bottom-3 left-3 z-20 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/90 p-1.5 text-[10px] backdrop-blur">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraPreset('iso');
+                      setCameraResetTick((t) => t + 1);
+                    }}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
+                      cameraPreset === 'iso'
+                        ? 'bg-slate-800 text-cyan-300 font-semibold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title={
+                      lang === 'ko'
+                        ? '전체 창고 3D 입체뷰 자동 맞춤 (단축키 1)'
+                        : '3D Isometric Auto-Fit (Shortcut: 1)'
+                    }
+                  >
+                    <Compass className="h-3 w-3" />
+                    {lang === 'ko' ? '3D 입체뷰' : '3D Iso'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraPreset('top');
+                      setCameraResetTick((t) => t + 1);
+                    }}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
+                      cameraPreset === 'top'
+                        ? 'bg-slate-800 text-cyan-300 font-semibold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title={
+                      lang === 'ko'
+                        ? '위에서 내려다보는 2D 평면뷰 자동 맞춤 (단축키 2)'
+                        : '2D Top-Down Auto-Fit (Shortcut: 2)'
+                    }
+                  >
+                    <Camera className="h-3 w-3" />
+                    {lang === 'ko' ? '2D 평면뷰' : '2D Top'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraPreset('elevation');
+                      setCameraResetTick((t) => t + 1);
+                    }}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
+                      cameraPreset === 'elevation'
+                        ? 'bg-slate-800 text-cyan-300 font-semibold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title={
+                      lang === 'ko'
+                        ? '선반 층별 높이를 한눈에 보는 Z축 정면뷰 자동 맞춤 (단축키 3)'
+                        : 'Z-Elevation Auto-Fit (Shortcut: 3)'
+                    }
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    {lang === 'ko' ? 'Z축 정면뷰' : 'Z-Elevation'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraPreset('closeup');
+                      setCameraResetTick((t) => t + 1);
+                    }}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
+                      cameraPreset === 'closeup'
+                        ? 'bg-slate-800 text-emerald-300 font-semibold'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title={
+                      lang === 'ko'
+                        ? '골든존 눈높이 근접 시점 전환 (단축키 4)'
+                        : 'Eye-Level Golden Zone Closeup View (Shortcut: 4)'
+                    }
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    {lang === 'ko' ? '눈높이 근접뷰' : 'Closeup'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAnimateRoute((v) => !v)}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
+                      animateRoute
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Play className="h-3 w-3" />
+                    {animateRoute
+                      ? lang === 'ko'
+                        ? '동선 표시: 켜짐'
+                        : 'Route On'
+                      : lang === 'ko'
+                        ? '동선 표시: 꺼짐'
+                        : 'Route Off'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDragMoveMode((v) => !v)}
+                    className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
+                      dragMoveMode
+                        ? 'bg-cyan-500/25 font-semibold text-cyan-300'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                    title="Drag any 3D rack column with your mouse to relocate it"
+                  >
+                    <Move className="h-3 w-3" />
+                    {dragMoveMode
+                      ? lang === 'ko'
+                        ? '3D 이동: 켜짐'
+                        : '3D Drag: ON'
+                      : lang === 'ko'
+                        ? '3D 위치 이동'
+                        : 'Move 3D'}
+                  </button>
+
+                  <div className="flex items-center gap-0.5 border-l border-slate-700 pl-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setLevelFilter('all')}
+                      className={`rounded px-1.5 py-0.5 font-semibold ${
+                        levelFilter === 'all'
+                          ? 'bg-cyan-500/25 text-cyan-300'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {lang === 'ko' ? '전층' : 'All'}
+                    </button>
+                    {zBreakdown.map((z) => (
+                      <button
+                        key={z.level}
+                        type="button"
+                        onClick={() =>
+                          setLevelFilter(
+                            levelFilter === z.level ? 'all' : z.level
+                          )
+                        }
+                        className={`rounded px-1.5 py-0.5 font-medium ${
+                          levelFilter === z.level
+                            ? 'bg-cyan-500 text-slate-950 font-bold'
+                            : z.isGoldenZone
+                              ? 'text-emerald-300 hover:bg-slate-800'
+                              : 'text-slate-400 hover:bg-slate-800'
+                        }`}
+                        title={`Z${z.level} (${z.zMeters}m)`}
+                      >
+                        Z{z.level}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="absolute right-3 top-3 z-20 rounded-lg border border-slate-800 bg-slate-900/85 px-2.5 py-2 text-[10px] text-slate-300 backdrop-blur">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: activeTheme.scene.golden }}
+                    />
+                    {lang === 'ko'
+                      ? `골든존 허리높이 (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`
+                      : `Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: activeTheme.scene.route }}
+                    />
+                    {lang === 'ko'
+                      ? '최적 피킹 이동 동선'
+                      : 'Active Pick Wave Path'}
+                  </div>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span className="h-2 w-2 rounded-full bg-rose-500" />
+                    {lang === 'ko'
+                      ? '상층 중량물 안전 위험'
+                      : 'Heavy-on-Upper Violation'}
+                  </div>
+                </div>
+              </div>
             )}
 
             {main2DPlanMode !== 'off' && (
@@ -3416,184 +3657,6 @@ export function App() {
                 </div>
               </div>
             )}
-
-            <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/90 p-1.5 text-[10px] backdrop-blur">
-              <button
-                type="button"
-                onClick={() => {
-                  setCameraPreset('iso');
-                  setCameraResetTick((t) => t + 1);
-                }}
-                className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
-                  cameraPreset === 'iso'
-                    ? 'bg-slate-800 text-cyan-300 font-semibold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title={
-                  lang === 'ko'
-                    ? '전체 창고 3D 입체뷰 자동 맞춤 (단축키 1)'
-                    : '3D Isometric Auto-Fit (Shortcut: 1)'
-                }
-              >
-                <Compass className="h-3 w-3" />
-                {lang === 'ko' ? '3D 입체뷰' : '3D Iso'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCameraPreset('top');
-                  setCameraResetTick((t) => t + 1);
-                }}
-                className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
-                  cameraPreset === 'top'
-                    ? 'bg-slate-800 text-cyan-300 font-semibold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title={
-                  lang === 'ko'
-                    ? '위에서 내려다보는 2D 평면뷰 자동 맞춤 (단축키 2)'
-                    : '2D Top-Down Auto-Fit (Shortcut: 2)'
-                }
-              >
-                <Camera className="h-3 w-3" />
-                {lang === 'ko' ? '2D 평면뷰' : '2D Top'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCameraPreset('elevation');
-                  setCameraResetTick((t) => t + 1);
-                }}
-                className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
-                  cameraPreset === 'elevation'
-                    ? 'bg-slate-800 text-cyan-300 font-semibold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title={
-                  lang === 'ko'
-                    ? '선반 층별 높이를 한눈에 보는 Z축 정면뷰 자동 맞춤 (단축키 3)'
-                    : 'Z-Elevation Auto-Fit (Shortcut: 3)'
-                }
-              >
-                <RotateCcw className="h-3 w-3" />
-                {lang === 'ko' ? 'Z축 정면뷰' : 'Z-Elevation'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCameraPreset('closeup');
-                  setCameraResetTick((t) => t + 1);
-                }}
-                className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
-                  cameraPreset === 'closeup'
-                    ? 'bg-slate-800 text-emerald-300 font-semibold'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title={
-                  lang === 'ko'
-                    ? '골든존 눈높이 근접 시점 전환 (단축키 4)'
-                    : 'Eye-Level Golden Zone Closeup View (Shortcut: 4)'
-                }
-              >
-                <Sparkles className="h-3 w-3" />
-                {lang === 'ko' ? '눈높이 근접뷰' : 'Closeup'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setAnimateRoute((v) => !v)}
-                className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
-                  animateRoute
-                    ? 'bg-amber-500/20 text-amber-300'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Play className="h-3 w-3" />
-                {animateRoute
-                  ? lang === 'ko'
-                    ? '동선 표시: 켜짐'
-                    : 'Route On'
-                  : lang === 'ko'
-                    ? '동선 표시: 꺼짐'
-                    : 'Route Off'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setDragMoveMode((v) => !v)}
-                className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
-                  dragMoveMode
-                    ? 'bg-cyan-500/25 font-semibold text-cyan-300'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="Drag any 3D rack column with your mouse to relocate it"
-              >
-                <Move className="h-3 w-3" />
-                {dragMoveMode
-                  ? lang === 'ko'
-                    ? '3D 이동: 켜짐'
-                    : '3D Drag: ON'
-                  : lang === 'ko'
-                    ? '3D 위치 이동'
-                    : 'Move 3D'}
-              </button>
-
-              <div className="flex items-center gap-0.5 border-l border-slate-700 pl-1.5">
-                <button
-                  type="button"
-                  onClick={() => setLevelFilter('all')}
-                  className={`rounded px-1.5 py-0.5 font-semibold ${
-                    levelFilter === 'all'
-                      ? 'bg-cyan-500/25 text-cyan-300'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  {lang === 'ko' ? '전층' : 'All'}
-                </button>
-                {zBreakdown.map((z) => (
-                  <button
-                    key={z.level}
-                    type="button"
-                    onClick={() =>
-                      setLevelFilter(levelFilter === z.level ? 'all' : z.level)
-                    }
-                    className={`rounded px-1.5 py-0.5 font-medium ${
-                      levelFilter === z.level
-                        ? 'bg-cyan-500 text-slate-950 font-bold'
-                        : z.isGoldenZone
-                          ? 'text-emerald-300 hover:bg-slate-800'
-                          : 'text-slate-400 hover:bg-slate-800'
-                    }`}
-                    title={`Z${z.level} (${z.zMeters}m)`}
-                  >
-                    Z{z.level}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="absolute right-3 top-3 rounded-lg border border-slate-800 bg-slate-900/85 px-2.5 py-2 text-[10px] text-slate-300 backdrop-blur">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: activeTheme.scene.golden }}
-                />
-                {lang === 'ko'
-                  ? `골든존 허리높이 (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`
-                  : `Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`}
-              </div>
-              <div className="mt-1 flex items-center gap-1.5">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: activeTheme.scene.route }}
-                />
-                {lang === 'ko' ? '최적 피킹 이동 동선' : 'Active Pick Wave Path'}
-              </div>
-              <div className="mt-1 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-rose-500" />
-                {lang === 'ko'
-                  ? '상층 중량물 안전 위험'
-                  : 'Heavy-on-Upper Violation'}
-              </div>
-            </div>
           </div>
         </section>
 

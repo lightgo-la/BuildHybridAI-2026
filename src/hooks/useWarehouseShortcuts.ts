@@ -12,6 +12,8 @@ import type {
 interface UseWarehouseShortcutsParams {
   lang: LangCode;
   mapEditorOpen: boolean;
+  anyModalOpen?: boolean;
+  alwaysOptimizedLock?: boolean;
   dragMoveMode: boolean;
   dragScope: DragScope;
   selectedBin: BinAllocation | null;
@@ -79,6 +81,8 @@ interface UseWarehouseShortcutsParams {
 export function useWarehouseShortcuts({
   lang,
   mapEditorOpen,
+  anyModalOpen = false,
+  alwaysOptimizedLock = false,
   dragMoveMode,
   dragScope,
   selectedBin,
@@ -135,7 +139,11 @@ export function useWarehouseShortcuts({
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && !mapEditorOpen) {
+      if (mapEditorOpen || anyModalOpen) {
+        return;
+      }
+
+      if (e.ctrlKey || e.metaKey) {
         const lower = e.key.toLowerCase();
         if (lower === 'z' && !e.shiftKey) {
           e.preventDefault();
@@ -228,6 +236,15 @@ export function useWarehouseShortcuts({
         );
       } else if (key === ' ') {
         e.preventDefault();
+        if (alwaysOptimizedLock) {
+          setActiveLayout('optimized_3d');
+          showToast(
+            lang === 'ko'
+              ? '🔒 [항상 최적화 고정]이 켜져 있어 3D 최적화 화면을 유지합니다'
+              : '🔒 Always-Optimized Lock is active'
+          );
+          return;
+        }
         setActiveLayout((prev) => {
           const next = prev === 'optimized_3d' ? 'baseline_2d' : 'optimized_3d';
           showToast(
@@ -421,6 +438,8 @@ export function useWarehouseShortcuts({
     handleWorkspaceUndo,
     lang,
     mapEditorOpen,
+    anyModalOpen,
+    alwaysOptimizedLock,
     selectedBin,
     selectedCargo,
     selectedProp,
