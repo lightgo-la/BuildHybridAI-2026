@@ -25,6 +25,14 @@ export default defineConfig({
           }
           if (id.includes('/src/data/')) return 'templates-data';
           if (id.includes('/src/utils/threeContentBuilder')) return 'three-builder';
+          if (
+            id.includes('/src/components/ViewportContextMenu') ||
+            id.includes('/src/components/EverydayHomeView') ||
+            id.includes('/src/components/InteriorStudioModal') ||
+            id.includes('/src/components/Scene3DBackgroundModal')
+          ) {
+            return 'studio-modals';
+          }
           return undefined;
         },
       },

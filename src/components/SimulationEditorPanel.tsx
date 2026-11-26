@@ -548,7 +548,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </span>
               <span className="text-slate-500">{skus.length} SKUs</span>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+            <div className="grid grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4">
               <label className="inline-flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 font-medium text-cyan-300 hover:border-cyan-400">
                 <Upload className="h-3 w-3" />
                 {lang === 'ko' ? 'SKU CSV 업로드' : 'Import CSV'}
@@ -562,11 +562,52 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                     const reader = new FileReader();
                     reader.onload = () => {
                       const imported = parseSkusFromCSV(String(reader.result ?? ''), {
-                        maxL,
-                        maxW,
-                        maxH,
+                        maxL: Math.max(maxL, 140),
+                        maxW: Math.max(maxW, 110),
+                        maxH: Math.max(maxH, 90),
                       });
                       if (imported.length > 0) {
+                        onResetSpaceEdits();
+                        const importedVolCm3 = imported.reduce(
+                          (sum, s) =>
+                            sum + s.lengthCm * s.widthCm * s.heightCm * s.quantity,
+                          0
+                        );
+                        const singleBinVolCm3 =
+                          (config.binLengthCm ?? 120) *
+                          (config.binWidthCm ?? 90) *
+                          (config.binHeightCm ?? 70);
+                        const currentTotalVolCm3 =
+                          Math.max(1, bins.length) * singleBinVolCm3;
+                        if (
+                          importedVolCm3 > currentTotalVolCm3 * 0.62 ||
+                          imported.length > bins.length
+                        ) {
+                          const neededBins = Math.max(
+                            imported.length,
+                            Math.ceil(
+                              (importedVolCm3 / Math.max(1, singleBinVolCm3)) * 1.55
+                            )
+                          );
+                          const nextLevels = Math.max(
+                            config.levels,
+                            Math.min(6, neededBins >= 75 ? 4 : 3)
+                          );
+                          const colsNeeded = Math.ceil(neededBins / nextLevels);
+                          const nextAisles = Math.max(
+                            config.aisles,
+                            Math.min(8, Math.ceil(Math.sqrt(colsNeeded / 1.2)))
+                          );
+                          const nextBays = Math.max(
+                            config.baysPerAisle,
+                            Math.min(12, Math.ceil(colsNeeded / nextAisles))
+                          );
+                          onUpdateConfig({
+                            aisles: nextAisles,
+                            baysPerAisle: nextBays,
+                            levels: nextLevels,
+                          });
+                        }
                         onChangeSkus(imported);
                       }
                     };
@@ -575,6 +616,65 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   }}
                 />
               </label>
+              <button
+                type="button"
+                onClick={() => {
+                  const cats = [
+                    ['Beverage', '생수·음료 묶음', 'Beverage Crate', '#38bdf8', false],
+                    ['PantryFood', '팬트리 식품팩', 'Pantry Pack', '#f59e0b', false],
+                    ['ColdChain', '신선 냉장·냉동팩', 'Cold-Chain Box', '#22d3ee', false],
+                    ['Apparel', '의류 리빙박스', 'Apparel Tote', '#a78bfa', false],
+                    ['Electronics', '정밀 전자 모듈', 'ESD Tech Module', '#fb7185', true],
+                  ] as const;
+                  const generated100: SKUItem[] = Array.from(
+                    { length: 100 },
+                    (_, i) => {
+                      const idx = i + 1;
+                      const [cat, ko, en, color, frag] = cats[i % cats.length];
+                      const abcClass: ABCClass =
+                        i % 3 === 0 ? 'A' : i % 3 === 1 ? 'B' : 'C';
+                      return {
+                        id: `sku-sample100-${idx}`,
+                        skuCode: `SKU-${String(idx).padStart(3, '0')}`,
+                        name: `${ko} #${idx} (${en} ${idx})`,
+                        category: cat,
+                        abcClass,
+                        dailyPicks:
+                          abcClass === 'A'
+                            ? 95 + ((i * 7) % 110)
+                            : abcClass === 'B'
+                              ? 35 + ((i * 5) % 50)
+                              : 6 + ((i * 3) % 24),
+                        lengthCm: 24 + ((i * 5) % 44),
+                        widthCm: 20 + ((i * 3) % 34),
+                        heightCm: 16 + ((i * 4) % 28),
+                        weightKg: Number((1.2 + ((i * 1.9) % 24)).toFixed(1)),
+                        quantity: 2 + (i % 3),
+                        fragile: frag || i % 11 === 0,
+                        color,
+                      };
+                    }
+                  );
+                  onResetSpaceEdits();
+                  onUpdateConfig({
+                    aisles: 5,
+                    baysPerAisle: 5,
+                    levels: 4,
+                    binLengthCm: Math.max(config.binLengthCm ?? 120, 130),
+                    binWidthCm: Math.max(config.binWidthCm ?? 90, 95),
+                    binHeightCm: Math.max(config.binHeightCm ?? 70, 75),
+                  });
+                  onChangeSkus(generated100);
+                }}
+                className="inline-flex items-center justify-center gap-1 rounded-lg border border-amber-500/45 bg-amber-500/15 px-2 py-1.5 font-semibold text-amber-300 hover:bg-amber-500/25"
+                title={
+                  lang === 'ko'
+                    ? '100종 품목(299박스)과 100개 선반(5×5×4) 대량 시뮬레이션 샘플을 원클릭으로 즉시 로드합니다'
+                    : 'Load 100-SKU (299 boxes) & 100-Bin (5×5×4) benchmark sample in 1 click'
+                }
+              >
+                {lang === 'ko' ? '🧪 100개 샘플 로드' : '🧪 Load 100 SKUs'}
+              </button>
               <button
                 type="button"
                 onClick={() => exportSkusToCSV(skus, scenarioName)}

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildTransferredSkuPins,
   computeAisleTravelDistanceM,
+  computeCycleTimeSec,
   computeZLevelBreakdown,
   generateWarehouseBins,
   runBaseline2DSlotting,
@@ -326,4 +327,80 @@ test('Custom shelf sizing (>72cm height) scales Z-elevation pitch without vertic
       `Level Z${bins[i].level} (${bins[i].zMeters}m) must be above Z${bins[i - 1].level} top (${lowerTop}m)`
     );
   }
+});
+
+test('Structural obstacle proximity penalty adds detour time to blocked bins', () => {
+  const bins = generateWarehouseBins(sampleConfig);
+  const targetBin = bins[0];
+  const baseSec = computeCycleTimeSec(
+    targetBin,
+    'reach_truck',
+    sampleConfig.aisles,
+    sampleConfig.aisleSpacingM,
+    sampleConfig.depotXMeters,
+    sampleConfig.depotYMeters,
+    []
+  );
+  const blockedSec = computeCycleTimeSec(
+    targetBin,
+    'reach_truck',
+    sampleConfig.aisles,
+    sampleConfig.aisleSpacingM,
+    sampleConfig.depotXMeters,
+    sampleConfig.depotYMeters,
+    [
+      {
+        id: 'obs-1',
+        label: 'Pillar P1',
+        aisle: 1,
+        bay: 1,
+        xMeters: targetBin.xMeters + 0.3,
+        yMeters: targetBin.yMeters,
+      },
+    ]
+  );
+  assert.ok(
+    blockedSec > baseSec + 1.5,
+    `Blocked bin cycle time (${blockedSec}s) should include obstacle detour penalty above base (${baseSec}s)`
+  );
+});
+
+test('100-SKU x 100-Bin high-volume stress test places 100% of items with 0 safety violations', () => {
+  const config100: WarehouseConfig = {
+    ...sampleConfig,
+    aisles: 5,
+    baysPerAisle: 5,
+    levels: 4,
+    binLengthCm: 130,
+    binWidthCm: 95,
+    binHeightCm: 75,
+  };
+  const bins100 = generateWarehouseBins(config100);
+  assert.equal(bins100.length, 100);
+
+  const skus100: SKUItem[] = Array.from({ length: 100 }, (_, i) => ({
+    id: `sku-stress-${i + 1}`,
+    skuCode: `STRESS-${i + 1}`,
+    name: `대량 테스트 품목 #${i + 1} (Stress Item ${i + 1})`,
+    category: 'Stress',
+    abcClass: i % 3 === 0 ? 'A' : i % 3 === 1 ? 'B' : 'C',
+    dailyPicks: 20 + (i % 100),
+    lengthCm: 24 + ((i * 5) % 44),
+    widthCm: 20 + ((i * 3) % 34),
+    heightCm: 16 + ((i * 4) % 28),
+    weightKg: Number((1.2 + ((i * 1.9) % 24)).toFixed(1)),
+    quantity: 2 + (i % 3),
+    fragile: i % 9 === 0,
+    color: '#38bdf8',
+  }));
+
+  const baseRes = runBaseline2DSlotting(bins100, skus100, config100);
+  const optRes = runOptimized3DSlotting(bins100, skus100, config100);
+
+  assert.equal(baseRes.unplacedUnits, 0);
+  assert.equal(optRes.unplacedUnits, 0);
+  assert.equal(optRes.kpis.safetyViolations, 0);
+  assert.ok(
+    optRes.kpis.goldenZoneHitRatePct > baseRes.kpis.goldenZoneHitRatePct
+  );
 });

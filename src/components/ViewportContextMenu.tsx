@@ -75,7 +75,7 @@ interface ViewportContextMenuProps {
   allowRotationAndCoPack?: boolean;
   equipmentMode?: EquipmentMode;
   viewLayer?: ViewLayerMode;
-  cameraPreset?: 'iso' | 'top' | 'elevation';
+  cameraPreset?: 'iso' | 'top' | 'elevation' | 'closeup';
   animateRoute?: boolean;
   dragMoveMode?: boolean;
   dragScope?: DragScope;
@@ -135,7 +135,7 @@ interface ViewportContextMenuProps {
   onOpenEditor: () => void;
   onOpenLeftTab?: (tab: 'optimizer' | 'editor' | 'inspector') => void;
   onChangeViewLayer: (layer: ViewLayerMode) => void;
-  onChangeCameraPreset?: (preset: 'iso' | 'top' | 'elevation') => void;
+  onChangeCameraPreset?: (preset: 'iso' | 'top' | 'elevation' | 'closeup') => void;
   onToggleAnimateRoute?: () => void;
   onToggleLayout: () => void;
   onChangeOptimizationPreset?: (preset: OptimizationPreset) => void;

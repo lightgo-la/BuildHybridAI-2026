@@ -156,6 +156,10 @@ function tryPackIntoBin(
   if (alloc.currentWeightKg + sku.weightKg > alloc.bin.maxWeightKg) {
     return null;
   }
+  const unitVolumeCm3 = sku.lengthCm * sku.widthCm * sku.heightCm;
+  if (alloc.usedVolumeCm3 + unitVolumeCm3 > alloc.totalVolumeCm3) {
+    return null;
+  }
 
   const orientations = allowRotation
     ? getOrientations(sku)
@@ -290,7 +294,8 @@ export function computeCycleTimeSec(
   aisles = 3,
   aisleSpacingM = DEFAULT_AISLE_SPACING_M,
   depotXMeters?: number,
-  depotYMeters?: number
+  depotYMeters?: number,
+  obstacles?: WarehouseConfig['obstacles']
 ): number {
   const depotX = depotXMeters ?? ((Math.max(1, aisles) - 1) * aisleSpacingM) / 2;
   const depotY = depotYMeters ?? 0;
@@ -304,19 +309,31 @@ export function computeCycleTimeSec(
   );
   const verticalDist = bin.zMeters;
 
+  // Obstacle / pillar proximity detour penalty when a structural pillar blocks direct bay access
+  let obstacleDetourSec = 0;
+  if (obstacles && obstacles.length > 0) {
+    for (const obs of obstacles) {
+      const dist = Math.hypot(bin.xMeters - obs.xMeters, bin.yMeters - obs.yMeters);
+      if (dist < 1.15) {
+        obstacleDetourSec += 1.8;
+        break;
+      }
+    }
+  }
+
   if (equipmentMode === 'asrs_crane') {
     // Chebyshev distance: simultaneous horizontal & vertical crane motion
     const vx = 2.6; // m/s
     const vz = 1.35; // m/s
     const oneWay = Math.max(horizontalDist / vx, verticalDist / vz);
-    return oneWay * 2 + 2.4; // + shuttle engage
+    return oneWay * 2 + 2.4 + obstacleDetourSec; // + shuttle engage
   }
 
   // Reach Truck: horizontal travel + sequential mast lift/lower
   const walkSpeed = 1.9; // m/s
   const mastSpeed = 0.55; // m/s
   const oneWay = horizontalDist / walkSpeed + verticalDist / mastSpeed;
-  return oneWay * 2 + 3.5; // + pick & confirm
+  return oneWay * 2 + 3.5 + obstacleDetourSec; // + pick & confirm
 }
 
 function createEmptyAllocations(bins: BinSpec[]): BinAllocation[] {
@@ -366,7 +383,8 @@ function evaluateAllocations(
       config.aisles,
       config.aisleSpacingM,
       config.depotXMeters,
-      config.depotYMeters
+      config.depotYMeters,
+      config.obstacles
     );
     weightedCycleSum += cycleSec * alloc.dailyPickLoad;
     totalPickLoad += alloc.dailyPickLoad;
@@ -656,6 +674,18 @@ export function runBaseline2DSlotting(
         }
       }
       if (!placed) {
+        // Fallback pass for high-SKU-count catalogs (e.g. 100+ distinct SKUs): allow sharing partially filled bins in 2D unrotated mode
+        for (let offset = 0; offset < orderedBins.length; offset++) {
+          const candidate = orderedBins[(binCursor + offset) % orderedBins.length];
+          const box = tryPackIntoBin(candidate, sku, false);
+          if (box) {
+            placed = true;
+            remaining--;
+            break;
+          }
+        }
+      }
+      if (!placed) {
         unplacedUnits += remaining;
         recordUnplaced(unplacedMap, sku, remaining, 'volume_full');
         break;
@@ -722,6 +752,24 @@ export function runOptimized3DSlotting(
   const coPackMaxUtil = preset === 'density' ? 95 : preset === 'safety' ? 75 : 88;
   const coPackBonus = preset === 'density' ? 42 : 24;
   const sameSkuBonus = preset === 'density' ? 76 : 65;
+  const allowCoPack = config.allowRotationAndCoPack ?? true;
+
+  // Precompute constant cycle time per bin once (eliminates O(Units * Bins) redundant kinematics calls)
+  const binCycleCache = new Map<string, number>();
+  for (const alloc of allocations) {
+    binCycleCache.set(
+      alloc.bin.id,
+      computeCycleTimeSec(
+        alloc.bin,
+        config.equipmentMode,
+        config.aisles,
+        config.aisleSpacingM,
+        config.depotXMeters,
+        config.depotYMeters,
+        config.obstacles
+      )
+    );
+  }
 
   for (const sku of prioritizedUnits) {
     // Score candidate bins dynamically for this SKU unit
@@ -737,15 +785,7 @@ export function runOptimized3DSlotting(
         }
 
         let score = 0;
-        const cycleSec = computeCycleTimeSec(
-          bin,
-          config.equipmentMode,
-          config.aisles,
-          config.aisleSpacingM,
-          config.depotXMeters,
-          config.depotYMeters
-        );
-        const allowCoPack = config.allowRotationAndCoPack ?? true;
+        const cycleSec = binCycleCache.get(bin.id) ?? 10;
 
         if (sku.abcClass === 'A') {
           if (bin.isGoldenZone) score += goldenBonusA;

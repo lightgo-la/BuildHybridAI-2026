@@ -244,8 +244,8 @@ export function parseSkusFromCSV(
 
     parsed.push({
       id: `sku-csv-${Date.now()}-${i}`,
-      skuCode: (row[colCode] || `SKU-${100 + i}`).slice(0, 18),
-      name: (row[colName] || `Imported Item ${i}`).slice(0, 40),
+      skuCode: (row[colCode] || `SKU-${100 + i}`).slice(0, 24),
+      name: (row[colName] || `Imported Item ${i}`).slice(0, 80),
       category: row[colCat] || 'CSV Imported',
       abcClass,
       dailyPicks: Math.max(1, Math.min(2000, Math.round(num(row[colPicks], 50)))),

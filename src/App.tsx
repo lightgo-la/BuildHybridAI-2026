@@ -101,7 +101,10 @@ import {
 import { SimulationEditorPanel } from './components/SimulationEditorPanel';
 import { BinInspectorPanel } from './components/BinInspectorPanel';
 import { EverydayHomeView } from './components/EverydayHomeView';
-import { InteriorStudioModal } from './components/InteriorStudioModal';
+import {
+  INTERIOR_PROP_CATALOG,
+  InteriorStudioModal,
+} from './components/InteriorStudioModal';
 import {
   SCENE_3D_PRESETS,
   Scene3DBackgroundModal,
@@ -307,10 +310,11 @@ export function App() {
   const [appView, setAppView] = useState<'workspace' | 'home'>('workspace');
   const [viewLayer, setViewLayer] = useState<ViewLayerMode>('slotting');
   const [levelFilter, setLevelFilter] = useState<number | 'all'>('all');
-  const [cameraPreset, setCameraPreset] = useState<'iso' | 'top' | 'elevation'>(
-    'iso'
-  );
+  const [cameraPreset, setCameraPreset] = useState<
+    'iso' | 'top' | 'elevation' | 'closeup'
+  >('iso');
   const [cameraResetTick, setCameraResetTick] = useState(0);
+  const [cameraFocusTick, setCameraFocusTick] = useState(0);
   const [animateRoute, setAnimateRoute] = useState(true);
   const [dragMoveMode, setDragMoveMode] = useState(false);
   const [dragScope, setDragScope] = useState<DragScope>('single_cargo');
@@ -343,6 +347,7 @@ export function App() {
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
   const [simpleMode, setSimpleMode] = useState(true);
   const [showAdvanced3DTools, setShowAdvanced3DTools] = useState(false);
+  const [showQuickInteriorBar, setShowQuickInteriorBar] = useState(false);
   const [mapFilter, setMapFilter] = useState<'all' | 'pro' | 'everyday'>('all');
   const [contextMenu, setContextMenu] = useState<ViewportContextState | null>(
     null
@@ -741,6 +746,7 @@ export function App() {
     handleTranslateWholeTemplate,
     setCameraPreset,
     setCameraResetTick,
+    setCameraFocusTick,
     setActiveLayout,
     setDragMoveMode,
     setInteriorInitialTab,
@@ -1317,6 +1323,95 @@ export function App() {
                     : 'Shelf & Custom Box Size'}
                 </button>
 
+                {/* Instant 3D Item Finder Dropdown: Select any SKU to locate & auto-zoom to its 3D shelf */}
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const skuId = e.target.value;
+                    if (!skuId) return;
+                    const foundAlloc = shownResult.allocations.find((a) =>
+                      a.boxes.some((b) => b.skuId === skuId)
+                    );
+                    if (foundAlloc) {
+                      const boxIdx = foundAlloc.boxes.findIndex(
+                        (b) => b.skuId === skuId
+                      );
+                      const box = foundAlloc.boxes[boxIdx];
+                      setSelectedBinId(foundAlloc.bin.id);
+                      if (box) {
+                        setSelectedCargo({
+                          binId: foundAlloc.bin.id,
+                          boxIndex: boxIdx,
+                          skuId: box.skuId,
+                          skuCode: box.skuCode,
+                          name: box.name,
+                          weightKg: box.weightKg,
+                          lengthCm: box.lengthCm,
+                          widthCm: box.widthCm,
+                          heightCm: box.heightCm,
+                          color: box.color,
+                        });
+                      }
+                      setCameraFocusTick((n) => n + 1);
+                      setLeftTab('inspector');
+                      const totalInBin = foundAlloc.boxes.filter(
+                        (b) => b.skuId === skuId
+                      ).length;
+                      showToast(
+                        lang === 'ko'
+                          ? `🔍 [${box?.name.split(' (')[0]}] 위치 발견: 선반 ${foundAlloc.bin.id} (Z${foundAlloc.bin.level}층, ${totalInBin}개 적재) — 3D 줌인!`
+                          : `🔍 Located [${box?.name.split(' (')[0]}] in Bin ${foundAlloc.bin.id} (Z${foundAlloc.bin.level}, ${totalInBin} pcs) — Zoomed in!`
+                      );
+                    } else {
+                      showToast(
+                        lang === 'ko'
+                          ? '해당 품목은 현재 선반에 적재되어 있지 않습니다.'
+                          : 'This SKU is currently unplaced.'
+                      );
+                    }
+                  }}
+                  className="max-w-[175px] cursor-pointer rounded-md border border-cyan-500/45 bg-slate-900 px-2 py-1 font-semibold text-cyan-200 hover:border-cyan-400"
+                  title={
+                    lang === 'ko'
+                      ? '찾고 싶은 물건을 선택하면 해당 물건이 들어있는 3D 선반과 박스를 찾아 자동으로 확대합니다'
+                      : 'Select any item to automatically locate and zoom to its 3D shelf and box'
+                  }
+                >
+                  <option value="">
+                    {lang === 'ko' ? '🔍 3D 물건 위치 찾기...' : '🔍 Find Item in 3D...'}
+                  </option>
+                  {skus.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name.split(' (')[0]} ({s.skuCode})
+                    </option>
+                  ))}
+                </select>
+
+                {/* 1-Click Quick Interior Add / Delete Bar Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setShowQuickInteriorBar((v) => !v)}
+                  className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 font-bold transition ${
+                    showQuickInteriorBar || selectedProp !== null
+                      ? 'border-emerald-400 bg-emerald-500/25 text-emerald-200'
+                      : 'border-emerald-500/45 bg-slate-900 text-emerald-300 hover:border-emerald-400'
+                  }`}
+                  title={
+                    lang === 'ko'
+                      ? '모달을 열지 않고 3D 화면에서 바로 가구·가전·출입문·창문을 원클릭 추가하거나 삭제합니다'
+                      : 'Quickly add or delete 3D interior furniture, appliances, doors & windows inline'
+                  }
+                >
+                  <Home className="h-3.5 w-3.5 text-emerald-300" />
+                  {lang === 'ko'
+                    ? `🛋️ 인테리어 간편추가·삭제 (${effectiveInteriorProps.length}) ${
+                        showQuickInteriorBar ? '▴' : '▾'
+                      }`
+                    : `🛋️ Quick Interior (${effectiveInteriorProps.length}) ${
+                        showQuickInteriorBar ? '▴' : '▾'
+                      }`}
+                </button>
+
                 {selectedBin ? (
                   <>
                     <button
@@ -1507,6 +1602,169 @@ export function App() {
                 )}
               </div>
             </div>
+
+            {/* Ultra-Simple 1-Click Interior Quick Add / Delete / Wall Bar */}
+            {(showQuickInteriorBar || selectedProp !== null) && (
+              <div className="mt-1.5 space-y-1.5 rounded-lg border border-emerald-500/35 bg-slate-900/95 p-2 text-[10px]">
+                <div className="flex flex-wrap items-center justify-between gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="font-bold text-emerald-300">
+                      {lang === 'ko' ? '+ 원클릭 가구 추가:' : '+ Quick Add:'}
+                    </span>
+                    {INTERIOR_PROP_CATALOG.map((item) => (
+                      <button
+                        key={item.type}
+                        type="button"
+                        onClick={() => handleAddInteriorProp(item.type)}
+                        className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-medium text-slate-200 hover:border-emerald-400 hover:bg-emerald-500/15 hover:text-white"
+                        title={
+                          lang === 'ko'
+                            ? `클릭하여 [${item.nameKo}] 3D 공간에 즉시 추가`
+                            : `Click to add [${item.nameEn}] to 3D space`
+                        }
+                      >
+                        <span>{item.icon}</span>
+                        <span>
+                          {lang === 'ko'
+                            ? item.nameKo.split(' ')[0].split('·')[0]
+                            : item.nameEn.split(' ')[0]}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1">
+                    {/* Quick Room Wall Enclosure Switcher */}
+                    {(
+                      [
+                        ['cutaway_corner', lang === 'ko' ? 'ㄱ자벽' : 'L-Wall'],
+                        ['three_walls', lang === 'ko' ? 'ㄷ자벽' : '3-Wall'],
+                        ['glass_room', lang === 'ko' ? '유리벽' : 'Glass'],
+                        ['open_floor', lang === 'ko' ? '벽없음' : 'Open'],
+                      ] as const
+                    ).map(([st, label]) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() =>
+                          setConfigPatch((prev) => ({
+                            ...prev,
+                            roomEnclosure: st,
+                          }))
+                        }
+                        className={`rounded border px-1.5 py-0.5 font-semibold ${
+                          (config.roomEnclosure ?? 'cutaway_corner') === st
+                            ? 'border-cyan-400 bg-cyan-500/20 text-cyan-200'
+                            : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                    <input
+                      type="color"
+                      value={config.wallColor || '#334155'}
+                      onChange={(e) =>
+                        setConfigPatch((prev) => ({
+                          ...prev,
+                          wallColor: e.target.value,
+                        }))
+                      }
+                      className="h-4 w-5 cursor-pointer border-0 bg-transparent"
+                      title={lang === 'ko' ? '벽면 색상 변경' : 'Wall Color'}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAutoPopulateInterior}
+                      className="rounded border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 font-bold text-emerald-300 hover:bg-emerald-500/30"
+                    >
+                      {lang === 'ko' ? '✨ 자동세트 배치' : '✨ Auto Set'}
+                    </button>
+                    {effectiveInteriorProps.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          pushWorkspaceUndo();
+                          setConfigPatch((prev) => ({
+                            ...prev,
+                            interiorProps: [],
+                          }));
+                          setSelectedPropId(null);
+                          showToast(
+                            lang === 'ko'
+                              ? '모든 3D 인테리어 가구를 삭제했습니다.'
+                              : 'Cleared all 3D interior props.'
+                          );
+                        }}
+                        className="rounded border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 font-bold text-rose-300 hover:bg-rose-500/25"
+                      >
+                        {lang === 'ko' ? '🗑️ 가구 전체삭제' : '🗑️ Clear All'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Active Placed Props Chips with 1-Click Focus & 1-Click Delete (×) */}
+                <div className="flex max-h-20 flex-wrap items-center gap-1 overflow-y-auto border-t border-slate-800 pt-1">
+                  <span className="font-semibold text-slate-400">
+                    {lang === 'ko'
+                      ? `배치된 가구 (${effectiveInteriorProps.length}개 · 클릭:선택/이동 · ×:즉시삭제):`
+                      : `Placed (${effectiveInteriorProps.length} · Click:Select · ×:Delete):`}
+                  </span>
+                  {effectiveInteriorProps.length === 0 ? (
+                    <span className="text-slate-500">
+                      {lang === 'ko'
+                        ? '배치된 가구가 없습니다. 위 아이콘을 눌러 바로 추가하세요.'
+                        : 'No props placed. Click any icon above to add.'}
+                    </span>
+                  ) : (
+                    effectiveInteriorProps.map((p) => {
+                      const meta = INTERIOR_PROP_CATALOG.find(
+                        (c) => c.type === p.type
+                      );
+                      const isSel = p.id === selectedPropId;
+                      return (
+                        <span
+                          key={p.id}
+                          className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 ${
+                            isSel
+                              ? 'border-emerald-400 bg-emerald-500/25 font-bold text-emerald-200'
+                              : 'border-slate-700 bg-slate-950 text-slate-200'
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPropId(p.id);
+                              setSelectedBinId(null);
+                              setSelectedCargo(null);
+                              setCameraFocusTick((n) => n + 1);
+                            }}
+                            className="inline-flex items-center gap-1 hover:text-cyan-300"
+                            title={
+                              lang === 'ko'
+                                ? '클릭하여 이 가구로 카메라 포커스 및 편집'
+                                : 'Click to focus & edit this prop'
+                            }
+                          >
+                            <span>{meta?.icon ?? '🛋️'}</span>
+                            <span>{p.label.split(' (')[0]}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteInteriorProp(p.id)}
+                            className="ml-0.5 rounded px-1 text-rose-400 hover:bg-rose-500/25 hover:text-rose-200"
+                            title={lang === 'ko' ? '이 가구 즉시 삭제' : 'Delete prop'}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Collapsible Secondary Bar: Drag Scope Switcher & Whole-Template Transforms */}
             {(!simpleMode || showAdvanced3DTools || dragMoveMode) && (
@@ -2453,6 +2711,8 @@ export function App() {
               onMoveSingleCargoToFloor={handleMoveSingleCargoToFloor}
               cameraPreset={cameraPreset}
               cameraResetTick={cameraResetTick}
+              cameraFocusTick={cameraFocusTick}
+              onChangeCameraPreset={setCameraPreset}
               animateRoute={animateRoute}
               lang={lang}
             />
@@ -2494,6 +2754,23 @@ export function App() {
               >
                 <RotateCcw className="h-3 w-3" />
                 {lang === 'ko' ? 'Z축 정면뷰' : 'Z-Elevation'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setCameraPreset('closeup')}
+                className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
+                  cameraPreset === 'closeup'
+                    ? 'bg-slate-800 text-emerald-300 font-semibold'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+                title={
+                  lang === 'ko'
+                    ? '골든존 눈높이 근접 시점 전환 (단축키 4)'
+                    : 'Eye-Level Golden Zone Closeup View (Shortcut: 4)'
+                }
+              >
+                <Sparkles className="h-3 w-3" />
+                {lang === 'ko' ? '눈높이 근접뷰' : 'Closeup'}
               </button>
               <button
                 type="button"
@@ -2609,11 +2886,12 @@ export function App() {
             onLastInferenceSource={setLastInferenceSource}
             onFocusBinId={(binId) => {
               setSelectedBinId(binId);
+              setCameraFocusTick((n) => n + 1);
               setLeftTab('inspector');
               showToast(
                 lang === 'ko'
-                  ? `추천 선반 [${binId}] 포커스됨`
-                  : `Focused Recommended Bin [${binId}]`
+                  ? `추천 선반 [${binId}] 포커스 줌 이동됨`
+                  : `Focused & Zoomed to Recommended Bin [${binId}]`
               );
             }}
             onExecuteAiAction={(action: HybridAIAction) => {

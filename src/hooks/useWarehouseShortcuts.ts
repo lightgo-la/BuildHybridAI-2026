@@ -55,8 +55,11 @@ interface UseWarehouseShortcutsParams {
   ) => void;
   handlePinCargo: (binId: string, skuId: string, delta?: number) => void;
   handleTranslateWholeTemplate: (dx: number, dy: number) => void;
-  setCameraPreset: Dispatch<SetStateAction<'iso' | 'top' | 'elevation'>>;
+  setCameraPreset: Dispatch<
+    SetStateAction<'iso' | 'top' | 'elevation' | 'closeup'>
+  >;
   setCameraResetTick: Dispatch<SetStateAction<number>>;
+  setCameraFocusTick?: Dispatch<SetStateAction<number>>;
   setActiveLayout: Dispatch<SetStateAction<'optimized_3d' | 'baseline_2d'>>;
   setDragMoveMode: Dispatch<SetStateAction<boolean>>;
   setInteriorInitialTab: Dispatch<SetStateAction<'interior' | 'shortcuts'>>;
@@ -101,6 +104,7 @@ export function useWarehouseShortcuts({
   handleTranslateWholeTemplate,
   setCameraPreset,
   setCameraResetTick,
+  setCameraFocusTick,
   setActiveLayout,
   setDragMoveMode,
   setInteriorInitialTab,
@@ -164,6 +168,20 @@ export function useWarehouseShortcuts({
         setCameraPreset('elevation');
         showToast(
           lang === 'ko' ? '[3] Z축 정면뷰 전환' : '[3] Z-Elevation View'
+        );
+      } else if (key === '4') {
+        setCameraPreset('closeup');
+        showToast(
+          lang === 'ko'
+            ? '[4] 눈높이 골든존 근접뷰 전환'
+            : '[4] Eye-Level Closeup View'
+        );
+      } else if (key === 'f' || key === 'F') {
+        setCameraFocusTick?.((n) => n + 1);
+        showToast(
+          lang === 'ko'
+            ? '[F] 선택 물체 클로즈업 포커스 줌'
+            : '[F] Focus & Zoom on Selected Object'
         );
       } else if (key === 'r' || key === 'R') {
         setCameraPreset('iso');
@@ -378,6 +396,7 @@ export function useWarehouseShortcuts({
     setCadModalOpen,
     setCameraPreset,
     setCameraResetTick,
+    setCameraFocusTick,
     setDragMoveMode,
     setInteriorInitialTab,
     setInteriorModalOpen,

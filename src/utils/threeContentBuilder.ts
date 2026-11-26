@@ -16,7 +16,7 @@ export type CargoVisualKind =
 
 const textureCache = new Map<string, THREE.CanvasTexture>();
 const bannerCache = new Map<string, THREE.CanvasTexture>();
-const MAX_CARGO_TEXTURES = 128;
+const MAX_CARGO_TEXTURES = 256;
 const MAX_BANNER_TEXTURES = 64;
 
 function getLruTexture(
@@ -616,10 +616,16 @@ export function buildTemplateEnvironmentProps(params: {
   }
 
   const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95];
+  const binHeightCm = config.binHeightCm ?? 70;
+  const customPitchM =
+    binHeightCm > 72 ? Number((binHeightCm / 100 + 0.12).toFixed(2)) : null;
   const rulerX = bounds.minX + 0.35;
   const rulerZ = bounds.minZ + 1.8;
-  for (let lvl = 1; lvl <= Math.min(6, config.levels); lvl++) {
-    const zm = levelHeights[lvl - 1] ?? (lvl - 1) * 0.82 + 0.05;
+  for (let lvl = 1; lvl <= Math.min(8, config.levels); lvl++) {
+    const zm =
+      customPitchM !== null
+        ? Number((0.05 + (lvl - 1) * customPitchM).toFixed(2))
+        : levelHeights[lvl - 1] ?? Number(((lvl - 1) * 0.82 + 0.05).toFixed(2));
     const isGz = zm >= config.goldenZoneMinM && zm <= config.goldenZoneMaxM;
     const lvlTex = getHeaderBannerTexture(
       `Z${lvl} · ${zm.toFixed(2)}m`,

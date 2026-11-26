@@ -113,8 +113,10 @@ interface Warehouse3DViewportProps {
     floorZ: number,
     transferCount?: number | 'all'
   ) => void;
-  cameraPreset: 'iso' | 'top' | 'elevation';
+  cameraPreset: 'iso' | 'top' | 'elevation' | 'closeup';
   cameraResetTick?: number;
+  cameraFocusTick?: number;
+  onChangeCameraPreset?: (preset: 'iso' | 'top' | 'elevation' | 'closeup') => void;
   animateRoute: boolean;
   lang?: LangCode;
 }
@@ -195,6 +197,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   onMoveSingleCargoToFloor,
   cameraPreset,
   cameraResetTick = 0,
+  cameraFocusTick = 0,
+  onChangeCameraPreset,
   animateRoute,
   lang = 'ko',
 }) => {
@@ -209,6 +213,20 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   const [dragFitStatus, setDragFitStatus] = useState<
     'fit' | 'swap' | 'hazard' | null
   >(null);
+  const [zoomMode, setZoomMode] = useState<
+    'cursor' | 'focus_select' | 'orbit_center'
+  >('cursor');
+  const zoomModeRef = useRef(zoomMode);
+  zoomModeRef.current = zoomMode;
+  const [zoomPercent, setZoomPercent] = useState<number>(100);
+  const [routeSpeed, setRouteSpeed] = useState<number>(1);
+  const routeSpeedRef = useRef<number>(1);
+  routeSpeedRef.current = routeSpeed;
+  const baseCameraDistRef = useRef<number>(14);
+  const cameraGoalRef = useRef<{
+    position: THREE.Vector3;
+    target: THREE.Vector3;
+  } | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const hitMeshesRef = useRef<Map<THREE.Object3D, BinAllocation>>(new Map());
@@ -230,8 +248,23 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       }
     >
   >(new Map());
+  const hitTargetsCacheRef = useRef<{
+    bins: THREE.Object3D[];
+    props: THREE.Object3D[];
+    obstacles: THREE.Object3D[];
+    depot: THREE.Object3D[];
+    cargo: THREE.Object3D[];
+  }>({
+    bins: [],
+    props: [],
+    obstacles: [],
+    depot: [],
+    cargo: [],
+  });
   const selectedBinIdRef = useRef(selectedBinId);
   selectedBinIdRef.current = selectedBinId;
+  const onSelectBinRef = useRef(onSelectBin);
+  onSelectBinRef.current = onSelectBin;
   const onContextActionRef = useRef(onContextAction);
   onContextActionRef.current = onContextAction;
   const dragMoveModeRef = useRef(dragMoveMode);
@@ -330,8 +363,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     const camera = new THREE.PerspectiveCamera(
       45,
       container.clientWidth / Math.max(1, container.clientHeight),
-      0.1,
-      140
+      0.05,
+      220
     );
     camera.position.set(centerX + 8.5, 8.6, centerZ + 8.8);
     cameraRef.current = camera;
@@ -352,12 +385,37 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.07;
+    controls.dampingFactor = 0.08;
     controls.target.set(centerX, 1.8, centerZ);
-    controls.maxPolarAngle = Math.PI / 2 - 0.03;
-    controls.minDistance = 4;
-    controls.maxDistance = 42;
+    controls.maxPolarAngle = Math.PI / 2 - 0.02;
+    controls.minDistance = 0.65;
+    controls.maxDistance = 85;
+    controls.zoomSpeed = 1.15;
+    controls.panSpeed = 1.05;
+    controls.screenSpacePanning = true;
+    controls.zoomToCursor = zoomModeRef.current !== 'orbit_center';
     controlsRef.current = controls;
+
+    const onCancelAutoGlide = () => {
+      cameraGoalRef.current = null;
+    };
+    controls.addEventListener('start', onCancelAutoGlide);
+    renderer.domElement.addEventListener('wheel', onCancelAutoGlide, {
+      passive: true,
+    });
+
+    let lastReportedZoom = 100;
+    const onControlsChange = () => {
+      const dist = Math.max(0.65, camera.position.distanceTo(controls.target));
+      const pct = Math.round(
+        Math.max(25, Math.min(350, (baseCameraDistRef.current / dist) * 100))
+      );
+      if (Math.abs(pct - lastReportedZoom) >= 1) {
+        lastReportedZoom = pct;
+        setZoomPercent(pct);
+      }
+    };
+    controls.addEventListener('change', onControlsChange);
 
     const ambient = new THREE.AmbientLight('#ffffff', sceneBg.ambientIntensity);
     scene.add(ambient);
@@ -503,8 +561,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        const propTargets = Array.from(propHitMeshesRef.current.keys());
-        const propHits = raycaster.intersectObjects(propTargets, false);
+        const cachedTargets = hitTargetsCacheRef.current;
+        const propHits = raycaster.intersectObjects(cachedTargets.props, false);
         if (propHits.length > 0 && hasFloorHit) {
           const hitMesh = propHits[0].object;
           const prop = propHitMeshesRef.current.get(hitMesh);
@@ -513,6 +571,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             onSelectObstacleRef.current?.(null);
             onSelectDepotRef.current?.(false);
             onSelectCargoRef.current?.(null);
+            onSelectBinRef.current(null);
             controls.enabled = false;
             let rootPropObj: THREE.Object3D = hitMesh;
             while (
@@ -537,8 +596,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
 
         // Structural Obstacles / Pillars direct click & drag-to-move
-        const obsTargets = Array.from(obstacleHitMeshesRef.current.keys());
-        const obsHits = raycaster.intersectObjects(obsTargets, false);
+        const obsHits = raycaster.intersectObjects(cachedTargets.obstacles, false);
         if (obsHits.length > 0 && hasFloorHit) {
           const hitMesh = obsHits[0].object;
           const obs = obstacleHitMeshesRef.current.get(hitMesh);
@@ -547,7 +605,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             onSelectPropRef.current?.(null);
             onSelectDepotRef.current?.(false);
             onSelectCargoRef.current?.(null);
-            onSelectBin(null);
+            onSelectBinRef.current(null);
             controls.enabled = false;
             let rootObsObj: THREE.Object3D = hitMesh;
             while (
@@ -572,8 +630,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
 
         // I/O Depot / Entry Point direct click & drag-to-move
-        const depotTargets = Array.from(depotHitMeshesRef.current.keys());
-        const depotHits = raycaster.intersectObjects(depotTargets, false);
+        const depotHits = raycaster.intersectObjects(cachedTargets.depot, false);
         if (depotHits.length > 0 && hasFloorHit) {
           const hitMesh = depotHits[0].object;
           const depotInfo = depotHitMeshesRef.current.get(hitMesh);
@@ -582,7 +639,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             onSelectObstacleRef.current?.(null);
             onSelectPropRef.current?.(null);
             onSelectCargoRef.current?.(null);
-            onSelectBin(null);
+            onSelectBinRef.current(null);
             controls.enabled = false;
             active3DDrag = {
               kind: 'depot',
@@ -603,8 +660,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           hasFloorHit &&
           (!dragMoveModeRef.current || dragScopeRef.current === 'single_cargo')
         ) {
-          const cargoTargets = Array.from(cargoHitMeshesRef.current.keys());
-          const cargoHits = raycaster.intersectObjects(cargoTargets, false);
+          const cargoHits = raycaster.intersectObjects(cachedTargets.cargo, false);
           if (cargoHits.length > 0) {
             const hitEntry = cargoHitMeshesRef.current.get(cargoHits[0].object);
             if (hitEntry) {
@@ -653,8 +709,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
 
         if (hasFloorHit) {
-          const targets = Array.from(hitMeshesRef.current.keys());
-          const hits = raycaster.intersectObjects(targets, false);
+          const hits = raycaster.intersectObjects(cachedTargets.bins, false);
           if (hits.length > 0) {
             const alloc = hitMeshesRef.current.get(hits[0].object);
             if (
@@ -711,7 +766,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                   grabFloorX,
                   grabFloorZ,
                 };
-                onSelectBin(alloc);
+                onSelectBinRef.current(alloc);
                 return;
               }
 
@@ -741,7 +796,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                 alloc.bin.yMeters
               );
               dragGhost.visible = true;
-              onSelectBin(alloc);
+              onSelectBinRef.current(alloc);
             }
           }
         }
@@ -778,8 +833,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               active3DDrag.cargoObject.visible = false;
             }
           }
-          const binTargets = Array.from(hitMeshesRef.current.keys());
-          const binHits = raycaster.intersectObjects(binTargets, false);
+          const binHits = raycaster.intersectObjects(
+            hitTargetsCacheRef.current.bins,
+            false
+          );
           const boxH = active3DDrag.boxH ?? 0.25;
           const info = active3DDrag.cargoInfo;
           const itemVol = info
@@ -899,9 +956,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       hoverRafId = requestAnimationFrame(() => {
         hoverRafId = 0;
         raycaster.setFromCamera(pointer, camera);
+        const cachedTargets = hitTargetsCacheRef.current;
 
-        const propTargets = Array.from(propHitMeshesRef.current.keys());
-        const propHits = raycaster.intersectObjects(propTargets, false);
+        const propHits = raycaster.intersectObjects(cachedTargets.props, false);
         if (propHits.length > 0) {
           const prop = propHitMeshesRef.current.get(propHits[0].object);
           if (prop) {
@@ -912,8 +969,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        const obsTargets = Array.from(obstacleHitMeshesRef.current.keys());
-        const obsHits = raycaster.intersectObjects(obsTargets, false);
+        const obsHits = raycaster.intersectObjects(cachedTargets.obstacles, false);
         if (obsHits.length > 0) {
           const obs = obstacleHitMeshesRef.current.get(obsHits[0].object);
           if (obs) {
@@ -924,8 +980,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        const depotTargets = Array.from(depotHitMeshesRef.current.keys());
-        const depotHits = raycaster.intersectObjects(depotTargets, false);
+        const depotHits = raycaster.intersectObjects(cachedTargets.depot, false);
         if (depotHits.length > 0) {
           setHoveredOtherLabel('★ 출입구 / 피킹 출발지 (I/O Depot)');
           setHoveredBin(null);
@@ -934,8 +989,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
         setHoveredOtherLabel((prev) => (prev === null ? null : null));
 
-        const cargoTargets = Array.from(cargoHitMeshesRef.current.keys());
-        const cargoHits = raycaster.intersectObjects(cargoTargets, false);
+        const cargoHits = raycaster.intersectObjects(cachedTargets.cargo, false);
         if (cargoHits.length > 0) {
           const entry = cargoHitMeshesRef.current.get(cargoHits[0].object);
           if (entry) {
@@ -964,8 +1018,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
         setHoveredCargo((prev) => (prev === null ? null : null));
 
-        const targets = Array.from(hitMeshesRef.current.keys());
-        const hits = raycaster.intersectObjects(targets, false);
+        const hits = raycaster.intersectObjects(cachedTargets.bins, false);
         if (hits.length > 0) {
           const hitAlloc = hitMeshesRef.current.get(hits[0].object) ?? null;
           setHoveredBin((prev) =>
@@ -998,9 +1051,11 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         if (finished.kind === 'cargo' && finished.cargoInfo && finished.sourceBinId) {
           const transferCount = finished.moveBatch || e.shiftKey ? 'all' : 1;
           if (dist <= 6) {
-            if (finished.sourceAlloc) onSelectBin(finished.sourceAlloc);
+            if (finished.sourceAlloc) onSelectBinRef.current(finished.sourceAlloc);
             onSelectCargoRef.current?.(finished.cargoInfo);
             onSelectPropRef.current?.(null);
+            onSelectObstacleRef.current?.(null);
+            onSelectDepotRef.current?.(false);
           } else if (
             finished.targetBinId &&
             finished.targetBinId !== finished.sourceBinId
@@ -1075,9 +1130,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(pointer, camera);
+      const cachedTargets = hitTargetsCacheRef.current;
 
-      const propTargets = Array.from(propHitMeshesRef.current.keys());
-      const propHits = raycaster.intersectObjects(propTargets, false);
+      const propHits = raycaster.intersectObjects(cachedTargets.props, false);
       if (propHits.length > 0) {
         const prop = propHitMeshesRef.current.get(propHits[0].object) ?? null;
         if (prop) {
@@ -1085,12 +1140,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           onSelectObstacleRef.current?.(null);
           onSelectDepotRef.current?.(false);
           onSelectCargoRef.current?.(null);
+          onSelectBinRef.current(null);
           return;
         }
       }
 
-      const obsTargets = Array.from(obstacleHitMeshesRef.current.keys());
-      const obsHits = raycaster.intersectObjects(obsTargets, false);
+      const obsHits = raycaster.intersectObjects(cachedTargets.obstacles, false);
       if (obsHits.length > 0) {
         const obs = obstacleHitMeshesRef.current.get(obsHits[0].object) ?? null;
         if (obs) {
@@ -1098,29 +1153,27 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           onSelectPropRef.current?.(null);
           onSelectDepotRef.current?.(false);
           onSelectCargoRef.current?.(null);
-          onSelectBin(null);
+          onSelectBinRef.current(null);
           return;
         }
       }
 
-      const depotTargets = Array.from(depotHitMeshesRef.current.keys());
-      const depotHits = raycaster.intersectObjects(depotTargets, false);
+      const depotHits = raycaster.intersectObjects(cachedTargets.depot, false);
       if (depotHits.length > 0) {
         onSelectDepotRef.current?.(true);
         onSelectObstacleRef.current?.(null);
         onSelectPropRef.current?.(null);
         onSelectCargoRef.current?.(null);
-        onSelectBin(null);
+        onSelectBinRef.current(null);
         return;
       }
 
-      const cargoTargets = Array.from(cargoHitMeshesRef.current.keys());
-      const cargoHits = raycaster.intersectObjects(cargoTargets, false);
+      const cargoHits = raycaster.intersectObjects(cachedTargets.cargo, false);
       if (cargoHits.length > 0) {
         const hitEntry = cargoHitMeshesRef.current.get(cargoHits[0].object);
         if (hitEntry) {
           const { alloc, box, boxIndex } = hitEntry;
-          onSelectBin(alloc);
+          onSelectBinRef.current(alloc);
           onSelectPropRef.current?.(null);
           onSelectObstacleRef.current?.(null);
           onSelectDepotRef.current?.(false);
@@ -1140,17 +1193,16 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
       }
 
-      const targets = Array.from(hitMeshesRef.current.keys());
-      const hits = raycaster.intersectObjects(targets, false);
+      const hits = raycaster.intersectObjects(cachedTargets.bins, false);
       if (hits.length > 0) {
         const alloc = hitMeshesRef.current.get(hits[0].object) ?? null;
-        onSelectBin(alloc);
+        onSelectBinRef.current(alloc);
         onSelectPropRef.current?.(null);
         onSelectObstacleRef.current?.(null);
         onSelectDepotRef.current?.(false);
         onSelectCargoRef.current?.(null);
       } else {
-        onSelectBin(null);
+        onSelectBinRef.current(null);
         onSelectPropRef.current?.(null);
         onSelectObstacleRef.current?.(null);
         onSelectDepotRef.current?.(false);
@@ -1173,10 +1225,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       const floorPt = hitFloor
         ? { x: Number(floorHitVec.x.toFixed(2)), z: Number(floorHitVec.z.toFixed(2)) }
         : null;
+      const cachedTargets = hitTargetsCacheRef.current;
 
       // 1. Check 3D Interior Furniture Props first
-      const propTargets = Array.from(propHitMeshesRef.current.keys());
-      const propHits = raycaster.intersectObjects(propTargets, false);
+      const propHits = raycaster.intersectObjects(cachedTargets.props, false);
       if (propHits.length > 0) {
         const prop = propHitMeshesRef.current.get(propHits[0].object) ?? null;
         if (prop) {
@@ -1193,11 +1245,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       }
 
       // 2. Check 3D Storage Rack Bins
-      const targets = Array.from(hitMeshesRef.current.keys());
-      const hits = raycaster.intersectObjects(targets, false);
+      const hits = raycaster.intersectObjects(cachedTargets.bins, false);
       if (hits.length > 0) {
         const alloc = hitMeshesRef.current.get(hits[0].object) ?? null;
-        if (alloc) onSelectBin(alloc);
+        if (alloc) onSelectBinRef.current(alloc);
         handler({
           clientX: e.clientX,
           clientY: e.clientY,
@@ -1218,10 +1269,81 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       });
     };
 
+    const onDoubleClick = (e: MouseEvent) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const cachedTargets = hitTargetsCacheRef.current;
+
+      let focusPoint: THREE.Vector3 | null = null;
+      let focusDist = 2.8;
+
+      const cargoHits = raycaster.intersectObjects(cachedTargets.cargo, false);
+      if (cargoHits.length > 0) {
+        focusPoint = cargoHits[0].point.clone();
+        focusDist = 1.85;
+      }
+
+      if (!focusPoint) {
+        const binHits = raycaster.intersectObjects(cachedTargets.bins, false);
+        if (binHits.length > 0) {
+          const alloc = hitMeshesRef.current.get(binHits[0].object);
+          if (alloc) {
+            focusPoint = new THREE.Vector3(
+              alloc.bin.xMeters,
+              alloc.bin.zMeters + alloc.bin.binHeightCm / 200,
+              alloc.bin.yMeters
+            );
+            focusDist = 2.75;
+          }
+        }
+      }
+
+      if (!focusPoint) {
+        const propHits = raycaster.intersectObjects(cachedTargets.props, false);
+        if (propHits.length > 0) {
+          focusPoint = propHits[0].point.clone();
+          focusDist = 3.0;
+        }
+      }
+
+      if (!focusPoint) {
+        const obsHits = raycaster.intersectObjects(cachedTargets.obstacles, false);
+        if (obsHits.length > 0) {
+          focusPoint = obsHits[0].point.clone();
+          focusDist = 3.1;
+        }
+      }
+
+      if (!focusPoint && raycaster.ray.intersectPlane(floorPlane, floorHitVec)) {
+        focusPoint = new THREE.Vector3(floorHitVec.x, 0.8, floorHitVec.z);
+        focusDist = Math.max(
+          2.2,
+          camera.position.distanceTo(controls.target) * 0.52
+        );
+      }
+
+      if (focusPoint) {
+        const viewDir = camera.position.clone().sub(controls.target);
+        if (viewDir.lengthSq() < 0.001) {
+          viewDir.set(1, 0.65, 1);
+        }
+        viewDir.normalize();
+        const nextPos = focusPoint.clone().addScaledVector(viewDir, focusDist);
+        nextPos.y = Math.max(0.55, nextPos.y);
+        cameraGoalRef.current = {
+          target: focusPoint,
+          position: nextPos,
+        };
+      }
+    };
+
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
     renderer.domElement.addEventListener('contextmenu', onContextMenu);
+    renderer.domElement.addEventListener('dblclick', onDoubleClick);
 
     const handleResize = () => {
       if (!container) return;
@@ -1244,12 +1366,26 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         routeCurveRef.current &&
         pickerMarkerRef.current
       ) {
-        const t = (elapsed * 0.14) % 1;
+        const t = (elapsed * 0.14 * routeSpeedRef.current) % 1;
         const pos = routeCurveRef.current.getPointAt(t);
         pickerMarkerRef.current.position.copy(pos);
         pickerMarkerRef.current.visible = true;
       } else if (pickerMarkerRef.current) {
         pickerMarkerRef.current.visible = false;
+      }
+
+      if (cameraGoalRef.current) {
+        const goal = cameraGoalRef.current;
+        camera.position.lerp(goal.position, 0.15);
+        controls.target.lerp(goal.target, 0.17);
+        if (
+          camera.position.distanceTo(goal.position) < 0.025 &&
+          controls.target.distanceTo(goal.target) < 0.025
+        ) {
+          camera.position.copy(goal.position);
+          controls.target.copy(goal.target);
+          cameraGoalRef.current = null;
+        }
       }
 
       controls.update();
@@ -1261,10 +1397,14 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       cancelAnimationFrame(rafId);
       if (hoverRafId) cancelAnimationFrame(hoverRafId);
       resizeObserver.disconnect();
+      controls.removeEventListener('start', onCancelAutoGlide);
+      controls.removeEventListener('change', onControlsChange);
+      renderer.domElement.removeEventListener('wheel', onCancelAutoGlide);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       renderer.domElement.removeEventListener('contextmenu', onContextMenu);
+      renderer.domElement.removeEventListener('dblclick', onDoubleClick);
       disposeObjectTree(envGroup);
       disposeObjectTree(dynamicGroup);
       disposeObjectTree(selectionOverlayGroup);
@@ -1275,7 +1415,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       controls.dispose();
       renderer.dispose();
     };
-  }, [onSelectBin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Apply 3D Background Studio & Theme colors to scene sky/fog/lighting/marker
   useEffect(() => {
@@ -1396,14 +1537,16 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     config.floorDepthM,
     centerX,
     centerZ,
-    depotX,
-    depotZ,
     theme,
     sceneBg,
-    selectedPropId,
-    selectedObstacleId,
-    selectedDepot,
   ]);
+
+  // Sync OrbitControls zoomToCursor whenever zoomMode changes
+  useEffect(() => {
+    if (controlsRef.current) {
+      controlsRef.current.zoomToCursor = zoomMode !== 'orbit_center';
+    }
+  }, [zoomMode]);
 
   // Camera presets & automatic framing when switching maps or applying 2D Canvas edits
   useEffect(() => {
@@ -1412,28 +1555,241 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     if (!camera || !controls) return;
 
     const scaleOffset = Math.max(bounds.width * 0.58, bounds.depth * 0.58, 5.5);
+    const defaultTargetY = Math.max(1.4, config.levels * 0.36);
+    const defaultIsoPos = new THREE.Vector3(
+      centerX + scaleOffset + 2.0,
+      Math.max(6.8, config.levels * 1.45),
+      centerZ + scaleOffset + 2.2
+    );
+    const defaultIsoTarget = new THREE.Vector3(centerX, defaultTargetY, centerZ);
+    baseCameraDistRef.current = Math.max(
+      4,
+      defaultIsoPos.distanceTo(defaultIsoTarget)
+    );
 
-    if (cameraPreset === 'iso') {
-      camera.position.set(
-        centerX + scaleOffset + 2.0,
-        Math.max(6.8, config.levels * 1.45),
-        centerZ + scaleOffset + 2.2
-      );
-      controls.target.set(centerX, Math.max(1.4, config.levels * 0.36), centerZ);
-    } else if (cameraPreset === 'top') {
-      camera.position.set(centerX, Math.max(15, scaleOffset * 2.2), centerZ + 0.1);
-      controls.target.set(centerX, 0, centerZ);
+    const goalPos = defaultIsoPos.clone();
+    const goalTarget = defaultIsoTarget.clone();
+
+    if (cameraPreset === 'top') {
+      goalPos.set(centerX, Math.max(15, scaleOffset * 2.2), centerZ + 0.08);
+      goalTarget.set(centerX, 0, centerZ);
     } else if (cameraPreset === 'elevation') {
-      camera.position.set(
+      goalPos.set(
         centerX + scaleOffset + 4.5,
         Math.max(2.0, config.levels * 0.42),
         centerZ
       );
-      controls.target.set(centerX, Math.max(1.6, config.levels * 0.4), centerZ);
+      goalTarget.set(centerX, Math.max(1.6, config.levels * 0.4), centerZ);
+    } else if (cameraPreset === 'closeup') {
+      goalPos.set(
+        centerX + Math.min(scaleOffset * 0.48, 3.8),
+        1.72,
+        centerZ + Math.min(scaleOffset * 0.52, 4.1)
+      );
+      goalTarget.set(centerX, 1.32, centerZ);
     }
-    controls.update();
+
+    cameraGoalRef.current = {
+      position: goalPos,
+      target: goalTarget,
+    };
+    const nextDist = Math.max(0.65, goalPos.distanceTo(goalTarget));
+    setZoomPercent(
+      Math.round(
+        Math.max(
+          25,
+          Math.min(350, (baseCameraDistRef.current / nextDist) * 100)
+        )
+      )
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraPreset, cameraResetTick]);
+
+  const applyZoomPercent = React.useCallback((nextPct: number) => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+
+    const clampedPct = Math.max(25, Math.min(350, Math.round(nextPct)));
+    const targetDist = Math.max(
+      0.65,
+      Math.min(85, baseCameraDistRef.current / (clampedPct / 100))
+    );
+    const activeTarget = cameraGoalRef.current
+      ? cameraGoalRef.current.target.clone()
+      : controls.target.clone();
+    const activePos = cameraGoalRef.current
+      ? cameraGoalRef.current.position.clone()
+      : camera.position.clone();
+    const dir = activePos.sub(activeTarget);
+    if (dir.lengthSq() < 0.001) {
+      dir.set(1, 0.7, 1);
+    }
+    dir.normalize();
+    const nextPos = activeTarget.clone().addScaledVector(dir, targetDist);
+    nextPos.y = Math.max(0.35, nextPos.y);
+    cameraGoalRef.current = {
+      target: activeTarget,
+      position: nextPos,
+    };
+    setZoomPercent(clampedPct);
+  }, []);
+
+  const handleFocusSelectedObject = React.useCallback(() => {
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!camera || !controls) return;
+
+    let focusTarget: THREE.Vector3 | null = null;
+    let focusDist = 3.1;
+
+    if (selectedBinId) {
+      const selAlloc = allocations.find((a) => a.bin.id === selectedBinId);
+      if (selAlloc) {
+        const { bin } = selAlloc;
+        const binW_m = bin.binWidthCm / 100;
+        const binH_m = bin.binHeightCm / 100;
+        const binL_m = bin.binLengthCm / 100;
+
+        if (selectedCargo && selectedCargo.binId === bin.id) {
+          const targetBox =
+            selAlloc.boxes[selectedCargo.boxIndex] ??
+            selAlloc.boxes.find((b) => b.skuId === selectedCargo.skuId) ??
+            null;
+          if (targetBox) {
+            const wM = targetBox.widthCm / 100;
+            const hM = targetBox.heightCm / 100;
+            const lM = targetBox.lengthCm / 100;
+            focusTarget = new THREE.Vector3(
+              bin.xMeters - binW_m / 2 + targetBox.yCm / 100 + wM / 2,
+              bin.zMeters + targetBox.zCm / 100 + hM / 2,
+              bin.yMeters - binL_m / 2 + targetBox.xCm / 100 + lM / 2
+            );
+            focusDist = 1.9;
+          }
+        }
+
+        if (!focusTarget) {
+          focusTarget = new THREE.Vector3(
+            bin.xMeters,
+            bin.zMeters + binH_m / 2,
+            bin.yMeters
+          );
+          focusDist = 2.95;
+        }
+      }
+    }
+
+    if (!focusTarget && selectedPropId) {
+      const props = getEffectiveInteriorProps({
+        scenarioName,
+        config,
+        bounds,
+        depotX,
+        depotZ,
+      });
+      const foundProp = props.find((p) => p.id === selectedPropId);
+      if (foundProp) {
+        focusTarget = new THREE.Vector3(
+          foundProp.xMeters,
+          0.95,
+          foundProp.yMeters
+        );
+        focusDist = 3.3;
+      }
+    }
+
+    if (!focusTarget && selectedObstacleId) {
+      const foundObs = (config.obstacles ?? []).find(
+        (o) => o.id === selectedObstacleId
+      );
+      if (foundObs) {
+        focusTarget = new THREE.Vector3(
+          foundObs.xMeters,
+          1.35,
+          foundObs.yMeters
+        );
+        focusDist = 3.4;
+      }
+    }
+
+    if (!focusTarget && selectedDepot) {
+      focusTarget = new THREE.Vector3(depotX, 0.55, depotZ);
+      focusDist = 3.5;
+    }
+
+    if (!focusTarget) {
+      const goldenAlloc =
+        allocations.find((a) => a.bin.isGoldenZone && a.boxes.length > 0) ??
+        allocations[0];
+      if (goldenAlloc) {
+        focusTarget = new THREE.Vector3(
+          goldenAlloc.bin.xMeters,
+          goldenAlloc.bin.zMeters + goldenAlloc.bin.binHeightCm / 200,
+          goldenAlloc.bin.yMeters
+        );
+        focusDist = 3.6;
+      } else {
+        focusTarget = new THREE.Vector3(centerX, 1.35, centerZ);
+        focusDist = 4.5;
+      }
+    }
+
+    const viewDir = camera.position.clone().sub(controls.target);
+    if (viewDir.lengthSq() < 0.001) {
+      viewDir.set(1, 0.55, 1);
+    }
+    viewDir.normalize();
+    const nextPos = focusTarget.clone().addScaledVector(viewDir, focusDist);
+    nextPos.y = Math.max(focusTarget.y + 0.35, nextPos.y);
+    cameraGoalRef.current = {
+      target: focusTarget,
+      position: nextPos,
+    };
+  }, [
+    allocations,
+    bounds,
+    centerX,
+    centerZ,
+    config,
+    depotX,
+    depotZ,
+    scenarioName,
+    selectedBinId,
+    selectedCargo,
+    selectedDepot,
+    selectedObstacleId,
+    selectedPropId,
+  ]);
+
+  useEffect(() => {
+    if (cameraFocusTick > 0) {
+      handleFocusSelectedObject();
+    }
+  }, [cameraFocusTick, handleFocusSelectedObject]);
+
+  useEffect(() => {
+    if (
+      zoomMode === 'focus_select' &&
+      !dragMoveMode &&
+      (selectedBinId ||
+        selectedCargo ||
+        selectedPropId ||
+        selectedObstacleId ||
+        selectedDepot)
+    ) {
+      handleFocusSelectedObject();
+    }
+  }, [
+    zoomMode,
+    dragMoveMode,
+    selectedBinId,
+    selectedCargo,
+    selectedPropId,
+    selectedObstacleId,
+    selectedDepot,
+    handleFocusSelectedObject,
+  ]);
 
   // Rebuild racks, 3D packed boxes, heatmap & pick route
   useEffect(() => {
@@ -1455,7 +1811,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     const depotPadMat = new THREE.MeshStandardMaterial({
       color: theme.scene.depot,
       emissive: theme.scene.depot,
-      emissiveIntensity: selectedDepot ? 0.65 : 0.38,
+      emissiveIntensity: 0.42,
       roughness: 0.35,
     });
     const depotPadMesh = new THREE.Mesh(depotPadGeo, depotPadMat);
@@ -1471,18 +1827,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     const depotBeaconMesh = new THREE.Mesh(depotBeaconGeo, depotBeaconMat);
     depotBeaconMesh.position.set(0, 0.24, -0.35);
     depotGroup.add(depotBeaconMesh);
-
-    if (selectedDepot) {
-      const depotRingGeo = new THREE.RingGeometry(1.48, 1.66, 36);
-      depotRingGeo.rotateX(-Math.PI / 2);
-      const depotRingMat = new THREE.MeshBasicMaterial({
-        color: '#38bdf8',
-        side: THREE.DoubleSide,
-      });
-      const depotRing = new THREE.Mesh(depotRingGeo, depotRingMat);
-      depotRing.position.set(0, 0.03, 0);
-      depotGroup.add(depotRing);
-    }
 
     depotGroup.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
@@ -1835,10 +2179,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       : (config.interiorProps ?? []);
 
     for (const prop of effectiveProps) {
-      const propMeshGroup = createInteriorPropMesh(
-        prop,
-        prop.id === selectedPropId
-      );
+      const propMeshGroup = createInteriorPropMesh(prop, false);
       propMeshGroup.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
           propHitMeshesRef.current.set(child, prop);
@@ -1851,13 +2192,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     for (const obs of config.obstacles ?? []) {
       const obsGroup = new THREE.Group();
       obsGroup.position.set(obs.xMeters, 0, obs.yMeters);
-      const isSelectedObs = obs.id === selectedObstacleId;
 
       const obsGeo = new THREE.BoxGeometry(0.72, postHeight, 0.72);
       const obsMat = new THREE.MeshStandardMaterial({
-        color: isSelectedObs ? '#facc15' : '#eab308',
-        emissive: isSelectedObs ? '#ca8a04' : '#854d0e',
-        emissiveIntensity: isSelectedObs ? 0.55 : 0.25,
+        color: '#eab308',
+        emissive: '#854d0e',
+        emissiveIntensity: 0.25,
         roughness: 0.5,
       });
       const pillarMesh = new THREE.Mesh(obsGeo, obsMat);
@@ -1873,18 +2213,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       const baseBumper = new THREE.Mesh(baseBumperGeo, baseBumperMat);
       baseBumper.position.set(0, 0.18, 0);
       obsGroup.add(baseBumper);
-
-      if (isSelectedObs) {
-        const ringGeo = new THREE.RingGeometry(0.62, 0.78, 32);
-        ringGeo.rotateX(-Math.PI / 2);
-        const ringMat = new THREE.MeshBasicMaterial({
-          color: '#facc15',
-          side: THREE.DoubleSide,
-        });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.position.set(0, 0.03, 0);
-        obsGroup.add(ring);
-      }
 
       obsGroup.traverse((child) => {
         if ((child as THREE.Mesh).isMesh) {
@@ -1911,15 +2239,32 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
       };
 
+      const stopNodeGeo = new THREE.SphereGeometry(0.11, 14, 14);
+      const stopRingGeo = new THREE.RingGeometry(0.16, 0.23, 24);
+      stopRingGeo.rotateX(-Math.PI / 2);
+      const stopMat = new THREE.MeshBasicMaterial({
+        color: theme.scene.route,
+        side: THREE.DoubleSide,
+      });
+
       for (const wp of pickRoute) {
         appendCorridorTransition(wp.xMeters, wp.yMeters);
+        const stopY = wp.zMeters + 0.35;
         if (config.equipmentMode === 'asrs_crane') {
-          points.push(new THREE.Vector3(wp.xMeters, wp.zMeters + 0.35, wp.yMeters));
+          points.push(new THREE.Vector3(wp.xMeters, stopY, wp.yMeters));
         } else {
           points.push(new THREE.Vector3(wp.xMeters, 0.35, wp.yMeters));
-          points.push(new THREE.Vector3(wp.xMeters, wp.zMeters + 0.35, wp.yMeters));
+          points.push(new THREE.Vector3(wp.xMeters, stopY, wp.yMeters));
           points.push(new THREE.Vector3(wp.xMeters, 0.35, wp.yMeters));
         }
+
+        // 3D Pick Stop Beacon Node & Floor Footprint Ring
+        const stopNode = new THREE.Mesh(stopNodeGeo, stopMat);
+        stopNode.position.set(wp.xMeters, stopY, wp.yMeters);
+        const stopFloorRing = new THREE.Mesh(stopRingGeo, stopMat);
+        stopFloorRing.position.set(wp.xMeters, 0.03, wp.yMeters);
+        group.add(stopNode, stopFloorRing);
+
         curX = wp.xMeters;
         curZ = wp.yMeters;
       }
@@ -1940,6 +2285,15 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     } else {
       routeCurveRef.current = null;
     }
+
+    // Cache raycast target arrays once per scene build (eliminates 60fps per-frame Array.from allocations)
+    hitTargetsCacheRef.current = {
+      bins: Array.from(hitMeshesRef.current.keys()),
+      props: Array.from(propHitMeshesRef.current.keys()),
+      obstacles: Array.from(obstacleHitMeshesRef.current.keys()),
+      depot: Array.from(depotHitMeshesRef.current.keys()),
+      cargo: Array.from(cargoHitMeshesRef.current.keys()),
+    };
   }, [
     allocations,
     pickRoute,
@@ -1956,9 +2310,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     depotZ,
     theme,
     sceneBg,
-    selectedPropId,
-    selectedObstacleId,
-    selectedDepot,
   ]);
 
   useEffect(() => {
@@ -1967,6 +2318,56 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
     disposeObjectTree(overlayGroup);
     overlayGroup.clear();
+
+    // Lightweight O(1) Selection Rings for Depot, Obstacle, or Interior Furniture Prop
+    if (selectedDepot) {
+      const depotRingGeo = new THREE.RingGeometry(1.48, 1.66, 36);
+      depotRingGeo.rotateX(-Math.PI / 2);
+      const depotRingMat = new THREE.MeshBasicMaterial({
+        color: '#38bdf8',
+        side: THREE.DoubleSide,
+      });
+      const depotRing = new THREE.Mesh(depotRingGeo, depotRingMat);
+      depotRing.position.set(depotX, 0.035, depotZ);
+      overlayGroup.add(depotRing);
+    }
+
+    if (selectedObstacleId) {
+      const obs = (config.obstacles ?? []).find((o) => o.id === selectedObstacleId);
+      if (obs) {
+        const ringGeo = new THREE.RingGeometry(0.62, 0.78, 32);
+        ringGeo.rotateX(-Math.PI / 2);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: '#facc15',
+          side: THREE.DoubleSide,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(obs.xMeters, 0.035, obs.yMeters);
+        overlayGroup.add(ring);
+      }
+    }
+
+    if (selectedPropId) {
+      const props = getEffectiveInteriorProps({
+        scenarioName,
+        config,
+        bounds,
+        depotX,
+        depotZ,
+      });
+      const foundProp = props.find((p) => p.id === selectedPropId);
+      if (foundProp) {
+        const ringGeo = new THREE.RingGeometry(0.85, 1.02, 32);
+        ringGeo.rotateX(-Math.PI / 2);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: '#10b981',
+          side: THREE.DoubleSide,
+        });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(foundProp.xMeters, 0.035, foundProp.yMeters);
+        overlayGroup.add(ring);
+      }
+    }
 
     if (!selectedBinId) return;
     const selected = allocations.find((a) => a.bin.id === selectedBinId);
@@ -2046,13 +2447,38 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         overlayGroup.add(cargoWire);
       }
     }
+  }, [
+    selectedBinId,
+    selectedCargo,
+    selectedPropId,
+    selectedObstacleId,
+    selectedDepot,
+    allocations,
+    bounds,
+    config,
+    depotX,
+    depotZ,
+    scenarioName,
+    theme.accent,
+  ]);
 
-    // Smoothly shift OrbitControls focus toward the selected bin when not dragging in 3D
-    if (controlsRef.current && !dragMoveModeRef.current) {
-      controlsRef.current.target.lerp(pos, 0.45);
-      controlsRef.current.update();
-    }
-  }, [selectedBinId, selectedCargo, allocations, theme.accent]);
+  const handleFitAllCamera = React.useCallback(() => {
+    const scaleOffset = Math.max(bounds.width * 0.58, bounds.depth * 0.58, 5.5);
+    const defaultTargetY = Math.max(1.4, config.levels * 0.36);
+    const goalPos = new THREE.Vector3(
+      centerX + scaleOffset + 2.0,
+      Math.max(6.8, config.levels * 1.45),
+      centerZ + scaleOffset + 2.2
+    );
+    const goalTarget = new THREE.Vector3(centerX, defaultTargetY, centerZ);
+    baseCameraDistRef.current = Math.max(4, goalPos.distanceTo(goalTarget));
+    cameraGoalRef.current = {
+      position: goalPos,
+      target: goalTarget,
+    };
+    setZoomPercent(100);
+    onChangeCameraPreset?.('iso');
+  }, [bounds.width, bounds.depth, config.levels, centerX, centerZ, onChangeCameraPreset]);
 
   return (
     <div className="relative h-full w-full">
@@ -2069,8 +2495,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               ? '3D 드래그 이동 켜짐: 마우스로 선반 기둥을 끌어 위치를 옮기세요 · 우클릭 메뉴'
               : 'Drag Move Mode ON: Drag any 3D rack column across the floor · Right-click for menu'
             : lang === 'ko'
-              ? '마우스 드래그: 3D 회전 · 휠: 확대/축소 · 클릭: 칸 상세 · 우클릭: 빠른 편집 메뉴'
-              : 'Drag to orbit · Scroll to zoom · Click any bin to inspect · Right-click for menu'
+              ? '마우스 드래그: 3D 회전 · 휠: 커서 기준 확대/축소 · 더블클릭: 해당 지점 확대 · 클릭: 상세 · 우클릭: 메뉴'
+              : 'Drag to orbit · Scroll to zoom · Double-click to zoom in · Click to inspect · Right-click for menu'
         }
       />
 
@@ -2078,10 +2504,209 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       {!hoveredBin && !hoveredOtherLabel && (
         <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-slate-800/80 bg-slate-950/80 px-2.5 py-1.5 text-[10px] text-slate-200 backdrop-blur">
           {lang === 'ko'
-            ? '🖱️ 물체 클릭: 치수변경·상세 · 물체 드래그: 위치이동(선반·박스·가구·기둥·출입구) · 빈공간 드래그: 3D회전 · 우클릭: 만능메뉴'
-            : '🖱️ Click object: Resize/Inspect · Drag object: Move · Drag empty space: 3D Orbit · Right-click: Menu'}
+            ? '🖱️ 클릭: 선택/치수변경 · 더블클릭: 해당 위치 줌인 · 휠: 줌 · 드래그: 위치이동 · 빈공간 드래그: 3D회전 · 우클릭: 만능메뉴'
+            : '🖱️ Click: Select/Resize · Double-Click: Zoom In · Wheel: Zoom · Drag object: Move · Right-Click: Menu'}
         </div>
       )}
+
+      {/* On-Screen Camera Zoom Mode & Interactive Zoom Slider HUD (Bottom-Right) */}
+      <div className="absolute bottom-3 right-3 z-20 flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-700/90 bg-slate-950/90 px-2.5 py-1.5 text-[10px] text-slate-200 shadow-2xl backdrop-blur">
+        {/* 3 Camera Zoom Modes Switcher */}
+        <div
+          className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900"
+          title={
+            lang === 'ko'
+              ? '카메라 줌 모드 선택: 커서 기준 줌(마우스 포인터 위치 확대) / 선택 자동줌(물체 클릭 시 자동 클로즈업) / 중앙 고정줌'
+              : 'Camera Zoom Mode: Cursor Zoom / Auto-Focus on Select / Center Orbit Zoom'
+          }
+        >
+          <button
+            type="button"
+            onClick={() => setZoomMode('cursor')}
+            className={`px-1.5 py-0.5 font-semibold transition ${
+              zoomMode === 'cursor'
+                ? 'bg-cyan-500 text-slate-950'
+                : 'text-slate-300 hover:bg-slate-800'
+            }`}
+            title={
+              lang === 'ko'
+                ? '마우스 커서가 가리키는 위치를 향해 휠 확대/축소 (더블클릭 시 해당 물체 클로즈업)'
+                : 'Zoom toward mouse cursor position (Double-click object to focus)'
+            }
+          >
+            {lang === 'ko' ? '🎯 커서줌' : '🎯 Cursor'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomMode('focus_select')}
+            className={`border-l border-slate-700 px-1.5 py-0.5 font-semibold transition ${
+              zoomMode === 'focus_select'
+                ? 'bg-emerald-400 text-slate-950'
+                : 'text-emerald-300 hover:bg-slate-800'
+            }`}
+            title={
+              lang === 'ko'
+                ? '선반·박스·가구 클릭 시 해당 물체 앞으로 카메라가 부드럽게 자동 확대 이동합니다'
+                : 'Automatically glide and zoom camera to any clicked bin, box, or prop'
+            }
+          >
+            {lang === 'ko' ? '🔍 선택자동줌' : '🔍 Auto-Focus'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomMode('orbit_center')}
+            className={`border-l border-slate-700 px-1.5 py-0.5 font-semibold transition ${
+              zoomMode === 'orbit_center'
+                ? 'bg-amber-400 text-slate-950'
+                : 'text-slate-400 hover:bg-slate-800'
+            }`}
+            title={
+              lang === 'ko'
+                ? '화면 회전 중심점 기준으로 일정하게 확대/축소'
+                : 'Zoom toward orbit center point'
+            }
+          >
+            {lang === 'ko' ? '🧭 중앙줌' : '🧭 Center'}
+          </button>
+        </div>
+
+        {/* Interactive Zoom Out (-) / Slider / Zoom In (+) / Reset 100% */}
+        <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/90 px-1.5 py-0.5">
+          <button
+            type="button"
+            onClick={() => applyZoomPercent(zoomPercent - 25)}
+            className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.2 font-bold text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
+            title={lang === 'ko' ? '카메라 축소 (-25%)' : 'Zoom Out (-25%)'}
+          >
+            −
+          </button>
+          <input
+            type="range"
+            min={25}
+            max={350}
+            step={5}
+            value={zoomPercent}
+            onChange={(e) => applyZoomPercent(Number(e.target.value))}
+            className="h-1.5 w-20 cursor-pointer accent-cyan-400"
+            title={
+              lang === 'ko'
+                ? `현재 줌 배율: ${zoomPercent}% (드래그하여 25%~350% 조절)`
+                : `Zoom: ${zoomPercent}% (Drag 25%–350%)`
+            }
+          />
+          <button
+            type="button"
+            onClick={() => applyZoomPercent(zoomPercent + 25)}
+            className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.2 font-bold text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
+            title={lang === 'ko' ? '카메라 확대 (+25%)' : 'Zoom In (+25%)'}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            onClick={() => applyZoomPercent(100)}
+            className="min-w-[38px] rounded bg-slate-800 px-1 py-0.5 text-center font-mono text-[10px] font-bold text-cyan-300 hover:bg-slate-700"
+            title={lang === 'ko' ? '클릭하여 100% 기본 배율 복원' : 'Click to reset to 100% zoom'}
+          >
+            {zoomPercent}%
+          </button>
+        </div>
+
+        {/* 1-Click Focus Selected Object (F) & Fit All Space (R) */}
+        <button
+          type="button"
+          onClick={handleFocusSelectedObject}
+          className="inline-flex items-center gap-1 rounded-md border border-emerald-500/45 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+          title={
+            lang === 'ko'
+              ? '현재 선택된 박스·선반·가구·기둥 클로즈업 확대 (단축키 F 또는 물체 더블클릭)'
+              : 'Focus & Zoom in on Selected Object (Shortcut: F or Double-click)'
+          }
+        >
+          {lang === 'ko' ? '🔍 선택 확대 (F)' : '🔍 Focus (F)'}
+        </button>
+        <button
+          type="button"
+          onClick={handleFitAllCamera}
+          className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-semibold text-slate-300 hover:border-cyan-400 hover:text-cyan-200"
+          title={
+            lang === 'ko'
+              ? '전체 공간 한눈에 맞춤 초기화 (단축키 R)'
+              : 'Fit entire space in view (Shortcut: R)'
+          }
+        >
+          {lang === 'ko' ? '⛶ 전체 맞춤 (R)' : '⛶ Fit All (R)'}
+        </button>
+
+        {/* Live 3D Pick Wave Waypoint Stops & Simulation Speed Switcher */}
+        {animateRoute && pickRoute.length > 0 && (
+          <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5">
+            <span className="font-semibold text-amber-300">
+              {lang === 'ko'
+                ? `⚡동선(${pickRoute
+                    .reduce((acc, w) => acc + w.stepTimeSec, 0)
+                    .toFixed(1)}s):`
+                : `⚡Wave(${pickRoute
+                    .reduce((acc, w) => acc + w.stepTimeSec, 0)
+                    .toFixed(1)}s):`}
+            </span>
+            {pickRoute.slice(0, 5).map((wp, idx) => (
+              <button
+                key={`${wp.binId}-${idx}`}
+                type="button"
+                onClick={() => {
+                  const found = allocations.find((a) => a.bin.id === wp.binId);
+                  if (found) {
+                    onSelectBin(found);
+                    const focusTarget = new THREE.Vector3(
+                      found.bin.xMeters,
+                      found.bin.zMeters + found.bin.binHeightCm / 200,
+                      found.bin.yMeters
+                    );
+                    const cam = cameraRef.current;
+                    const ctrls = controlsRef.current;
+                    if (cam && ctrls) {
+                      const dir = cam.position.clone().sub(ctrls.target);
+                      if (dir.lengthSq() < 0.001) dir.set(1, 0.55, 1);
+                      dir.normalize();
+                      cameraGoalRef.current = {
+                        target: focusTarget,
+                        position: focusTarget.clone().addScaledVector(dir, 2.85),
+                      };
+                    }
+                  }
+                }}
+                className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-bold transition ${
+                  selectedBinId === wp.binId
+                    ? 'bg-amber-400 text-slate-950'
+                    : 'bg-slate-800 text-amber-200 hover:bg-amber-500/30'
+                }`}
+                title={
+                  lang === 'ko'
+                    ? `#${idx + 1}번 피킹 경유지: 선반 ${wp.binId} (${wp.skuCode} · ${wp.stepTimeSec}초) — 클릭하여 줌인`
+                    : `Pick Stop #${idx + 1}: Bin ${wp.binId} (${wp.skuCode} · ${wp.stepTimeSec}s) — Click to zoom`
+                }
+              >
+                #{idx + 1}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                setRouteSpeed((prev) => (prev === 1 ? 2 : prev === 2 ? 0.5 : 1))
+              }
+              className="rounded border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-amber-300 hover:bg-amber-500/25"
+              title={
+                lang === 'ko'
+                  ? '3D 피킹 동선 시뮬레이션 재생 속도 전환 (0.5x / 1x / 2x)'
+                  : 'Cycle 3D Pick Wave Animation Speed (0.5x / 1x / 2x)'
+              }
+            >
+              {routeSpeed}x
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Live 3D Hover Card for Furniture, Obstacles, or I/O Depot */}
       {hoveredOtherLabel && !hoveredBin && (

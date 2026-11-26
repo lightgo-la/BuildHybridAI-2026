@@ -377,25 +377,65 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               </div>
 
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                {INTERIOR_PROP_CATALOG.map((item) => (
-                  <button
-                    key={item.type}
-                    type="button"
-                    onClick={() => onAddProp(item.type)}
-                    className="flex items-center gap-2.5 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2.5 text-left transition hover:border-emerald-400 hover:bg-emerald-500/10"
-                  >
-                    <span className="text-xl">{item.icon}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[11px] font-bold">
-                        {lang === 'ko' ? item.nameKo : item.nameEn}
+                {INTERIOR_PROP_CATALOG.map((item) => {
+                  const matchingProps = interiorProps.filter(
+                    (p) => p.type === item.type
+                  );
+                  const count = matchingProps.length;
+                  return (
+                    <div
+                      key={item.type}
+                      className={`flex flex-col justify-between gap-2 rounded-xl border p-2.5 text-left transition ${
+                        count > 0
+                          ? 'border-emerald-500/50 bg-emerald-500/10'
+                          : 'border-[var(--t-border)] bg-[var(--t-surface-alt)]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xl">{item.icon}</span>
+                          <div className="truncate text-[11px] font-bold">
+                            {lang === 'ko' ? item.nameKo : item.nameEn}
+                          </div>
+                        </div>
+                        {count > 0 && (
+                          <span className="shrink-0 rounded-full bg-emerald-500/25 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
+                            {count}
+                          </span>
+                        )}
                       </div>
-                      <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-emerald-400">
-                        <Plus className="h-3 w-3" />
-                        {lang === 'ko' ? '3D에 배치' : 'Add to 3D'}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => onAddProp(item.type)}
+                          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-300 hover:bg-emerald-500/30"
+                        >
+                          <Plus className="h-3 w-3" />
+                          {lang === 'ko' ? '추가' : 'Add'}
+                        </button>
+                        {count > 0 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onDeleteProp(
+                                matchingProps[matchingProps.length - 1].id
+                              )
+                            }
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/15 px-2 py-1 text-[10px] font-bold text-rose-300 hover:bg-rose-500/25"
+                            title={
+                              lang === 'ko'
+                                ? '배치된 이 종류의 가구 1개 즉시 삭제'
+                                : 'Remove 1 placed prop of this type'
+                            }
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            {lang === 'ko' ? '삭제' : 'Del'}
+                          </button>
+                        )}
                       </div>
                     </div>
-                  </button>
-                ))}
+                  );
+                })}
               </div>
             </section>
 

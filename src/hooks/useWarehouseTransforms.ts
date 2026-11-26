@@ -17,6 +17,52 @@ import type {
 
 export type ShelfResizeScope = 'single' | 'column' | 'all';
 
+function adjustColumnZLevelsForTallBins(
+  updatedBins: BinSpec[],
+  goldenMinM: number,
+  goldenMaxM: number,
+  forceRecalc = false
+): BinSpec[] {
+  const byCol = new Map<string, BinSpec[]>();
+  for (const b of updatedBins) {
+    const key = `${b.xMeters.toFixed(2)}_${b.yMeters.toFixed(2)}`;
+    const list = byCol.get(key) ?? [];
+    list.push(b);
+    byCol.set(key, list);
+  }
+
+  const zAdjustedIds = new Map<string, number>();
+  for (const colBins of byCol.values()) {
+    colBins.sort((a, b) => a.level - b.level);
+    for (let i = 1; i < colBins.length; i++) {
+      const prevBin = colBins[i - 1];
+      const prevZ = zAdjustedIds.get(prevBin.id) ?? prevBin.zMeters;
+      const minNextZ = Number(
+        (prevZ + prevBin.binHeightCm / 100 + 0.08).toFixed(2)
+      );
+      const curBin = colBins[i];
+      if (curBin.zMeters < minNextZ || forceRecalc) {
+        const defaultLevelZ =
+          [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75, 5.55][
+            curBin.level - 1
+          ] ?? Number(((curBin.level - 1) * 0.82 + 0.05).toFixed(2));
+        const nextZ = Math.max(defaultLevelZ, minNextZ);
+        zAdjustedIds.set(curBin.id, nextZ);
+      }
+    }
+  }
+
+  if (zAdjustedIds.size === 0) return updatedBins;
+  return updatedBins.map((b) => {
+    const nextZ = zAdjustedIds.get(b.id) ?? b.zMeters;
+    return {
+      ...b,
+      zMeters: nextZ,
+      isGoldenZone: nextZ >= goldenMinM && nextZ <= goldenMaxM,
+    };
+  });
+}
+
 export interface CustomBoxPlacementInput {
   binId: string;
   name?: string;
@@ -413,9 +459,13 @@ export function useWarehouseTransforms({
       const nextLevel = alloc.bin.level + 1;
       const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75, 5.55];
       const maxWeights = [1200, 750, 600, 420, 280, 200, 160, 140];
-      const zMeters =
+      const defaultZ =
         levelHeights[nextLevel - 1] ??
         Number(((nextLevel - 1) * 0.82 + 0.05).toFixed(2));
+      const minSafeZ = Number(
+        (alloc.bin.zMeters + alloc.bin.binHeightCm / 100 + 0.08).toFixed(2)
+      );
+      const zMeters = Math.max(defaultZ, minSafeZ);
       const newBin: BinSpec = {
         ...alloc.bin,
         id: `A${alloc.bin.aisle}-B${alloc.bin.bay}-Z${nextLevel}`,
@@ -617,6 +667,9 @@ export function useWarehouseTransforms({
     ]
   );
 
+  const activePropsList =
+    config.interiorProps ?? effectiveInteriorProps ?? [];
+
   const handleTranslateWholeTemplate = useCallback(
     (dx: number, dy: number) => {
       if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
@@ -645,7 +698,7 @@ export function useWarehouseTransforms({
           xMeters: Number((o.xMeters + dx).toFixed(2)),
           yMeters: Number((o.yMeters + dy).toFixed(2)),
         })),
-        interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
+        interiorProps: (prev.interiorProps ?? activePropsList).map(
           (p) => ({
             ...p,
             xMeters: Number((p.xMeters + dx).toFixed(2)),
@@ -655,6 +708,7 @@ export function useWarehouseTransforms({
       }));
     },
     [
+      activePropsList,
       bins,
       config,
       pushWorkspaceUndo,
@@ -705,7 +759,7 @@ export function useWarehouseTransforms({
         const ro = rot(o.xMeters, o.yMeters);
         return { ...o, xMeters: ro.nx, yMeters: ro.ny };
       }),
-      interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
+      interiorProps: (prev.interiorProps ?? activePropsList).map(
         (p) => {
           const rp = rot(p.xMeters, p.yMeters);
           return {
@@ -718,6 +772,7 @@ export function useWarehouseTransforms({
       ),
     }));
   }, [
+    activePropsList,
     bins,
     config,
     pushWorkspaceUndo,
@@ -754,7 +809,7 @@ export function useWarehouseTransforms({
           const ro = sc(o.xMeters, o.yMeters);
           return { ...o, xMeters: ro.nx, yMeters: ro.ny };
         }),
-        interiorProps: (prev.interiorProps ?? config.interiorProps ?? []).map(
+        interiorProps: (prev.interiorProps ?? activePropsList).map(
           (p) => {
             const rp = sc(p.xMeters, p.yMeters);
             return { ...p, xMeters: rp.nx, yMeters: rp.ny };
@@ -763,6 +818,7 @@ export function useWarehouseTransforms({
       }));
     },
     [
+      activePropsList,
       bins,
       config,
       pushWorkspaceUndo,
@@ -842,9 +898,6 @@ export function useWarehouseTransforms({
       setSelectedPropId,
     ]
   );
-
-  const activePropsList =
-    config.interiorProps ?? effectiveInteriorProps ?? [];
 
   const handleAddInteriorProp = useCallback(
     (type: InteriorPropType, customX?: number, customY?: number) => {
@@ -1068,45 +1121,12 @@ export function useWarehouseTransforms({
         };
       });
 
-      // Prevent vertical 3D overlap within each rack column when binHeightCm changes
-      const byCol = new Map<string, BinSpec[]>();
-      for (const b of updatedBins) {
-        const key = `${b.xMeters.toFixed(2)}_${b.yMeters.toFixed(2)}`;
-        const list = byCol.get(key) ?? [];
-        list.push(b);
-        byCol.set(key, list);
-      }
-
-      const zAdjustedIds = new Map<string, number>();
-      for (const colBins of byCol.values()) {
-        colBins.sort((a, b) => a.level - b.level);
-        for (let i = 1; i < colBins.length; i++) {
-          const prevBin = colBins[i - 1];
-          const prevZ = zAdjustedIds.get(prevBin.id) ?? prevBin.zMeters;
-          const minNextZ = Number(
-            (prevZ + prevBin.binHeightCm / 100 + 0.08).toFixed(2)
-          );
-          const curBin = colBins[i];
-          if (curBin.zMeters < minNextZ || patch.binHeightCm !== undefined) {
-            const defaultLevelZ =
-              [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75, 5.55][
-                curBin.level - 1
-              ] ?? Number(((curBin.level - 1) * 0.82 + 0.05).toFixed(2));
-            const nextZ = Math.max(defaultLevelZ, minNextZ);
-            zAdjustedIds.set(curBin.id, nextZ);
-          }
-        }
-      }
-
-      const finalBins = updatedBins.map((b) => {
-        const nextZ = zAdjustedIds.get(b.id) ?? b.zMeters;
-        return {
-          ...b,
-          zMeters: nextZ,
-          isGoldenZone:
-            nextZ >= config.goldenZoneMinM && nextZ <= config.goldenZoneMaxM,
-        };
-      });
+      const finalBins = adjustColumnZLevelsForTallBins(
+        updatedBins,
+        config.goldenZoneMinM,
+        config.goldenZoneMaxM,
+        patch.binHeightCm !== undefined
+      );
 
       if (scope === 'all') {
         setConfigPatch((prev) => ({
@@ -1278,19 +1298,24 @@ export function useWarehouseTransforms({
           needsHeightExpand ||
           needsWeightExpand)
       ) {
-        const nextBins = bins.map((b) =>
-          b.id === targetBin.id
-            ? {
-                ...b,
-                binLengthCm: Math.max(b.binLengthCm, boxL + 4),
-                binWidthCm: Math.max(b.binWidthCm, boxW + 4),
-                binHeightCm: Math.max(b.binHeightCm, boxH + 4),
-                maxWeightKg: Math.max(
-                  b.maxWeightKg,
-                  Math.ceil(existingWeight + boxKg * qty + 20)
-                ),
-              }
-            : b
+        const nextBins = adjustColumnZLevelsForTallBins(
+          bins.map((b) =>
+            b.id === targetBin.id
+              ? {
+                  ...b,
+                  binLengthCm: Math.max(b.binLengthCm, boxL + 4),
+                  binWidthCm: Math.max(b.binWidthCm, boxW + 4),
+                  binHeightCm: Math.max(b.binHeightCm, boxH + 4),
+                  maxWeightKg: Math.max(
+                    b.maxWeightKg,
+                    Math.ceil(existingWeight + boxKg * qty + 20)
+                  ),
+                }
+              : b
+          ),
+          config.goldenZoneMinM,
+          config.goldenZoneMaxM,
+          needsHeightExpand
         );
         setCustomBinsOverride(nextBins);
         setExtraBins([]);
@@ -1354,6 +1379,8 @@ export function useWarehouseTransforms({
     [
       allocations,
       bins,
+      config.goldenZoneMaxM,
+      config.goldenZoneMinM,
       lang,
       pushWorkspaceUndo,
       setCustomBinsOverride,
@@ -1407,24 +1434,29 @@ export function useWarehouseTransforms({
             (clampedW !== undefined && clampedW > targetBin.binWidthCm) ||
             (clampedH !== undefined && clampedH > targetBin.binHeightCm))
         ) {
-          const nextBins = bins.map((b) =>
-            b.id === targetBin.id
-              ? {
-                  ...b,
-                  binLengthCm: Math.max(
-                    b.binLengthCm,
-                    (clampedL ?? b.binLengthCm) + 4
-                  ),
-                  binWidthCm: Math.max(
-                    b.binWidthCm,
-                    (clampedW ?? b.binWidthCm) + 4
-                  ),
-                  binHeightCm: Math.max(
-                    b.binHeightCm,
-                    (clampedH ?? b.binHeightCm) + 4
-                  ),
-                }
-              : b
+          const nextBins = adjustColumnZLevelsForTallBins(
+            bins.map((b) =>
+              b.id === targetBin.id
+                ? {
+                    ...b,
+                    binLengthCm: Math.max(
+                      b.binLengthCm,
+                      (clampedL ?? b.binLengthCm) + 4
+                    ),
+                    binWidthCm: Math.max(
+                      b.binWidthCm,
+                      (clampedW ?? b.binWidthCm) + 4
+                    ),
+                    binHeightCm: Math.max(
+                      b.binHeightCm,
+                      (clampedH ?? b.binHeightCm) + 4
+                    ),
+                  }
+                : b
+            ),
+            config.goldenZoneMinM,
+            config.goldenZoneMaxM,
+            clampedH !== undefined && clampedH > targetBin.binHeightCm
           );
           setCustomBinsOverride(nextBins);
           setExtraBins([]);
@@ -1465,6 +1497,8 @@ export function useWarehouseTransforms({
     },
     [
       bins,
+      config.goldenZoneMaxM,
+      config.goldenZoneMinM,
       pushWorkspaceUndo,
       setCustomBinsOverride,
       setExtraBins,
