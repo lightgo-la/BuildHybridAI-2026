@@ -20,7 +20,15 @@ import {
   extractBinIdsFromText,
   generateLocalDeterministicAudit,
 } from '../services/hybridAi.ts';
-import type { SKUItem, WarehouseConfig } from '../types/warehouse.ts';
+import { SAMPLE_SCENARIOS } from '../data/sampleScenarios.ts';
+import { WAREHOUSE_TEMPLATES } from '../data/warehouseTemplates.ts';
+import type {
+  ABCClass,
+  EquipmentMode,
+  OptimizationPreset,
+  SKUItem,
+  WarehouseConfig,
+} from '../types/warehouse.ts';
 
 const sampleConfig: WarehouseConfig = {
   aisles: 3,
@@ -539,4 +547,286 @@ test('Custom pick route and return-to-depot option dynamically update pickRoute 
     resWithReturn.kpis.avgCycleTimeSec > resNoReturn.kpis.avgCycleTimeSec,
     `Enabling routeReturnToDepot (${resWithReturn.kpis.avgCycleTimeSec}s) should add return leg time above one-way route (${resNoReturn.kpis.avgCycleTimeSec}s)`
   );
+});
+
+test('10,000-Iteration QC Invariant Suite: 3D bin boundaries, zero intra-bin AABB overlap, weight/NIOSH limits, unit conservation, and 3D shelf collision physics', () => {
+  let seed = 0x20261127;
+  const nextRand = () => {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const randInt = (min: number, max: number) =>
+    min + Math.floor(nextRand() * (max - min + 1));
+
+  const presets: OptimizationPreset[] = ['balanced', 'speed', 'density', 'safety'];
+  const equipments: EquipmentMode[] = ['reach_truck', 'asrs_crane'];
+  const abcClasses: ABCClass[] = ['A', 'B', 'C'];
+
+  let totalBoxesVerified = 0;
+
+  for (let iter = 0; iter < 10000; iter++) {
+    const aisles = randInt(1, 3);
+    const baysPerAisle = randInt(2, 3);
+    const levels = randInt(2, 4);
+    const binL = randInt(75, 135);
+    const binW = randInt(50, 95);
+    const binH = randInt(45, 80);
+    const preset = presets[iter % presets.length];
+    const equipmentMode = equipments[iter % equipments.length];
+    const allowRotationAndCoPack = iter % 5 !== 0;
+
+    const cfg: WarehouseConfig = {
+      aisles,
+      baysPerAisle,
+      levels,
+      aisleSpacingM: Number((2.2 + nextRand() * 1.4).toFixed(2)),
+      baySpacingM: Number((1.05 + nextRand() * 0.5).toFixed(2)),
+      binLengthCm: binL,
+      binWidthCm: binW,
+      binHeightCm: binH,
+      equipmentMode,
+      goldenZoneMinM: 0.8,
+      goldenZoneMaxM: 1.65,
+      allowRotationAndCoPack,
+      optimizationPreset: preset,
+      routeReturnToDepot: iter % 2 === 0,
+    };
+
+    const skuCount = randInt(2, 5);
+    const skus: SKUItem[] = [];
+    let requestedUnits = 0;
+    for (let s = 0; s < skuCount; s++) {
+      const qty = randInt(1, 4);
+      requestedUnits += qty;
+      skus.push({
+        id: `qc-sku-${s}`,
+        skuCode: `QC-${s}`,
+        name: `QC Cargo ${s}`,
+        category: 'QC',
+        abcClass: abcClasses[s % 3],
+        dailyPicks: randInt(10, 220),
+        lengthCm: randInt(16, Math.max(20, Math.floor(binL * 0.52))),
+        widthCm: randInt(14, Math.max(18, Math.floor(binW * 0.52))),
+        heightCm: randInt(12, Math.max(16, Math.floor(binH * 0.52))),
+        weightKg: Number((1.0 + nextRand() * 24).toFixed(1)),
+        quantity: qty,
+        fragile: s % 3 === 0,
+        color: '#22d3ee',
+      });
+    }
+
+    const bins = generateWarehouseBins(cfg);
+    const pins =
+      iter % 7 === 0 && bins.length > 0 && skus.length > 0
+        ? [{ binId: bins[0].id, skuId: skus[0].id, count: skus[0].quantity }]
+        : [];
+    const res =
+      iter % 4 === 0
+        ? runBaseline2DSlotting(bins, skus, cfg, pins)
+        : runOptimized3DSlotting(bins, skus, cfg, pins);
+
+    let placedCount = 0;
+    for (const alloc of res.allocations) {
+      placedCount += alloc.boxes.length;
+      const b = alloc.bin;
+
+      assert.ok(
+        alloc.currentWeightKg <= b.maxWeightKg + 1e-4,
+        `QC iter ${iter}: bin ${b.id} exceeded max weight (${alloc.currentWeightKg} > ${b.maxWeightKg})`
+      );
+      assert.ok(
+        alloc.cubicUtilizationPct >= -1e-4 && alloc.cubicUtilizationPct <= 100.01,
+        `QC iter ${iter}: bin ${b.id} invalid cubicUtilizationPct ${alloc.cubicUtilizationPct}`
+      );
+
+      for (let i = 0; i < alloc.boxes.length; i++) {
+        const boxA = alloc.boxes[i];
+        totalBoxesVerified++;
+        assert.ok(
+          boxA.xCm >= -1e-4 &&
+            boxA.yCm >= -1e-4 &&
+            boxA.zCm >= -1e-4 &&
+            boxA.xCm + boxA.lengthCm <= b.binLengthCm + 1e-4 &&
+            boxA.yCm + boxA.widthCm <= b.binWidthCm + 1e-4 &&
+            boxA.zCm + boxA.heightCm <= b.binHeightCm + 1e-4,
+          `QC iter ${iter}: box ${boxA.skuCode} out of bounds in bin ${b.id}`
+        );
+
+        for (let j = i + 1; j < alloc.boxes.length; j++) {
+          const boxB = alloc.boxes[j];
+          const sepX =
+            boxA.xCm + boxA.lengthCm <= boxB.xCm + 1e-4 ||
+            boxB.xCm + boxB.lengthCm <= boxA.xCm + 1e-4;
+          const sepY =
+            boxA.yCm + boxA.widthCm <= boxB.yCm + 1e-4 ||
+            boxB.yCm + boxB.widthCm <= boxA.yCm + 1e-4;
+          const sepZ =
+            boxA.zCm + boxA.heightCm <= boxB.zCm + 1e-4 ||
+            boxB.zCm + boxB.heightCm <= boxA.zCm + 1e-4;
+          assert.ok(
+            sepX || sepY || sepZ,
+            `QC iter ${iter}: 3D AABB overlap between boxes in bin ${b.id}`
+          );
+        }
+      }
+    }
+
+    assert.equal(
+      placedCount + res.unplacedUnits,
+      requestedUnits,
+      `QC iter ${iter}: unit conservation mismatch (${placedCount} + ${res.unplacedUnits} !== ${requestedUnits})`
+    );
+
+    const unplacedDetailSum = (res.unplacedItems ?? []).reduce(
+      (s, u) => s + u.count,
+      0
+    );
+    assert.equal(
+      unplacedDetailSum,
+      res.unplacedUnits,
+      `QC iter ${iter}: unplacedItems sum mismatch`
+    );
+
+    if (res.mode === 'optimized_3d') {
+      assert.equal(
+        res.kpis.safetyViolations,
+        0,
+        `QC iter ${iter}: 3D optimized slotting produced safety violation`
+      );
+    }
+
+    if (iter % 20 === 0 && bins.length >= 2) {
+      const mutated = bins.map((b, idx) =>
+        idx === 0
+          ? {
+              ...b,
+              xMeters: bins[1].xMeters,
+              yMeters: bins[1].yMeters,
+              zMeters: bins[1].zMeters,
+            }
+          : b
+      );
+      const resolved = resolveShelfCollisions3D(mutated, cfg, [bins[0].id]);
+      for (let i = 0; i < resolved.length; i++) {
+        for (let j = i + 1; j < resolved.length; j++) {
+          assert.equal(
+            checkShelfPairOverlap3D(resolved[i], resolved[j], 0.04).overlaps,
+            false,
+            `QC iter ${iter}: shelf collision not resolved between ${resolved[i].id} and ${resolved[j].id}`
+          );
+        }
+      }
+    }
+  }
+
+  assert.ok(totalBoxesVerified > 50000);
+});
+
+test('5,000-Iteration QA End-to-End Workflow Suite: 24 templates, 6 scenarios, exact box count pins, cargo transfers, pick routes, CSV/CAD pipelines, and Hybrid AI audits', () => {
+  const allSpaces = [...WAREHOUSE_TEMPLATES, ...SAMPLE_SCENARIOS];
+  const hangulRe = /[\uAC00-\uD7A3]/;
+
+  const precomputed = allSpaces.map((space) => {
+    const bins = generateWarehouseBins(space.config);
+    const base = runBaseline2DSlotting(bins, space.skus, space.config);
+    const opt = runOptimized3DSlotting(bins, space.skus, space.config);
+    return { space, bins, base, opt };
+  });
+
+  for (let qaIter = 0; qaIter < 5000; qaIter++) {
+    const entry = precomputed[qaIter % precomputed.length];
+    const { space, bins, base, opt } = entry;
+
+    for (const r of [base, opt]) {
+      assert.ok(Number.isFinite(r.kpis.cubicUtilizationPct));
+      assert.ok(Number.isFinite(r.kpis.honeycombingWastePct));
+      assert.ok(Number.isFinite(r.kpis.avgCycleTimeSec));
+      assert.ok(Number.isFinite(r.kpis.goldenZoneHitRatePct));
+      assert.ok(Number.isFinite(r.kpis.ergonomicsScore));
+      assert.ok(Number.isFinite(r.kpis.travelEnergyIndex));
+      assert.equal(hangulRe.test(space.name), false, `Scenario ${space.id} contains non-English text`);
+    }
+
+    const targetBin = bins[qaIter % bins.length];
+    const targetSku = space.skus[qaIter % space.skus.length];
+    const exactQty = (qaIter % 4) + 1;
+
+    const { nextPins, totalPinnedForSku } = buildExactBinSkuPins(
+      [],
+      opt.allocations,
+      targetBin.id,
+      targetSku.id,
+      exactQty
+    );
+    assert.ok(totalPinnedForSku >= exactQty);
+    const pinForTarget = nextPins.find(
+      (p) => p.binId === targetBin.id && p.skuId === targetSku.id
+    );
+    assert.equal(pinForTarget?.count, exactQty);
+
+    if (qaIter % 25 === 0) {
+      const anotherBin = bins[(qaIter + 1) % bins.length];
+      const transferred = buildTransferredSkuPins(
+        nextPins,
+        opt.allocations,
+        targetBin.id,
+        anotherBin.id,
+        targetSku.id,
+        1
+      );
+      assert.ok(Array.isArray(transferred.nextPins));
+
+      const zSummary = computeZLevelBreakdown(opt.allocations, space.config);
+      assert.ok(zSummary.length > 0);
+
+      const ctx = buildWarehousePromptContext(
+        base,
+        opt,
+        space.config,
+        opt.allocations[0] ?? null
+      );
+      const auditText = generateLocalDeterministicAudit(
+        'Check Golden Zone hit rate, safety, and pick route speed',
+        ctx
+      );
+      assert.ok(auditText.includes('Local On-Device Slotting Engine'));
+      assert.equal(hangulRe.test(auditText), false);
+
+      const actions = deriveRecommendedActions(
+        'Check Golden Zone hit rate, safety, and pick route speed',
+        ctx,
+        auditText
+      );
+      assert.ok(actions.length > 0);
+    }
+
+    if (qaIter % 100 === 0) {
+      const svg = generateWarehouseSVG(opt, space.config, space.name, {
+        includeCartons: true,
+        includePickRoute: true,
+        includeLabels: true,
+        includeElevation: true,
+        planLevelFilter: 'all',
+      });
+      assert.ok(svg.startsWith('<svg') && svg.endsWith('</svg>'));
+      assert.equal(svg.includes('NaN'), false);
+
+      const dxf = generateWarehouseDXF(opt, space.config, space.name, {
+        includeCartons: false,
+        includePickRoute: true,
+        includeLabels: true,
+        includeElevation: true,
+        planLevelFilter: 'all',
+      });
+      assert.ok(dxf.includes('EOF'));
+      assert.equal(dxf.includes('NaN'), false);
+
+      const csvSample = `skuCode,name,category,abcClass,dailyPicks,lengthCm,widthCm,heightCm,weightKg,quantity,fragile\nQA-${qaIter},QA Box ${qaIter},QA,A,120,30,22,18,3.5,4,false`;
+      const parsed = parseSkusFromCSV(csvSample);
+      assert.equal(parsed.length, 1);
+      assert.equal(parsed[0].skuCode, `QA-${qaIter}`);
+    }
+  }
 });

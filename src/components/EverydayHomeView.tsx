@@ -152,7 +152,7 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
                 {t(lang, 'kpiSafety')}
               </div>
               <div className="mt-0.5 text-lg font-bold text-emerald-400">
-                {o.safetyViolations === 0 ? (lang === 'ko' ? 'Safe (0)' : 'Safe (0)') : o.safetyViolations}
+                {o.safetyViolations === 0 ? (('Safe (0)')) : o.safetyViolations}
               </div>
             </div>
           </div>
@@ -383,7 +383,7 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
                   {isSelected && (
                     <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-cyan-500 px-2 py-0.5 text-[10px] font-bold text-slate-950">
                       <Check className="h-3 w-3" />
-                      {lang === 'ko' ? 'Active' : 'Active'}
+                      {'Active'}
                     </span>
                   )}
                 </div>

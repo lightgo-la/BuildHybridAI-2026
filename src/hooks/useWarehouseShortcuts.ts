@@ -24,7 +24,7 @@ interface UseWarehouseShortcutsParams {
   depotZ?: number;
   selectedCargo: SelectedCargoBox | null;
   showToast: (msg: string) => void;
-  toggleLanguage: () => void;
+  toggleLanguage?: () => void;
   handleWorkspaceUndo: () => void;
   handleWorkspaceRedo: () => void;
   handleAddBinAbove: (alloc: BinAllocation) => void;
@@ -93,7 +93,6 @@ export function useWarehouseShortcuts({
   depotZ = 0,
   selectedCargo,
   showToast,
-  toggleLanguage,
   handleWorkspaceUndo,
   handleWorkspaceRedo,
   handleAddBinAbove,
@@ -149,7 +148,7 @@ export function useWarehouseShortcuts({
           e.preventDefault();
           handleWorkspaceUndo();
           showToast(
-            lang === 'ko' ? 'Undo 3D Edit' : 'Undo 3D Edit'
+            'Undo 3D Edit'
           );
           return;
         }
@@ -157,7 +156,7 @@ export function useWarehouseShortcuts({
           e.preventDefault();
           handleWorkspaceRedo();
           showToast(
-            lang === 'ko' ? 'Redo 3D Edit' : 'Redo 3D Edit'
+            'Redo 3D Edit'
           );
           return;
         }
@@ -170,39 +169,33 @@ export function useWarehouseShortcuts({
         setCameraPreset('iso');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[1] 3D Isometric Auto-Fit' : '[1] 3D Isometric Auto-Fit'
+          '[1] 3D Isometric Auto-Fit'
         );
       } else if (key === '2') {
         setCameraPreset('top');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[2] 2D Top-Down Auto-Fit' : '[2] 2D Top-Down Auto-Fit'
+          '[2] 2D Top-Down Auto-Fit'
         );
       } else if (key === '3') {
         setCameraPreset('elevation');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[3] Z-Elevation Auto-Fit' : '[3] Z-Elevation Auto-Fit'
+          '[3] Z-Elevation Auto-Fit'
         );
       } else if (key === '4') {
         setCameraPreset('closeup');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko'
-            ? '[4] Eye-Level Closeup View'
-            : '[4] Eye-Level Closeup View'
+          '[4] Eye-Level Closeup View'
         );
       } else if (key === 'a' || key === 'A') {
         setAutoZoomEnabled?.((prev) => {
           const next = !prev;
           showToast(
             next
-              ? lang === 'ko'
-                ? '[A] ✨ Smart Camera Auto-Zoom: ON'
-                : '[A] ✨ Smart Camera Auto-Zoom: ON'
-              : lang === 'ko'
-                ? '[A] Smart Camera Auto-Zoom: OFF'
-                : '[A] Smart Camera Auto-Zoom: OFF'
+              ? ('[A] ✨ Smart Camera Auto-Zoom: ON')
+              : ('[A] Smart Camera Auto-Zoom: OFF')
           );
           return next;
         });
@@ -216,32 +209,26 @@ export function useWarehouseShortcuts({
         ) {
           onClearAllSelection?.();
           showToast(
-            lang === 'ko'
-              ? '[Esc] Cleared selection & restored overview'
-              : '[Esc] Cleared selection & restored overview'
+            '[Esc] Cleared selection & restored overview'
           );
         }
       } else if (key === 'f' || key === 'F') {
         setCameraFocusTick?.((n) => n + 1);
         showToast(
-          lang === 'ko'
-            ? '[F] Focus & Zoom on Selected Object'
-            : '[F] Focus & Zoom on Selected Object'
+          '[F] Focus & Zoom on Selected Object'
         );
       } else if (key === 'r' || key === 'R') {
         setCameraPreset('iso');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[R] Reset 3D Camera' : '[R] Reset 3D Camera'
+          '[R] Reset 3D Camera'
         );
       } else if (key === ' ') {
         e.preventDefault();
         if (alwaysOptimizedLock) {
           setActiveLayout('optimized_3d');
           showToast(
-            lang === 'ko'
-              ? '🔒 Always-Optimized Lock is active'
-              : '🔒 Always-Optimized Lock is active'
+            '🔒 Always-Optimized Lock is active'
           );
           return;
         }
@@ -249,12 +236,8 @@ export function useWarehouseShortcuts({
           const next = prev === 'optimized_3d' ? 'baseline_2d' : 'optimized_3d';
           showToast(
             next === 'optimized_3d'
-              ? lang === 'ko'
-                ? '[Space] Switched to 3D Optimized'
-                : '[Space] Switched to 3D Optimized'
-              : lang === 'ko'
-                ? '[Space] Switched to 2D Baseline'
-                : '[Space] Switched to 2D Baseline'
+              ? ('[Space] Switched to 3D Optimized')
+              : ('[Space] Switched to 2D Baseline')
           );
           return next;
         });
@@ -263,12 +246,8 @@ export function useWarehouseShortcuts({
           const next = !prev;
           showToast(
             next
-              ? lang === 'ko'
-                ? '[M] 3D Mouse Drag-Move: ON'
-                : '[M] 3D Mouse Drag-Move: ON'
-              : lang === 'ko'
-                ? '[M] 3D Mouse Drag-Move: OFF'
-                : '[M] 3D Mouse Drag-Move: OFF'
+              ? ('[M] 3D Mouse Drag-Move: ON')
+              : ('[M] 3D Mouse Drag-Move: OFF')
           );
           return next;
         });
@@ -288,60 +267,46 @@ export function useWarehouseShortcuts({
           prev === 'golden_zone' ? 'slotting' : 'golden_zone'
         );
         showToast(
-          lang === 'ko'
-            ? '[G] Toggle Golden Zone View'
-            : '[G] Toggle Golden Zone View'
+          '[G] Toggle Golden Zone View'
         );
       } else if (key === 'h' || key === 'H') {
         setViewLayer((prev) => (prev === 'heatmap' ? 'slotting' : 'heatmap'));
         showToast(
-          lang === 'ko'
-            ? '[H] Toggle 3D Heatmap'
-            : '[H] Toggle 3D Heatmap'
+          '[H] Toggle 3D Heatmap'
         );
       } else if (key === 'w' || key === 'W') {
         setAppView((prev) => (prev === 'home' ? 'workspace' : 'home'));
-      } else if (key === 'l' || key === 'L') {
-        toggleLanguage();
       } else if (key === '?' || key === '/' || key === 'k' || key === 'K') {
         setInteriorInitialTab('shortcuts');
         setInteriorModalOpen((v) => !v);
       } else if (key === '0') {
         setLevelFilter('all');
         showToast(
-          lang === 'ko' ? '[0] Show All Z-Levels' : '[0] Show All Z-Levels'
+          '[0] Show All Z-Levels'
         );
       } else if ((key === '+' || key === '=') && selectedBin) {
         handleAddBinAbove(selectedBin);
         showToast(
-          lang === 'ko'
-            ? `[+] Added level above ${selectedBin.bin.id}`
-            : `[+] Added level above ${selectedBin.bin.id}`
+          `[+] Added level above ${selectedBin.bin.id}`
         );
       } else if (key === 'Delete' || key === 'Backspace') {
         if (selectedCargo) {
           handlePinCargo(selectedCargo.binId, selectedCargo.skuId, -1);
           setSelectedCargo(null);
           showToast(
-            lang === 'ko'
-              ? `[Del] Removed 1 unit of ${selectedCargo.name}`
-              : `[Del] Removed 1 unit of ${selectedCargo.name}`
+            `[Del] Removed 1 unit of ${selectedCargo.name}`
           );
         } else if (selectedObstacle && handleDeleteObstacle) {
           handleDeleteObstacle(selectedObstacle.id);
         } else if (selectedProp) {
           handleDeleteInteriorProp(selectedProp.id);
           showToast(
-            lang === 'ko'
-              ? `[Del] Deleted 3D Interior Prop`
-              : `[Del] Deleted 3D Interior Prop`
+            `[Del] Deleted 3D Interior Prop`
           );
         } else if (selectedBin) {
           handleDeleteBin(selectedBin.bin.id);
           showToast(
-            lang === 'ko'
-              ? `[Del] Deleted Bin ${selectedBin.bin.id}`
-              : `[Del] Deleted Bin ${selectedBin.bin.id}`
+            `[Del] Deleted Bin ${selectedBin.bin.id}`
           );
         }
       } else if (key === '[' && selectedProp) {
@@ -465,6 +430,5 @@ export function useWarehouseShortcuts({
     setTemplateGalleryOpen,
     setViewLayer,
     showToast,
-    toggleLanguage,
   ]);
 }

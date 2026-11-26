@@ -5,7 +5,6 @@ import {
   ChevronRight,
   CloudUpload,
   Home,
-  Languages,
   LayoutGrid,
   Map as MapIcon,
   Palette,
@@ -28,7 +27,7 @@ interface TopHeaderBarProps {
   onOpenTemplateGallery: () => void;
   onOpenMapEditor: () => void;
   onOpenCadModal: () => void;
-  onToggleLanguage: () => void;
+  onToggleLanguage?: () => void;
   onToggleSimpleMode: () => void;
   onCycleTheme: (delta: number) => void;
   onSelectThemeId: (themeId: string) => void;
@@ -48,7 +47,6 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
   onOpenTemplateGallery,
   onOpenMapEditor,
   onOpenCadModal,
-  onToggleLanguage,
   onToggleSimpleMode,
   onCycleTheme,
   onSelectThemeId,
@@ -140,16 +138,6 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
         >
           <Ruler className="h-3.5 w-3.5 text-cyan-400" />
           3. {t(lang, 'navCad')}
-        </button>
-
-        <button
-          type="button"
-          onClick={onToggleLanguage}
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 hover:border-amber-400/60"
-          title="English Language Active"
-        >
-          <Languages className="h-3.5 w-3.5" />
-          EN
         </button>
 
         <button

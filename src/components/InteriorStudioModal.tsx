@@ -167,9 +167,9 @@ export const KEYBOARD_SHORTCUT_LIST: Array<{
     descEn: 'G: Golden Zone View · H: Pick Frequency Heatmap View',
   },
   {
-    keyLabel: 'W / L',
-    descKo: 'W: Everyday Home ↔ 3D Studio · L: Toggle Korean ↔ English',
-    descEn: 'W: Everyday Home ↔ 3D Studio · L: Toggle Korean ↔ English',
+    keyLabel: 'W',
+    descKo: 'W: Everyday Home ↔ 3D Studio',
+    descEn: 'W: Toggle Everyday Home ↔ 3D Studio',
   },
   {
     keyLabel: '← ↑ ↓ →',
@@ -222,7 +222,6 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
   open,
   initialTab = 'interior',
   onClose,
-  lang,
   interiorProps,
   selectedPropId,
   roomEnclosure,
@@ -260,9 +259,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               }`}
             >
               <Home className="h-3.5 w-3.5" />
-              {lang === 'ko'
-                ? `3D Space Interior & Props (${interiorProps.length})`
-                : `3D Space Interior & Props (${interiorProps.length})`}
+              {`3D Space Interior & Props (${interiorProps.length})`}
             </button>
             <button
               type="button"
@@ -274,9 +271,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               }`}
             >
               <Keyboard className="h-3.5 w-3.5" />
-              {lang === 'ko'
-                ? 'Keyboard Shortcuts Guide'
-                : 'Keyboard Shortcuts Guide'}
+              {'Keyboard Shortcuts Guide'}
             </button>
           </div>
 
@@ -294,9 +289,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
             <section className="space-y-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-bold">
-                  {lang === 'ko'
-                    ? '1. 3D Room Wall Enclosure & Wall Color'
-                    : '1. 3D Room Wall Enclosure & Wall Color'}
+                  {'1. 3D Room Wall Enclosure & Wall Color'}
                 </span>
                 <button
                   type="button"
@@ -304,9 +297,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                   className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/20 px-3 py-1 text-[11px] font-bold text-emerald-300 hover:bg-emerald-500/30"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
-                  {lang === 'ko'
-                    ? 'Auto-Populate Matching Room Interior'
-                    : 'Auto-Populate Matching Room Interior'}
+                  {'Auto-Populate Matching Room Interior'}
                 </button>
               </div>
 
@@ -315,19 +306,19 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                   [
                     [
                       'cutaway_corner',
-                      lang === 'ko' ? 'L-Cutaway Room' : 'L-Cutaway Room',
+                      ('L-Cutaway Room'),
                     ],
                     [
                       'three_walls',
-                      lang === 'ko' ? '3-Wall Room' : '3-Wall Room',
+                      ('3-Wall Room'),
                     ],
                     [
                       'glass_room',
-                      lang === 'ko' ? 'Glass Showroom' : 'Glass Showroom',
+                      ('Glass Showroom'),
                     ],
                     [
                       'open_floor',
-                      lang === 'ko' ? 'Open Floor' : 'Open Floor',
+                      ('Open Floor'),
                     ],
                   ] as const
                 ).map(([styleId, label]) => (
@@ -347,7 +338,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
 
                 <label className="flex items-center justify-between rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-1.5">
                   <span className="text-[10px] font-medium text-[var(--t-muted)]">
-                    {lang === 'ko' ? 'Wall Color' : 'Wall Color'}
+                    {'Wall Color'}
                   </span>
                   <input
                     type="color"
@@ -362,14 +353,10 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
             <section className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="font-bold">
-                  {lang === 'ko'
-                    ? '2. 1-Click Add 3D Furniture, Appliances, Doors & Windows'
-                    : '2. 1-Click Add 3D Furniture, Appliances, Doors & Windows'}
+                  {'2. 1-Click Add 3D Furniture, Appliances, Doors & Windows'}
                 </span>
                 <span className="text-[11px] text-[var(--t-muted)]">
-                  {lang === 'ko'
-                    ? 'Click & drag props in 3D or nudge with Arrow keys!'
-                    : 'Click & drag props in 3D or nudge with Arrow keys!'}
+                  {'Click & drag props in 3D or nudge with Arrow keys!'}
                 </span>
               </div>
 
@@ -392,7 +379,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-xl">{item.icon}</span>
                           <div className="truncate text-[11px] font-bold">
-                            {lang === 'ko' ? item.nameKo : item.nameEn}
+                            {item.nameEn}
                           </div>
                         </div>
                         {count > 0 && (
@@ -408,7 +395,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                           className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-300 hover:bg-emerald-500/30"
                         >
                           <Plus className="h-3 w-3" />
-                          {lang === 'ko' ? 'Add' : 'Add'}
+                          {'Add'}
                         </button>
                         {count > 0 && (
                           <button
@@ -420,13 +407,11 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                             }
                             className="inline-flex items-center justify-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/15 px-2 py-1 text-[10px] font-bold text-rose-300 hover:bg-rose-500/25"
                             title={
-                              lang === 'ko'
-                                ? 'Remove 1 placed prop of this type'
-                                : 'Remove 1 placed prop of this type'
+                              'Remove 1 placed prop of this type'
                             }
                           >
                             <Trash2 className="h-3 w-3" />
-                            {lang === 'ko' ? 'Del' : 'Del'}
+                            {'Del'}
                           </button>
                         )}
                       </div>
@@ -439,9 +424,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
             <section className="space-y-2.5 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
               <div className="flex items-center justify-between">
                 <span className="font-bold">
-                  {lang === 'ko'
-                    ? `3. Placed 3D Interior Props (${interiorProps.length})`
-                    : `3. Placed 3D Interior Props (${interiorProps.length})`}
+                  {`3. Placed 3D Interior Props (${interiorProps.length})`}
                 </span>
                 {interiorProps.length > 0 && (
                   <button
@@ -449,16 +432,14 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                     onClick={onClearProps}
                     className="text-[11px] text-rose-400 hover:underline"
                   >
-                    {lang === 'ko' ? 'Clear All Props' : 'Clear All Props'}
+                    {'Clear All Props'}
                   </button>
                 )}
               </div>
 
               {interiorProps.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-[var(--t-border)] p-4 text-center text-[var(--t-muted)]">
-                  {lang === 'ko'
-                    ? 'Click any furniture or appliance card above to place it in 3D space.'
-                    : 'Click any furniture or appliance card above to place it in 3D space.'}
+                  {'Click any furniture or appliance card above to place it in 3D space.'}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -616,9 +597,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
         ) : (
           <div className="flex-1 space-y-3 overflow-y-auto p-5 text-xs">
             <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-[11px] text-cyan-200">
-              {lang === 'ko'
-                ? '💡 Press any shortcut key below (outside text inputs) to control the 3D camera, layout mode, drag-move, and interior furniture.'
-                : '💡 Press any shortcut key below (outside text inputs) to control the 3D camera, layout mode, drag-move, and interior furniture.'}
+              {'💡 Press any shortcut key below (outside text inputs) to control the 3D camera, layout mode, drag-move, and interior furniture.'}
             </div>
 
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -628,7 +607,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                   className="flex items-center justify-between gap-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-3.5 py-2.5"
                 >
                   <span className="text-[11px] text-[var(--t-text)]">
-                    {lang === 'ko' ? item.descKo : item.descEn}
+                    {item.descEn}
                   </span>
                   <kbd className="shrink-0 rounded-lg border border-cyan-500/40 bg-slate-950 px-2.5 py-1 font-mono text-[11px] font-bold text-cyan-300 shadow">
                     {item.keyLabel}

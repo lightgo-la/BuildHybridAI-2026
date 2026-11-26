@@ -98,10 +98,10 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
           <div className="rounded-lg bg-slate-950/70 p-2">
             <div className="text-[10px] text-slate-400">{t(lang, 'optimizerFreedBins')}</div>
             <div className="text-base font-bold text-emerald-300">
-              {freedBins >= 0 ? `+${freedBins}` : freedBins} {lang === 'ko' ? 'bins' : 'bins'}
+              {freedBins >= 0 ? `+${freedBins}` : freedBins} {'bins'}
             </div>
             <div className="text-[10px] text-slate-500">
-              {baseline.kpis.occupiedBins} → {optimized.kpis.occupiedBins} {lang === 'ko' ? 'used' : 'used'}
+              {baseline.kpis.occupiedBins} → {optimized.kpis.occupiedBins} {'used'}
             </div>
           </div>
           <div className="rounded-lg bg-slate-950/70 p-2">
@@ -110,17 +110,13 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
               {Number(wasteSavedPts) >= 0 ? `-${wasteSavedPts}%p` : `+${Math.abs(Number(wasteSavedPts))}%p`}
             </div>
             <div className="text-[10px] text-slate-500">
-              {lang === 'ko'
-                ? `Unplaced: 2D ${baseline.unplacedUnits} / 3D ${optimized.unplacedUnits}`
-                : `Unplaced: 2D ${baseline.unplacedUnits} / 3D ${optimized.unplacedUnits}`}
+              {`Unplaced: 2D ${baseline.unplacedUnits} / 3D ${optimized.unplacedUnits}`}
             </div>
           </div>
         </div>
         {(baseline.unplacedUnits > 0 || optimized.unplacedUnits > 0) && (
           <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-950/40 px-2.5 py-1.5 text-[10px] text-amber-200">
-            {lang === 'ko'
-              ? `Overflow detected: 2D left ${baseline.unplacedUnits} units unplaced, 3D left ${optimized.unplacedUnits} units unplaced. Enable 3D Rotation & Co-Pack or reduce SKU quantity.`
-              : `Overflow detected: 2D left ${baseline.unplacedUnits} units unplaced, 3D left ${optimized.unplacedUnits} units unplaced. Enable 3D Rotation & Co-Pack or reduce SKU quantity.`}
+            {`Overflow detected: 2D left ${baseline.unplacedUnits} units unplaced, 3D left ${optimized.unplacedUnits} units unplaced. Enable 3D Rotation & Co-Pack or reduce SKU quantity.`}
           </div>
         )}
       </div>
@@ -135,12 +131,12 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
           <div>
             <div className="flex items-center gap-1.5 font-medium text-white">
               <RotateCw className="h-3.5 w-3.5 text-cyan-400" />
-              {lang === 'ko' && simpleMode
+              {simpleMode
                 ? t(lang, 'optimizerSmartFitTitle')
                 : '3D Rotation & Divider Co-Pack'}
             </div>
             <p className="mt-0.5 text-[10px] leading-snug text-slate-400">
-              {lang === 'ko' && simpleMode
+              {simpleMode
                 ? t(lang, 'optimizerSmartFitDesc')
                 : 'Rotates cartons in 6 axes & shares bins across compatible SKUs to eliminate honeycombing.'}
             </p>
@@ -156,7 +152,7 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
         <div>
           <label className="mb-1 flex items-center gap-1 text-[10px] font-medium text-slate-400">
             <Sparkles className="h-3 w-3 text-emerald-400" />
-            {lang === 'ko' && simpleMode ? t(lang, 'optimizerGoldenBandLabel') : 'Golden Zone Elevation Band'}
+            {simpleMode ? t(lang, 'optimizerGoldenBandLabel') : 'Golden Zone Elevation Band'}
           </label>
           <select
             value={goldenPresetId}
@@ -165,7 +161,7 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
           >
             {GOLDEN_ZONE_PRESETS.map((preset) => (
               <option key={preset.id} value={preset.id}>
-                {lang === 'ko' ? preset.labelKo : preset.label}
+                {preset.label}
               </option>
             ))}
           </select>
@@ -208,14 +204,14 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
                 <div className="flex items-center justify-between text-[11px]">
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-white">
-                      {lang === 'ko' && simpleMode ? `Z${row.level}` : `Z${row.level}`}
+                      {simpleMode ? `Z${row.level}` : `Z${row.level}`}
                     </span>
                     <span className="text-[10px] text-slate-400">
                       ({row.zMeters}m)
                     </span>
                     {row.isGoldenZone && (
                       <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
-                        {lang === 'ko' ? 'Golden' : 'Golden'}
+                        {'Golden'}
                       </span>
                     )}
                     {row.safetyViolations > 0 && (
@@ -227,10 +223,10 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
                   </div>
                   <div className="flex items-center gap-2 text-[10px] text-slate-300">
                     <span>
-                      {row.occupiedBins}/{row.totalBins} {lang === 'ko' ? 'bins' : 'bins'}
+                      {row.occupiedBins}/{row.totalBins} {'bins'}
                     </span>
                     <span className="font-semibold text-cyan-300">
-                      {row.avgCubicPct}% {lang === 'ko' ? 'fill' : 'fill'}
+                      {row.avgCubicPct}% {'fill'}
                     </span>
                     <Eye
                       className={`h-3 w-3 ${
@@ -253,7 +249,7 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
                     />
                   </div>
                   <span className="w-16 text-right text-[9px] text-slate-400">
-                    {row.pickLoadSharePct}% {lang === 'ko' ? 'picks' : 'picks'}
+                    {row.pickLoadSharePct}% {'picks'}
                   </span>
                 </div>
               </button>

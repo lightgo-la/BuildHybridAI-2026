@@ -322,7 +322,6 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
   onClose,
   settings,
   onChange,
-  lang = 'en',
 }) => {
   if (!open) return null;
 
@@ -342,14 +341,10 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             <Sun className="h-5 w-5 text-amber-400" />
             <div>
               <h3 className="text-sm font-bold">
-                {lang === 'ko'
-                  ? '3D Background & Lighting Studio Editor'
-                  : '3D Background & Lighting Studio Editor'}
+                {'3D Background & Lighting Studio Editor'}
               </h3>
               <p className="text-[11px] text-[var(--t-muted)]">
-                {lang === 'ko'
-                  ? 'Customize 3D sky & floor colors, floor material, lighting exposure, fog, room props & carton outlines'
-                  : 'Customize 3D sky & floor colors, floor material, lighting exposure, fog, room props & carton outlines'}
+                {'Customize 3D sky & floor colors, floor material, lighting exposure, fog, room props & carton outlines'}
               </p>
             </div>
           </div>
@@ -361,7 +356,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
               className="inline-flex items-center gap-1 rounded-lg border border-[var(--t-border)] px-2.5 py-1 text-xs text-[var(--t-muted)] hover:text-[var(--t-text)]"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              {lang === 'ko' ? 'Reset Bright Default' : 'Reset Bright Default'}
+              {'Reset Bright Default'}
             </button>
             <button
               type="button"
@@ -378,14 +373,10 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 font-bold">
                 <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-                {lang === 'ko'
-                  ? '1. 1-Click 3D Background & Lighting Presets (12)'
-                  : '1. 1-Click 3D Background & Lighting Presets (12)'}
+                {'1. 1-Click 3D Background & Lighting Presets (12)'}
               </span>
               <span className="text-[11px] text-[var(--t-muted)]">
-                {lang === 'ko'
-                  ? 'Applies to 3D viewport in real time'
-                  : 'Applies to 3D viewport in real time'}
+                {'Applies to 3D viewport in real time'}
               </span>
             </div>
 
@@ -405,7 +396,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                   >
                     <div className="min-w-0">
                       <div className="truncate text-[11px] font-bold">
-                        {lang === 'ko' ? p.nameKo : p.nameEn}
+                        {p.nameEn}
                       </div>
                       <div className="mt-1 flex items-center gap-1">
                         <span
@@ -441,9 +432,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 font-bold">
                 <Palette className="h-3.5 w-3.5 text-cyan-400" />
-                {lang === 'ko'
-                  ? '2. Custom 3D Colors & Floor Surface Material'
-                  : '2. Custom 3D Colors & Floor Surface Material'}
+                {'2. Custom 3D Colors & Floor Surface Material'}
               </span>
             </div>
 
@@ -452,23 +441,23 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                 [
                   [
                     'skyTopColor',
-                    lang === 'ko' ? 'Sky Top' : 'Sky Top',
+                    ('Sky Top'),
                   ],
                   [
                     'skyHorizonColor',
-                    lang === 'ko' ? 'Horizon' : 'Horizon',
+                    ('Horizon'),
                   ],
                   [
                     'floorColor',
-                    lang === 'ko' ? '3D Floor' : '3D Floor',
+                    ('3D Floor'),
                   ],
                   [
                     'gridMajorColor',
-                    lang === 'ko' ? 'Grid Line' : 'Grid Line',
+                    ('Grid Line'),
                   ],
                   [
                     'rackFrameColor',
-                    lang === 'ko' ? 'Rack Frame' : 'Rack Frame',
+                    ('Rack Frame'),
                   ],
                 ] as const
               ).map(([field, label]) => (
@@ -503,30 +492,26 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
 
             <div>
               <span className="mb-1.5 block text-[11px] font-medium text-[var(--t-muted)]">
-                {lang === 'ko' ? '3D Floor Surface Style' : '3D Floor Surface Style'}
+                {'3D Floor Surface Style'}
               </span>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {(
                   [
                     [
                       'glossy_tile',
-                      lang === 'ko'
-                        ? 'Glossy Showroom Tile'
-                        : 'Glossy Showroom Tile',
+                      ('Glossy Showroom Tile'),
                     ],
                     [
                       'warm_wood',
-                      lang === 'ko' ? 'Warm Wood Floor' : 'Warm Wood Floor',
+                      ('Warm Wood Floor'),
                     ],
                     [
                       'clean_concrete',
-                      lang === 'ko'
-                        ? 'Clean Matte Concrete'
-                        : 'Clean Matte Concrete',
+                      ('Clean Matte Concrete'),
                     ],
                     [
                       'blueprint_grid',
-                      lang === 'ko' ? 'CAD Blueprint' : 'CAD Blueprint',
+                      ('CAD Blueprint'),
                     ],
                   ] as const
                 ).map(([styleId, label]) => (
@@ -555,18 +540,14 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
           <section className="space-y-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
             <div className="flex items-center gap-1.5 font-bold">
               <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
-              {lang === 'ko'
-                ? '3. 3D Lighting Exposure, Brightness & Fog'
-                : '3. 3D Lighting Exposure, Brightness & Fog'}
+              {'3. 3D Lighting Exposure, Brightness & Fog'}
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[var(--t-muted)]">
-                    {lang === 'ko'
-                      ? 'Overall Brightness (Exposure)'
-                      : 'Overall Brightness (Exposure)'}
+                    {'Overall Brightness (Exposure)'}
                   </span>
                   <span className="font-bold text-amber-400">
                     {Math.round(settings.exposure * 100)}%
@@ -588,9 +569,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
               <div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[var(--t-muted)]">
-                    {lang === 'ko'
-                      ? 'Ambient & Sky Fill Light'
-                      : 'Ambient & Sky Fill Light'}
+                    {'Ambient & Sky Fill Light'}
                   </span>
                   <span className="font-bold text-cyan-400">
                     {settings.ambientIntensity.toFixed(2)}x
@@ -615,9 +594,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
               <div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[var(--t-muted)]">
-                    {lang === 'ko'
-                      ? 'Directional Sun Key Light'
-                      : 'Directional Sun Key Light'}
+                    {'Directional Sun Key Light'}
                   </span>
                   <span className="font-bold text-emerald-400">
                     {settings.sunIntensity.toFixed(2)}x
@@ -642,9 +619,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
               <div>
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[var(--t-muted)]">
-                    {lang === 'ko'
-                      ? 'Distance Fog Density (0% = Crisp)'
-                      : 'Distance Fog Density (0% = Crisp)'}
+                    {'Distance Fog Density (0% = Crisp)'}
                   </span>
                   <span className="font-bold">
                     {settings.fogDensityPct}%
@@ -671,9 +646,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
           <section className="space-y-2.5 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
             <div className="flex items-center gap-1.5 font-bold">
               <Eye className="h-3.5 w-3.5 text-emerald-400" />
-              {lang === 'ko'
-                ? '4. 3D Studio Elements & Visual Clarity Options'
-                : '4. 3D Studio Elements & Visual Clarity Options'}
+              {'4. 3D Studio Elements & Visual Clarity Options'}
             </div>
 
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
@@ -681,39 +654,27 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                 [
                   [
                     'showBoxOutlines',
-                    lang === 'ko'
-                      ? 'Crisp Carton Outlines'
-                      : 'Crisp Carton Outlines',
+                    ('Crisp Carton Outlines'),
                   ],
                   [
                     'showRoomProps',
-                    lang === 'ko'
-                      ? '3D Room & Facility Props'
-                      : '3D Room & Facility Props',
+                    ('3D Room & Facility Props'),
                   ],
                   [
                     'showHeaderSign',
-                    lang === 'ko'
-                      ? '3D Space Header Sign'
-                      : '3D Space Header Sign',
+                    ('3D Space Header Sign'),
                   ],
                   [
                     'showGrid',
-                    lang === 'ko'
-                      ? '1m Floor Grid Lines'
-                      : '1m Floor Grid Lines',
+                    ('1m Floor Grid Lines'),
                   ],
                   [
                     'enableShadows',
-                    lang === 'ko'
-                      ? 'Soft 3D Shadows'
-                      : 'Soft 3D Shadows',
+                    ('Soft 3D Shadows'),
                   ],
                   [
                     'xrayBins',
-                    lang === 'ko'
-                      ? 'X-Ray Translucent Racks'
-                      : 'X-Ray Translucent Racks',
+                    ('X-Ray Translucent Racks'),
                   ],
                 ] as const
               ).map(([field, label]) => (

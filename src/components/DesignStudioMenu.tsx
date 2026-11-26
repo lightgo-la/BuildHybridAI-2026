@@ -106,7 +106,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             title="Reset all design & size settings"
           >
             <RotateCcw className="h-3 w-3" />
-            {lang === 'ko' ? 'Reset' : 'Reset'}
+            {'Reset'}
           </button>
           <button
             type="button"
@@ -122,7 +122,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
         <section className="space-y-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-3.5">
           <div className="flex items-center gap-1.5 text-xs font-semibold">
             <Maximize2 className="h-3.5 w-3.5 text-[var(--t-accent)]" />
-            {lang === 'ko' ? 'Menu & Panel Size Controls' : 'Menu & Panel Size Controls'}
+            {'Menu & Panel Size Controls'}
           </div>
 
           <div className="grid grid-cols-2 gap-1.5 text-[11px]">
@@ -131,28 +131,28 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
               onClick={() => applyPreset('balanced')}
               className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 font-medium hover:border-[var(--t-accent)]"
             >
-              {lang === 'ko' ? 'Balanced 3-Col' : 'Balanced 3-Col'}
+              {'Balanced 3-Col'}
             </button>
             <button
               type="button"
               onClick={() => applyPreset('cinema_3d')}
               className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 font-medium hover:border-[var(--t-accent)]"
             >
-              {lang === 'ko' ? '3D Cinema Focus' : '3D Cinema Focus'}
+              {'3D Cinema Focus'}
             </button>
             <button
               type="button"
               onClick={() => applyPreset('compact_dense')}
               className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 font-medium hover:border-[var(--t-accent)]"
             >
-              {lang === 'ko' ? 'Compact (88%)' : 'Compact (88%)'}
+              {'Compact (88%)'}
             </button>
             <button
               type="button"
               onClick={() => applyPreset('large_accessible')}
               className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 font-medium hover:border-[var(--t-accent)]"
             >
-              {lang === 'ko' ? 'Large UI (115%)' : 'Large UI (115%)'}
+              {'Large UI (115%)'}
             </button>
           </div>
 
@@ -160,7 +160,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             <div>
               <div className="flex justify-between">
                 <span className="text-[var(--t-muted)]">
-                  {lang === 'ko' ? 'UI Menu & Text Scale' : 'UI Menu & Text Scale'}
+                  {'UI Menu & Text Scale'}
                 </span>
                 <span className="font-semibold text-[var(--t-accent)]">
                   {settings.uiScalePct}%
@@ -182,7 +182,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             <div>
               <div className="flex justify-between">
                 <span className="text-[var(--t-muted)]">
-                  {lang === 'ko' ? 'Left Optimizer Menu Width' : 'Left Optimizer Menu Width'}
+                  {'Left Optimizer Menu Width'}
                 </span>
                 <span className="font-semibold">{settings.leftPanelPx}px</span>
               </div>
@@ -202,7 +202,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             <div>
               <div className="flex justify-between">
                 <span className="text-[var(--t-muted)]">
-                  {lang === 'ko' ? 'Right AI Co-Pilot Width' : 'Right AI Co-Pilot Width'}
+                  {'Right AI Co-Pilot Width'}
                 </span>
                 <span className="font-semibold">{settings.rightPanelPx}px</span>
               </div>
@@ -225,7 +225,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             <div>
               <div className="flex justify-between">
                 <span className="text-[var(--t-muted)]">
-                  {lang === 'ko' ? '3D Twin Viewport Height' : '3D Twin Viewport Height'}
+                  {'3D Twin Viewport Height'}
                 </span>
                 <span className="font-semibold">
                   {settings.viewportMinHeightPx}px
@@ -259,7 +259,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
                 className="accent-[var(--t-accent)]"
               />
               <LayoutTemplate className="h-3 w-3 text-[var(--t-muted)]" />
-              {lang === 'ko' ? 'Show Map Strip' : 'Show Map Strip'}
+              {'Show Map Strip'}
             </label>
             <label className="flex cursor-pointer items-center gap-1.5">
               <input
@@ -271,7 +271,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
                 className="accent-[var(--t-accent)]"
               />
               <Sliders className="h-3 w-3 text-[var(--t-muted)]" />
-              {lang === 'ko' ? 'Show KPI Bar' : 'Show KPI Bar'}
+              {'Show KPI Bar'}
             </label>
           </div>
         </section>
@@ -279,7 +279,7 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
         <section className="space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold">
-              {lang === 'ko' ? 'Theme Palette' : 'Theme Palette'} (
+              {'Theme Palette'} (
               {filteredThemes.length} / {DESIGN_THEMES.length})
             </span>
             <div className="flex overflow-hidden rounded-lg border border-[var(--t-border)] text-[10px]">

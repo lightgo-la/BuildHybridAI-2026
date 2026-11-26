@@ -18,7 +18,6 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
   open,
   onClose,
   onApplyConfig,
-  lang = 'en',
 }) => {
   const [form, setForm] = useState<FirebaseRuntimeConfig>(() =>
     loadEnvOrStoredConfig()
@@ -43,9 +42,7 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
           <div className="flex items-center gap-2">
             <KeyRound className="h-4 w-4 text-cyan-400" />
             <h3 className="text-sm font-semibold text-white">
-              {lang === 'ko'
-                ? 'Firebase AI Logic & App Check Configuration'
-                : 'Firebase AI Logic & App Check Configuration'}
+              {'Firebase AI Logic & App Check Configuration'}
             </h3>
           </div>
           <button
@@ -58,9 +55,7 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
         </div>
 
         <p className="mt-3 text-xs leading-relaxed text-slate-400">
-          {lang === 'ko'
-            ? 'Connect your Firebase project to activate Firebase AI Logic (Cloud Fallback), App Check, Remote Config, and Firestore persistence. Values are stored locally in your browser or loaded from .env.'
-            : 'Connect your Firebase project to activate Firebase AI Logic (Cloud Fallback), App Check, Remote Config, and Firestore persistence. Values are stored locally in your browser or loaded from .env.'}
+          {'Connect your Firebase project to activate Firebase AI Logic (Cloud Fallback), App Check, Remote Config, and Firestore persistence. Values are stored locally in your browser or loaded from .env.'}
         </p>
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-2.5 text-xs">
@@ -107,7 +102,7 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
               onClick={onClose}
               className="rounded-lg border border-slate-700 px-3 py-1.5 text-slate-300 hover:bg-slate-800"
             >
-              {lang === 'ko' ? 'Cancel' : 'Cancel'}
+              {'Cancel'}
             </button>
             <button
               type="submit"
@@ -115,12 +110,8 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
               className="rounded-lg bg-cyan-500 px-4 py-1.5 font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-50"
             >
               {saving
-                ? lang === 'ko'
-                  ? 'Initializing...'
-                  : 'Initializing...'
-                : lang === 'ko'
-                  ? 'Save & Connect Firebase'
-                  : 'Save & Connect Firebase'}
+                ? ('Initializing...')
+                : ('Save & Connect Firebase')}
             </button>
           </div>
         </form>

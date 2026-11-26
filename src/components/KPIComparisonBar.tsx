@@ -52,7 +52,7 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
     <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-5">
       <div className="rounded-xl border border-slate-800 bg-slate-900/85 p-3">
         <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>{lang === 'ko' && simpleMode ? t(lang, 'kpiSpaceFit') : '3D Cubic Utilization'}</span>
+          <span>{simpleMode ? t(lang, 'kpiSpaceFit') : '3D Cubic Utilization'}</span>
           <Box className="h-3.5 w-3.5 text-cyan-400" />
         </div>
         <div className="mt-1 flex items-baseline gap-2">
@@ -65,16 +65,16 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
                 cubicGainPts >= 0 ? 'text-emerald-400' : 'text-rose-400'
               }`}
             >
-              {formatDelta(cubicGainPts, lang === 'ko' ? '%p better' : '%p better')}
+              {formatDelta(cubicGainPts, '%p better')}
             </span>
           ) : (
             <span className="text-[11px] text-slate-400">
-              {lang === 'ko' ? 'After 3D' : 'After 3D'}: {o.cubicUtilizationPct}%
+              {'After 3D'}: {o.cubicUtilizationPct}%
             </span>
           )}
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
-          {lang === 'ko' && simpleMode
+          {simpleMode
             ? `Honeycombing waste: ${current.honeycombingWastePct}%`
             : `Honeycombing waste: ${current.honeycombingWastePct}%`}
         </div>
@@ -82,7 +82,7 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/85 p-3">
         <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>{lang === 'ko' && simpleMode ? t(lang, 'kpiPickSpeed') : 'Avg 3D Pick Cycle'}</span>
+          <span>{simpleMode ? t(lang, 'kpiPickSpeed') : 'Avg 3D Pick Cycle'}</span>
           <Clock className="h-3.5 w-3.5 text-amber-400" />
         </div>
         <div className="mt-1 flex items-baseline gap-2">
@@ -95,16 +95,16 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
                 cycleGainPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
               }`}
             >
-              {formatDelta(-cycleGainPct, lang === 'ko' ? '% faster' : '% faster')}
+              {formatDelta(-cycleGainPct, '% faster')}
             </span>
           ) : (
             <span className="text-[11px] text-slate-400">
-              {lang === 'ko' ? 'After 3D' : 'After 3D'}: {o.avgCycleTimeSec}s
+              {'After 3D'}: {o.avgCycleTimeSec}s
             </span>
           )}
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
-          {lang === 'ko' && simpleMode
+          {simpleMode
             ? `Energy idx: ${current.travelEnergyIndex} (${isOpt ? `2D: ${b.travelEnergyIndex}` : `3D: ${o.travelEnergyIndex}`})`
             : `Energy idx: ${current.travelEnergyIndex} (${isOpt ? `2D: ${b.travelEnergyIndex}` : `3D: ${o.travelEnergyIndex}`})`}
         </div>
@@ -112,7 +112,7 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/85 p-3">
         <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>{lang === 'ko' && simpleMode ? t(lang, 'kpiGoldenHit') : 'Golden Zone Hit (A)'}</span>
+          <span>{simpleMode ? t(lang, 'kpiGoldenHit') : 'Golden Zone Hit (A)'}</span>
           <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
         </div>
         <div className="mt-1 flex items-baseline gap-2">
@@ -129,19 +129,19 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
             </span>
           ) : (
             <span className="text-[11px] text-slate-400">
-              {lang === 'ko' ? 'After 3D' : 'After 3D'}: {o.goldenZoneHitRatePct}%
+              {'After 3D'}: {o.goldenZoneHitRatePct}%
             </span>
           )}
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
           {goldenZoneMinM}m–{goldenZoneMaxM}m{' '}
-          {lang === 'ko' && simpleMode ? 'Z-axis ergonomic band' : 'Z-axis ergonomic band'}
+          {simpleMode ? 'Z-axis ergonomic band' : 'Z-axis ergonomic band'}
         </div>
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/85 p-3">
         <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>{lang === 'ko' && simpleMode ? t(lang, 'kpiSavedBins') : 'Ergonomics & Bins'}</span>
+          <span>{simpleMode ? t(lang, 'kpiSavedBins') : 'Ergonomics & Bins'}</span>
           <Activity className="h-3.5 w-3.5 text-indigo-400" />
         </div>
         <div className="mt-1 flex items-baseline gap-2">
@@ -149,12 +149,12 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
             {current.occupiedBins}/{current.totalBins}
           </span>
           <span className="text-[11px] font-medium text-emerald-400">
-            {freedBins >= 0 ? `+${freedBins} ${lang === 'ko' ? 'free' : 'free'}` : `${freedBins}`}
+            {freedBins >= 0 ? `+${freedBins} ${'free'}` : `${freedBins}`}
           </span>
         </div>
         <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
           <span>
-            {lang === 'ko' && simpleMode
+            {simpleMode
               ? `Ergo score: ${current.ergonomicsScore}/100 (2D: ${b.ergonomicsScore})`
               : `Ergo score: ${current.ergonomicsScore}/100 (2D: ${b.ergonomicsScore})`}
           </span>
@@ -165,9 +165,7 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
                 .map((u) => `${u.skuCode} ×${u.count}`)
                 .join(', ')}
             >
-              {lang === 'ko'
-                ? `${currentResult.unplacedUnits} unplaced`
-                : `${currentResult.unplacedUnits} unplaced`}
+              {`${currentResult.unplacedUnits} unplaced`}
             </span>
           )}
         </div>
@@ -175,7 +173,7 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
 
       <div className="col-span-2 rounded-xl border border-slate-800 bg-slate-900/85 p-3 lg:col-span-1">
         <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>{lang === 'ko' && simpleMode ? t(lang, 'kpiSafety') : 'Rack Safety Hazards'}</span>
+          <span>{simpleMode ? t(lang, 'kpiSafety') : 'Rack Safety Hazards'}</span>
           {current.safetyViolations > 0 ? (
             <ShieldAlert className="h-3.5 w-3.5 text-rose-400" />
           ) : (
@@ -189,19 +187,19 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
             }`}
           >
             {current.safetyViolations === 0
-              ? lang === 'ko' && simpleMode
+              ? simpleMode
                 ? '0'
                 : '0'
               : current.safetyViolations}
           </span>
           <span className="text-[11px] text-slate-400">
             {isOpt
-              ? `(${lang === 'ko' ? 'Before' : 'Before'}: ${b.safetyViolations})`
-              : `(${lang === 'ko' ? '3D fixes to' : '3D fixes to'} ${o.safetyViolations})`}
+              ? `(${'Before'}: ${b.safetyViolations})`
+              : `(${'3D fixes to'} ${o.safetyViolations})`}
           </span>
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
-          {lang === 'ko' && simpleMode
+          {simpleMode
             ? 'Heavy (>16kg) on upper Z3–Z5'
             : 'Heavy (>16kg) on upper Z3–Z5'}
         </div>

@@ -88,7 +88,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   onPinCargo,
   onPlaceCustomBoxInBin,
   onClearAllPins,
-  lang = 'en',
 }) => {
   const [step, setStep] = useState<'space' | 'cargo'>('space');
   const [targetPlacementBinId, setTargetPlacementBinId] = useState<string>(
@@ -224,7 +223,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           }`}
         >
           <Grid className="h-3.5 w-3.5" />
-          {lang === 'ko' ? '1. Space Designer' : '1. Space Designer'}
+          {'1. Space Designer'}
         </button>
         <button
           type="button"
@@ -236,7 +235,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           }`}
         >
           <Package className="h-3.5 w-3.5" />
-          {lang === 'ko' ? '2. Cargo Designer' : '2. Cargo Designer'}
+          {'2. Cargo Designer'}
         </button>
       </div>
 
@@ -245,17 +244,17 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
             <div className="flex items-center justify-between text-[11px] font-semibold text-slate-200">
               <span>
-                {lang === 'ko' ? 'Warehouse Space Geometry' : 'Warehouse Space Geometry'}
+                {'Warehouse Space Geometry'}
               </span>
               <span className="text-[10px] text-cyan-300">
-                {bins.length} {lang === 'ko' ? 'active bins' : 'active bins'}
+                {bins.length} {'active bins'}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-[11px]">
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? 'Aisles (X)' : 'Aisles (X)'}
+                  {'Aisles (X)'}
                 </span>
                 <input
                   type="number"
@@ -274,7 +273,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? 'Bays (Y)' : 'Bays (Y)'}
+                  {'Bays (Y)'}
                 </span>
                 <input
                   type="number"
@@ -296,7 +295,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? 'Levels (Z)' : 'Levels (Z)'}
+                  {'Levels (Z)'}
                 </span>
                 <input
                   type="number"
@@ -318,7 +317,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="grid grid-cols-3 gap-2 text-[11px]">
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? 'Bin L (cm)' : 'Bin L (cm)'}
+                  {'Bin L (cm)'}
                 </span>
                 <input
                   type="number"
@@ -337,7 +336,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? 'Bin W (cm)' : 'Bin W (cm)'}
+                  {'Bin W (cm)'}
                 </span>
                 <input
                   type="number"
@@ -356,7 +355,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? 'Bin H (cm)' : 'Bin H (cm)'}
+                  {'Bin H (cm)'}
                 </span>
                 <input
                   type="number"
@@ -382,9 +381,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           >
             <div className="flex items-center justify-between font-semibold text-slate-200">
               <span>
-                {lang === 'ko'
-                  ? 'Add / Delete Storage Bin'
-                  : 'Add / Delete Storage Bin'}
+                {'Add / Delete Storage Bin'}
               </span>
               {(extraBinsCount > 0 || removedBinsCount > 0) && (
                 <button
@@ -393,9 +390,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   className="inline-flex items-center gap-1 text-[10px] text-amber-300 hover:underline"
                 >
                   <RotateCcw className="h-3 w-3" />
-                  {lang === 'ko'
-                    ? `Reset (${extraBinsCount} added / ${removedBinsCount} removed)`
-                    : `Reset (${extraBinsCount} added / ${removedBinsCount} removed)`}
+                  {`Reset (${extraBinsCount} added / ${removedBinsCount} removed)`}
                 </button>
               )}
             </div>
@@ -403,7 +398,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="grid grid-cols-4 gap-1.5">
               <div>
                 <span className="text-[10px] text-slate-500">
-                  {lang === 'ko' ? 'Aisle' : 'Aisle'}
+                  {'Aisle'}
                 </span>
                 <input
                   type="number"
@@ -418,7 +413,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-500">
-                  {lang === 'ko' ? 'Bay' : 'Bay'}
+                  {'Bay'}
                 </span>
                 <input
                   type="number"
@@ -433,7 +428,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-500">
-                  {lang === 'ko' ? 'Level Z' : 'Level Z'}
+                  {'Level Z'}
                 </span>
                 <input
                   type="number"
@@ -448,7 +443,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-500">
-                  {lang === 'ko' ? 'Max kg' : 'Max kg'}
+                  {'Max kg'}
                 </span>
                 <input
                   type="number"
@@ -471,7 +466,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-cyan-500 py-1.5 font-semibold text-slate-950 hover:bg-cyan-400"
               >
                 <Plus className="h-3.5 w-3.5" />
-                {lang === 'ko' ? 'Add Rack Bin' : 'Add Rack Bin'}
+                {'Add Rack Bin'}
               </button>
               {selectedBinId && (
                 <button
@@ -480,14 +475,12 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   className="inline-flex items-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/15 px-2.5 py-1.5 font-semibold text-rose-300 hover:bg-rose-500/25"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  {lang === 'ko' ? `Delete ${selectedBinId}` : `Delete ${selectedBinId}`}
+                  {`Delete ${selectedBinId}`}
                 </button>
               )}
             </div>
             <p className="text-[10px] text-slate-500">
-              {lang === 'ko'
-                ? 'Tip: Right-click anywhere in the 3D scene to add or delete bins directly at the cursor.'
-                : 'Tip: Right-click anywhere in the 3D scene to add or delete bins directly at the cursor.'}
+              {'Tip: Right-click anywhere in the 3D scene to add or delete bins directly at the cursor.'}
             </p>
           </form>
         </div>
@@ -501,9 +494,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 <div className="flex items-center gap-1.5 font-semibold text-amber-300">
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   <span>
-                    {lang === 'ko'
-                      ? `${activeResult.unplacedUnits} units could not be placed (Volume / Weight limit)`
-                      : `${activeResult.unplacedUnits} units could not be placed (Volume / Weight limit)`}
+                    {`${activeResult.unplacedUnits} units could not be placed (Volume / Weight limit)`}
                   </span>
                 </div>
                 <div className="mt-1.5 space-y-1 text-[10px]">
@@ -517,12 +508,8 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                       </span>
                       <span className="text-amber-300/90">
                         {u.reason === 'weight_or_safety_limit'
-                          ? lang === 'ko'
-                            ? 'Z1-Z2 weight/safety limit'
-                            : 'Z1-Z2 weight/safety limit'
-                          : lang === 'ko'
-                            ? 'Bin volume full'
-                            : 'Bin volume full'}
+                          ? ('Z1-Z2 weight/safety limit')
+                          : ('Bin volume full')}
                       </span>
                     </div>
                   ))}
@@ -534,16 +521,14 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold text-slate-400">
               <span className="inline-flex items-center gap-1">
                 <FileSpreadsheet className="h-3 w-3 text-emerald-400" />
-                {lang === 'ko'
-                  ? 'CSV Master Data Import / Export'
-                  : 'CSV Master Data Import / Export'}
+                {'CSV Master Data Import / Export'}
               </span>
               <span className="text-slate-500">{skus.length} SKUs</span>
             </div>
             <div className="grid grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4">
               <label className="inline-flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 font-medium text-cyan-300 hover:border-cyan-400">
                 <Upload className="h-3 w-3" />
-                {lang === 'ko' ? 'Import CSV' : 'Import CSV'}
+                {'Import CSV'}
                 <input
                   type="file"
                   accept=".csv,text/csv"
@@ -660,12 +645,10 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 }}
                 className="inline-flex items-center justify-center gap-1 rounded-lg border border-amber-500/45 bg-amber-500/15 px-2 py-1.5 font-semibold text-amber-300 hover:bg-amber-500/25"
                 title={
-                  lang === 'ko'
-                    ? 'Load 100-SKU (299 boxes) & 100-Bin (5×5×4) benchmark sample in 1 click'
-                    : 'Load 100-SKU (299 boxes) & 100-Bin (5×5×4) benchmark sample in 1 click'
+                  'Load 100-SKU (299 boxes) & 100-Bin (5×5×4) benchmark sample in 1 click'
                 }
               >
-                {lang === 'ko' ? '🧪 Load 100 SKUs' : '🧪 Load 100 SKUs'}
+                {'🧪 Load 100 SKUs'}
               </button>
               <button
                 type="button"
@@ -673,7 +656,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 font-medium text-slate-200 hover:border-cyan-400"
               >
                 <Download className="h-3 w-3 text-cyan-400" />
-                {lang === 'ko' ? 'Export SKUs' : 'Export SKUs'}
+                {'Export SKUs'}
               </button>
               {activeResult && (
                 <button
@@ -684,7 +667,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2 py-1.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
                 >
                   <Download className="h-3 w-3" />
-                  {lang === 'ko' ? 'Slotting CSV' : 'Slotting CSV'}
+                  {'Slotting CSV'}
                 </button>
               )}
             </div>
@@ -692,9 +675,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
             <div className="mb-1.5 text-[10px] font-semibold text-slate-400">
-              {lang === 'ko'
-                ? 'Quick Add Item (1-Click)'
-                : 'Quick Add Item (1-Click)'}
+              {'Quick Add Item (1-Click)'}
             </div>
             <div className="flex flex-wrap gap-1.5">
               {QUICK_ITEM_PRESETS.map((preset) => (
@@ -733,9 +714,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           >
             <div className="col-span-3 flex items-center justify-between">
               <span className="font-bold text-emerald-300">
-                {lang === 'ko'
-                  ? 'Custom Box Size & Shelf Placement'
-                  : 'Custom Box Size & Shelf Placement'}
+                {'Custom Box Size & Shelf Placement'}
               </span>
               <span className="font-mono text-[10px] text-cyan-300">
                 {lengthCm}×{widthCm}×{heightCm} cm
@@ -744,9 +723,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
             <div className="col-span-3">
               <span className="text-[10px] text-slate-400">
-                {lang === 'ko'
-                  ? 'Target Shelf Bin'
-                  : 'Target Shelf Bin'}
+                {'Target Shelf Bin'}
               </span>
               <select
                 value={targetPlacementBinId}
@@ -754,15 +731,11 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="mt-0.5 w-full rounded border border-emerald-500/40 bg-slate-900 px-2 py-1 text-[11px] font-semibold text-emerald-200"
               >
                 <option value="">
-                  {lang === 'ko'
-                    ? 'Auto Optimal Placement (3D Engine)'
-                    : 'Auto Optimal Placement (3D Engine)'}
+                  {'Auto Optimal Placement (3D Engine)'}
                 </option>
                 {bins.map((b) => (
                   <option key={b.id} value={b.id}>
-                    {lang === 'ko'
-                      ? `Place Directly in [${b.id}] (Z${b.level} · ${b.binLengthCm}×${b.binWidthCm}×${b.binHeightCm}cm)`
-                      : `Place Directly in [${b.id}] (Z${b.level} · ${b.binLengthCm}×${b.binWidthCm}×${b.binHeightCm}cm)`}
+                    {`Place Directly in [${b.id}] (Z${b.level} · ${b.binLengthCm}×${b.binWidthCm}×${b.binHeightCm}cm)`}
                   </option>
                 ))}
               </select>
@@ -770,17 +743,15 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
             <div className="col-span-3">
               <div className="mb-1 text-[10px] text-slate-400">
-                {lang === 'ko'
-                  ? 'Quick Box Size Presets (L×W×H cm):'
-                  : 'Quick Box Size Presets (L×W×H cm):'}
+                {'Quick Box Size Presets (L×W×H cm):'}
               </div>
               <div className="grid grid-cols-4 gap-1 text-[10px]">
                 {[
-                  { label: lang === 'ko' ? 'S 25×20×15' : 'S 25×20×15', l: 25, w: 20, h: 15, kg: 2 },
-                  { label: lang === 'ko' ? 'M 40×30×24' : 'M 40×30×24', l: 40, w: 30, h: 24, kg: 5 },
-                  { label: lang === 'ko' ? 'L 60×40×35' : 'L 60×40×35', l: 60, w: 40, h: 35, kg: 10 },
+                  { label: 'S 25×20×15', l: 25, w: 20, h: 15, kg: 2 },
+                  { label: 'M 40×30×24', l: 40, w: 30, h: 24, kg: 5 },
+                  { label: 'L 60×40×35', l: 60, w: 40, h: 35, kg: 10 },
                   {
-                    label: lang === 'ko' ? 'Half Bin' : 'Half Bin',
+                    label: 'Half Bin',
                     l: Math.max(12, Math.floor(maxL / 2)),
                     w: Math.max(12, maxW - 4),
                     h: Math.max(12, Math.floor(maxH * 0.75)),
@@ -808,18 +779,18 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <input
               value={skuCode}
               onChange={(e) => setSkuCode(e.target.value)}
-              placeholder={lang === 'ko' ? 'SKU Code' : 'SKU Code'}
+              placeholder={'SKU Code'}
               className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
             />
             <input
               value={skuName}
               onChange={(e) => setSkuName(e.target.value)}
-              placeholder={lang === 'ko' ? 'Cargo Name' : 'Cargo Name'}
+              placeholder={'Cargo Name'}
               className="col-span-2 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
             />
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? 'ABC' : 'ABC'}
+                {'ABC'}
               </span>
               <select
                 value={abcClass}
@@ -827,19 +798,19 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
               >
                 <option value="A">
-                  {lang === 'ko' ? 'Class A' : 'Class A'}
+                  {'Class A'}
                 </option>
                 <option value="B">
-                  {lang === 'ko' ? 'Class B' : 'Class B'}
+                  {'Class B'}
                 </option>
                 <option value="C">
-                  {lang === 'ko' ? 'Class C' : 'Class C'}
+                  {'Class C'}
                 </option>
               </select>
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? 'Picks/d' : 'Picks/d'}
+                {'Picks/d'}
               </span>
               <input
                 type="number"
@@ -852,7 +823,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? 'Weight (kg)' : 'Weight (kg)'}
+                {'Weight (kg)'}
               </span>
               <input
                 type="number"
@@ -866,7 +837,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? `L (≤${maxL})` : `L (≤${maxL})`}
+                {`L (≤${maxL})`}
               </span>
               <input
                 type="number"
@@ -880,7 +851,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? `W (≤${maxW})` : `W (≤${maxW})`}
+                {`W (≤${maxW})`}
               </span>
               <input
                 type="number"
@@ -894,7 +865,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? `H (≤${maxH}) / Qty` : `H (≤${maxH}) / Qty`}
+                {`H (≤${maxH}) / Qty`}
               </span>
               <div className="flex gap-1">
                 <input
@@ -923,9 +894,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 onChange={(e) => setFragile(e.target.checked)}
                 className="accent-amber-400"
               />
-              {lang === 'ko'
-                ? 'Fragile (upright only, block top stacking)'
-                : 'Fragile (upright only, block top stacking)'}
+              {'Fragile (upright only, block top stacking)'}
             </label>
             <button
               type="submit"
@@ -933,12 +902,8 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             >
               <Plus className="h-3.5 w-3.5" />
               {targetPlacementBinId
-                ? lang === 'ko'
-                  ? `Place ${quantity}× (${lengthCm}×${widthCm}×${heightCm}cm) Box in [${targetPlacementBinId}]`
-                  : `Place ${quantity}× (${lengthCm}×${widthCm}×${heightCm}cm) Box in [${targetPlacementBinId}]`
-                : lang === 'ko'
-                  ? `Create Cargo Box (${lengthCm}×${widthCm}×${heightCm}cm ×${quantity})`
-                  : `Create Cargo Box (${lengthCm}×${widthCm}×${heightCm}cm ×${quantity})`}
+                ? (`Place ${quantity}× (${lengthCm}×${widthCm}×${heightCm}cm) Box in [${targetPlacementBinId}]`)
+                : (`Create Cargo Box (${lengthCm}×${widthCm}×${heightCm}cm ×${quantity})`)}
             </button>
           </form>
 
@@ -947,16 +912,14 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               <div className="flex items-center justify-between font-semibold text-cyan-300">
                 <span className="inline-flex items-center gap-1">
                   <Pin className="h-3 w-3" />
-                  {lang === 'ko'
-                    ? `Manual Bin Pins (${pinnedPlacements.length})`
-                    : `Manual Bin Pins (${pinnedPlacements.length})`}
+                  {`Manual Bin Pins (${pinnedPlacements.length})`}
                 </span>
                 <button
                   type="button"
                   onClick={onClearAllPins}
                   className="text-[10px] text-slate-400 hover:text-white"
                 >
-                  {lang === 'ko' ? 'Clear All' : 'Clear All'}
+                  {'Clear All'}
                 </button>
               </div>
               <div className="mt-1.5 space-y-1">
@@ -975,7 +938,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         onClick={() => onPinCargo(p.binId, p.skuId, -p.count)}
                         className="text-rose-400 hover:underline"
                       >
-                        {lang === 'ko' ? 'Unpin' : 'Unpin'}
+                        {'Unpin'}
                       </button>
                     </div>
                   );
@@ -1009,9 +972,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                       <div className="text-[10px] text-slate-500">
                         {sku.lengthCm}×{sku.widthCm}×{sku.heightCm}cm ·{' '}
                         {sku.weightKg}kg ·{' '}
-                        {lang === 'ko'
-                          ? `qty ${sku.quantity}`
-                          : `qty ${sku.quantity}`}
+                        {`qty ${sku.quantity}`}
                       </div>
                     </div>
                     <div className="ml-2 flex shrink-0 items-center gap-1">
@@ -1026,11 +987,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                             : 'border-slate-700 text-slate-300 hover:border-cyan-400'
                         }`}
                       >
-                        {lang === 'ko'
-                          ? isEditing
-                            ? 'Close'
-                            : 'Edit'
-                          : isEditing
+                        {isEditing
                             ? 'Close'
                             : 'Edit'}
                       </button>
@@ -1076,7 +1033,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                           className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
                           title={`Pin 1 unit into ${selectedBinId}`}
                         >
-                          {lang === 'ko' ? '+Pin' : '+Pin'}
+                          {'+Pin'}
                         </button>
                       )}
                       <button
@@ -1105,7 +1062,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                             )
                           )
                         }
-                        placeholder={lang === 'ko' ? 'Name' : 'Name'}
+                        placeholder={'Name'}
                         className="col-span-2 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                       />
                       <select
@@ -1122,19 +1079,19 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         className="rounded border border-slate-700 bg-slate-900 px-1 py-1 text-slate-100"
                       >
                         <option value="A">
-                          {lang === 'ko' ? 'Class A' : 'Class A'}
+                          {'Class A'}
                         </option>
                         <option value="B">
-                          {lang === 'ko' ? 'Class B' : 'Class B'}
+                          {'Class B'}
                         </option>
                         <option value="C">
-                          {lang === 'ko' ? 'Class C' : 'Class C'}
+                          {'Class C'}
                         </option>
                       </select>
                       <div className="col-span-3 grid grid-cols-4 gap-1.5">
                         <div>
                           <span className="text-slate-500">
-                            {lang === 'ko' ? 'L(cm)' : 'L(cm)'}
+                            {'L(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1161,7 +1118,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-500">
-                            {lang === 'ko' ? 'W(cm)' : 'W(cm)'}
+                            {'W(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1188,7 +1145,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-500">
-                            {lang === 'ko' ? 'H(cm)' : 'H(cm)'}
+                            {'H(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1215,7 +1172,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-500">
-                            {lang === 'ko' ? 'kg' : 'kg'}
+                            {'kg'}
                           </span>
                           <input
                             type="number"

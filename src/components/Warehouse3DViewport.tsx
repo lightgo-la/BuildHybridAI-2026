@@ -206,7 +206,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   onEnableAnimateRoute,
   onChangeCameraPreset,
   animateRoute,
-  lang = 'en',
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [hoveredBin, setHoveredBin] = useState<BinAllocation | null>(null);
@@ -3006,12 +3005,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }`}
         title={
           dragMoveMode
-            ? lang === 'ko'
-              ? 'Drag Move Mode ON: Drag any 3D rack column across the floor · Right-click for menu'
-              : 'Drag Move Mode ON: Drag any 3D rack column across the floor · Right-click for menu'
-            : lang === 'ko'
-              ? 'Click: Smart Auto-Zoom · Click empty floor (Esc): Auto-Pullback · Double-click: Instant Zoom · Wheel: Cursor Zoom'
-              : 'Click: Smart Auto-Zoom · Click empty floor (Esc): Auto-Pullback · Double-click: Instant Zoom · Wheel: Cursor Zoom'
+            ? ('Drag Move Mode ON: Drag any 3D rack column across the floor · Right-click for menu')
+            : ('Click: Smart Auto-Zoom · Click empty floor (Esc): Auto-Pullback · Double-click: Instant Zoom · Wheel: Cursor Zoom')
         }
       />
 
@@ -3019,21 +3014,15 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 rounded-lg border border-slate-800/80 bg-slate-950/85 px-2.5 py-1.5 text-[10px] text-slate-200 backdrop-blur">
           {followPickerCam ? (
             <span className="font-bold text-amber-300">
-              {lang === 'ko'
-                ? '🚀 Following 3D Picker Live (Drag or scroll to resume manual control)'
-                : '🚀 Following 3D Picker Live (Drag or scroll to resume manual control)'}
+              {'🚀 Following 3D Picker Live (Drag or scroll to resume manual control)'}
             </span>
           ) : autoZoomEnabled ? (
             <span>
-              {lang === 'ko'
-                ? '✨ Smart Auto-Zoom ON: Click object → Auto-Zoom In · Click empty floor (Esc) → Auto-Pullback · Wheel: Zoom'
-                : '✨ Smart Auto-Zoom ON: Click object → Auto-Zoom In · Click empty floor (Esc) → Auto-Pullback · Wheel: Zoom'}
+              {'✨ Smart Auto-Zoom ON: Click object → Auto-Zoom In · Click empty floor (Esc) → Auto-Pullback · Wheel: Zoom'}
             </span>
           ) : (
             <span>
-              {lang === 'ko'
-                ? '🖱️ Manual Zoom: Double-click or [F] to focus · Press [A] to enable Smart Auto-Zoom'
-                : '🖱️ Manual Zoom: Double-click or [F] to focus · Press [A] to enable Smart Auto-Zoom'}
+              {'🖱️ Manual Zoom: Double-click or [F] to focus · Press [A] to enable Smart Auto-Zoom'}
             </span>
           )}
         </div>
@@ -3049,18 +3038,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-emerald-400 hover:text-emerald-300'
           }`}
           title={
-            lang === 'ko'
-              ? 'Toggle Smart Auto-Zoom (Shortcut A): Auto-zooms to clicked objects, auto-pulls back on empty click, and auto-fits layout changes'
-              : 'Toggle Smart Auto-Zoom (Shortcut A): Auto-zooms to clicked objects, auto-pulls back on empty click, and auto-fits layout changes'
+            'Toggle Smart Auto-Zoom (Shortcut A): Auto-zooms to clicked objects, auto-pulls back on empty click, and auto-fits layout changes'
           }
         >
           {autoZoomEnabled
-            ? lang === 'ko'
-              ? '✨ Auto-Zoom ON'
-              : '✨ Auto-Zoom ON'
-            : lang === 'ko'
-              ? 'Auto-Zoom OFF'
-              : 'Auto-Zoom OFF'}
+            ? ('✨ Auto-Zoom ON')
+            : ('Auto-Zoom OFF')}
         </button>
 
         <button
@@ -3068,12 +3051,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           onClick={handleCycleGoldenZoneZoom}
           className="inline-flex items-center gap-1 rounded-md border border-emerald-500/45 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
           title={
-            lang === 'ko'
-              ? 'Click repeatedly to auto-zoom through active Golden Zone shelves'
-              : 'Click repeatedly to auto-zoom through active Golden Zone shelves'
+            'Click repeatedly to auto-zoom through active Golden Zone shelves'
           }
         >
-          {lang === 'ko' ? '🎯 Golden Zoom' : '🎯 Golden Zoom'}
+          {'🎯 Golden Zoom'}
         </button>
 
         {priorityBins.length > 0 && (
@@ -3086,18 +3067,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                 : 'border-amber-500/45 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25'
             }`}
             title={
-              lang === 'ko'
-                ? 'Cycle & auto-zoom through priority / warning shelves'
-                : 'Cycle & auto-zoom through priority / warning shelves'
+              'Cycle & auto-zoom through priority / warning shelves'
             }
           >
             {hasWarningBins
-              ? lang === 'ko'
-                ? `⚠ Alerts (${priorityBins.length})`
-                : `⚠ Alerts (${priorityBins.length})`
-              : lang === 'ko'
-                ? `🔥 Top Bins`
-                : `🔥 Top Bins`}
+              ? (`⚠ Alerts (${priorityBins.length})`)
+              : (`🔥 Top Bins`)}
           </button>
         )}
 
@@ -3111,18 +3086,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                 : 'border-amber-500/45 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
             }`}
             title={
-              lang === 'ko'
-                ? 'Automatically follow the live 3D picker along the warehouse route'
-                : 'Automatically follow the live 3D picker along the warehouse route'
+              'Automatically follow the live 3D picker along the warehouse route'
             }
           >
             {followPickerCam
-              ? lang === 'ko'
-                ? '🚀 Following'
-                : '🚀 Following'
-              : lang === 'ko'
-                ? '🚀 Follow Tour'
-                : '🚀 Follow Tour'}
+              ? ('🚀 Following')
+              : ('🚀 Follow Tour')}
           </button>
         )}
 
@@ -3136,24 +3105,18 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             }
             className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5 font-semibold text-cyan-300 hover:border-cyan-400"
             title={
-              lang === 'ko'
-                ? 'Switch mouse wheel zoom anchor (Cursor vs Orbit Center)'
-                : 'Switch mouse wheel zoom anchor (Cursor vs Orbit Center)'
+              'Switch mouse wheel zoom anchor (Cursor vs Orbit Center)'
             }
           >
             {wheelZoomStyle === 'cursor'
-              ? lang === 'ko'
-                ? '🎯Cursor'
-                : '🎯Cursor'
-              : lang === 'ko'
-                ? '🧭Center'
-                : '🧭Center'}
+              ? ('🎯Cursor')
+              : ('🧭Center')}
           </button>
           <button
             type="button"
             onClick={() => applyZoomPercent(zoomPercent - 25)}
             className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.2 font-bold text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
-            title={lang === 'ko' ? 'Zoom Out (-25%)' : 'Zoom Out (-25%)'}
+            title={'Zoom Out (-25%)'}
           >
             −
           </button>
@@ -3166,16 +3129,14 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             onChange={(e) => applyZoomPercent(Number(e.target.value))}
             className="h-1.5 w-16 cursor-pointer accent-cyan-400"
             title={
-              lang === 'ko'
-                ? `Zoom: ${zoomPercent}% (Drag 25%–350%)`
-                : `Zoom: ${zoomPercent}% (Drag 25%–350%)`
+              `Zoom: ${zoomPercent}% (Drag 25%–350%)`
             }
           />
           <button
             type="button"
             onClick={() => applyZoomPercent(zoomPercent + 25)}
             className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.2 font-bold text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
-            title={lang === 'ko' ? 'Zoom In (+25%)' : 'Zoom In (+25%)'}
+            title={'Zoom In (+25%)'}
           >
             +
           </button>
@@ -3184,9 +3145,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             onClick={() => applyZoomPercent(zoomPercent >= 160 ? 100 : 180)}
             className="min-w-[38px] rounded bg-slate-800 px-1 py-0.5 text-center font-mono text-[10px] font-bold text-cyan-300 hover:bg-slate-700"
             title={
-              lang === 'ko'
-                ? 'Click to toggle 100% ↔ 180% quick zoom'
-                : 'Click to toggle 100% ↔ 180% quick zoom'
+              'Click to toggle 100% ↔ 180% quick zoom'
             }
           >
             {zoomPercent}%
@@ -3198,46 +3157,36 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           onClick={handleFocusSelectedObject}
           className="inline-flex items-center gap-1 rounded-md border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/25"
           title={
-            lang === 'ko'
-              ? 'Focus & Zoom in on Selected Object (Shortcut: F or Double-click)'
-              : 'Focus & Zoom in on Selected Object (Shortcut: F or Double-click)'
+            'Focus & Zoom in on Selected Object (Shortcut: F or Double-click)'
           }
         >
-          {lang === 'ko' ? '🔍 Focus (F)' : '🔍 Focus (F)'}
+          {'🔍 Focus (F)'}
         </button>
         <button
           type="button"
           onClick={handleFitAllCamera}
           className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-semibold text-slate-200 hover:border-cyan-400 hover:text-cyan-200"
           title={
-            lang === 'ko'
-              ? 'Auto-fit entire warehouse in view (Shortcut: R)'
-              : 'Auto-fit entire warehouse in view (Shortcut: R)'
+            'Auto-fit entire warehouse in view (Shortcut: R)'
           }
         >
-          {lang === 'ko' ? '⛶ Fit All (R)' : '⛶ Fit All (R)'}
+          {'⛶ Fit All (R)'}
         </button>
         <button
           type="button"
           onClick={handleCapture3DSnapshotPng}
           className="inline-flex items-center gap-1 rounded-md border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/25"
           title={
-            lang === 'ko'
-              ? 'Save current 3D view + Setting/KPI summary banner as a high-res PNG image'
-              : 'Save current 3D view + Setting/KPI summary banner as a high-res PNG image'
+            'Save current 3D view + Setting/KPI summary banner as a high-res PNG image'
           }
         >
-          {lang === 'ko' ? '📸 PNG' : '📸 PNG'}
+          {'📸 PNG'}
         </button>
 
         {animateRoute && pickRoute.length > 0 && (
           <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5">
             <span className="font-semibold text-amber-300">
-              {lang === 'ko'
-                ? `⚡Wave(${pickRoute
-                    .reduce((acc, w) => acc + w.stepTimeSec, 0)
-                    .toFixed(1)}s):`
-                : `⚡Wave(${pickRoute
+              {`⚡Wave(${pickRoute
                     .reduce((acc, w) => acc + w.stepTimeSec, 0)
                     .toFixed(1)}s):`}
             </span>
@@ -3273,9 +3222,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                     : 'bg-slate-800 text-amber-200 hover:bg-amber-500/30'
                 }`}
                 title={
-                  lang === 'ko'
-                    ? `Pick Stop #${idx + 1}: Bin ${wp.binId} (${wp.skuCode} · ${wp.stepTimeSec}s) — Click to zoom`
-                    : `Pick Stop #${idx + 1}: Bin ${wp.binId} (${wp.skuCode} · ${wp.stepTimeSec}s) — Click to zoom`
+                  `Pick Stop #${idx + 1}: Bin ${wp.binId} (${wp.skuCode} · ${wp.stepTimeSec}s) — Click to zoom`
                 }
               >
                 #{idx + 1}
@@ -3288,9 +3235,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               }
               className="rounded border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-amber-300 hover:bg-amber-500/25"
               title={
-                lang === 'ko'
-                  ? 'Cycle 3D Pick Wave Animation Speed (0.5x / 1x / 2x)'
-                  : 'Cycle 3D Pick Wave Animation Speed (0.5x / 1x / 2x)'
+                'Cycle 3D Pick Wave Animation Speed (0.5x / 1x / 2x)'
               }
             >
               {routeSpeed}x
@@ -3303,9 +3248,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-xs rounded-xl border border-emerald-400/50 bg-slate-950/90 p-2.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
           <div className="font-bold text-emerald-300">{hoveredOtherLabel}</div>
           <div className="mt-0.5 text-[10px] text-slate-300">
-            {lang === 'ko'
-              ? 'Click: Select & Open Edit Bar · Drag with Mouse: Move Position'
-              : 'Click: Select & Open Edit Bar · Drag with Mouse: Move Position'}
+            {'Click: Select & Open Edit Bar · Drag with Mouse: Move Position'}
           </div>
         </div>
       )}
@@ -3314,26 +3257,26 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-xs rounded-xl border border-cyan-500/40 bg-slate-950/90 p-2.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
           <div className="flex items-center justify-between gap-2">
             <span className="font-bold text-cyan-300">
-              {lang === 'ko' ? `Bin ${hoveredBin.bin.id}` : `Bin ${hoveredBin.bin.id}`}
+              {`Bin ${hoveredBin.bin.id}`}
             </span>
             <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-300">
               Z{hoveredBin.bin.level} ({hoveredBin.bin.zMeters}m)
             </span>
             {hoveredBin.bin.isGoldenZone && (
               <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
-                {lang === 'ko' ? 'Golden Zone' : 'Golden Zone'}
+                {'Golden Zone'}
               </span>
             )}
           </div>
           <div className="mt-1 flex items-center gap-3 text-[10px] text-slate-300">
             <span>
-              {lang === 'ko' ? 'Cubic' : 'Cubic'}{' '}
+              {'Cubic'}{' '}
               <strong className="text-white">
                 {hoveredBin.cubicUtilizationPct.toFixed(1)}%
               </strong>
             </span>
             <span>
-              {lang === 'ko' ? 'Load' : 'Load'}{' '}
+              {'Load'}{' '}
               <strong className="text-white">
                 {hoveredBin.currentWeightKg.toFixed(1)}/{hoveredBin.bin.maxWeightKg}kg
               </strong>
@@ -3350,29 +3293,19 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               }`}
             >
               {dragFitStatus === 'fit'
-                ? lang === 'ko'
-                  ? '✓ Safe & Fits in this Bin'
-                  : '✓ Safe & Fits in this Bin'
+                ? ('✓ Safe & Fits in this Bin')
                 : dragFitStatus === 'swap'
-                  ? lang === 'ko'
-                    ? '⇄ Near Full: Drop to Auto-Swap with existing item'
-                    : '⇄ Near Full: Drop to Auto-Swap with existing item'
-                  : lang === 'ko'
-                    ? '⚠ Upper-Level Heavy Cargo Warning (>16kg)'
-                    : '⚠ Upper-Level Heavy Cargo Warning (>16kg)'}
+                  ? ('⇄ Near Full: Drop to Auto-Swap with existing item')
+                  : ('⚠ Upper-Level Heavy Cargo Warning (>16kg)')}
             </div>
           )}
           {hoveredCargo && !dragFitStatus && (
             <div className="mt-1.5 rounded-md border border-amber-400/50 bg-amber-500/15 px-2 py-1 text-[10px] text-amber-200">
               <div className="font-bold text-amber-300">
-                {lang === 'ko'
-                  ? `Hovered Item: ${hoveredCargo.name.split(' (')[0]} (${hoveredCargo.weightKg}kg)`
-                  : `Hovered Item: ${hoveredCargo.name.split(' (')[0]} (${hoveredCargo.weightKg}kg)`}
+                {`Hovered Item: ${hoveredCargo.name.split(' (')[0]} (${hoveredCargo.weightKg}kg)`}
               </div>
               <div className="text-[9px] text-amber-100/80">
-                {lang === 'ko'
-                  ? 'Click: Select · Drag: Move 1 · Shift+Drag: Move Batch'
-                  : 'Click: Select · Drag: Move 1 · Shift+Drag: Move Batch'}
+                {'Click: Select · Drag: Move 1 · Shift+Drag: Move Batch'}
               </div>
             </div>
           )}
@@ -3407,9 +3340,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             </div>
           ) : (
             <div className="mt-1 text-[10px] text-slate-400">
-              {lang === 'ko'
-                ? 'Empty reserve shelf (Click / Right-click to pin cargo)'
-                : 'Empty reserve shelf (Click / Right-click to pin cargo)'}
+              {'Empty reserve shelf (Click / Right-click to pin cargo)'}
             </div>
           )}
         </div>

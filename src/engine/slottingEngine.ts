@@ -709,7 +709,8 @@ function evaluateAllocations(
 
   const cubicUtilizationPct =
     totalCapVol > 0 ? (totalUsedVol / totalCapVol) * 100 : 0;
-  const honeycombingWastePct = Math.max(0, 100 - cubicUtilizationPct);
+  const honeycombingWastePct =
+    totalCapVol > 0 ? Math.max(0, 100 - cubicUtilizationPct) : 0;
   const avgCycleTimeSec =
     totalPickLoad > 0 ? weightedCycleSum / totalPickLoad : 0;
   const goldenZoneHitRatePct =
@@ -916,9 +917,8 @@ function applyPinnedPlacements(
       const avail = remainingQty.get(sku.id) ?? 0;
       if (avail <= 0) break;
       const packed = tryPackIntoBin(alloc, sku, allowRotation, bestFitMode);
-      if (packed) {
-        remainingQty.set(sku.id, avail - 1);
-      } else {
+      remainingQty.set(sku.id, avail - 1);
+      if (!packed) {
         unplacedPinned++;
         if (unplacedMap) {
           const reason: UnplacedItemDetail['reason'] =

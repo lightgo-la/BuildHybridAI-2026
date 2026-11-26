@@ -159,7 +159,7 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
               }
               className="accent-[var(--t-accent)]"
             />
-            {lang === 'ko' ? 'Packed Cartons' : 'Packed Cartons'}
+            {'Packed Cartons'}
           </label>
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
@@ -170,7 +170,7 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
               }
               className="accent-[var(--t-accent)]"
             />
-            {lang === 'ko' ? 'Pick Route' : 'Pick Route'}
+            {'Pick Route'}
           </label>
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
@@ -181,7 +181,7 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
               }
               className="accent-[var(--t-accent)]"
             />
-            {lang === 'ko' ? 'CAD Callouts' : 'CAD Callouts'}
+            {'CAD Callouts'}
           </label>
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
@@ -192,11 +192,11 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
               }
               className="accent-[var(--t-accent)]"
             />
-            {lang === 'ko' ? 'Z-Elevation View' : 'Z-Elevation View'}
+            {'Z-Elevation View'}
           </label>
           <div className="ml-auto flex items-center gap-1.5">
             <span className="text-[var(--t-muted)]">
-              {lang === 'ko' ? 'Plan Slice:' : 'Plan Slice:'}
+              {'Plan Slice:'}
             </span>
             <select
               value={String(options.planLevelFilter)}
@@ -210,7 +210,7 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
               className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-0.5 text-[11px]"
             >
               <option value="all">
-                {lang === 'ko' ? 'All Levels' : 'All Levels'}
+                {'All Levels'}
               </option>
               {Array.from(
                 {
@@ -222,7 +222,7 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
                 (_, i) => i + 1
               ).map((lvl) => (
                 <option key={lvl} value={lvl}>
-                  {lang === 'ko' ? `Level Z${lvl}` : `Level Z${lvl}`}
+                  {`Level Z${lvl}`}
                 </option>
               ))}
             </select>

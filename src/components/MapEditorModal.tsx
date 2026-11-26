@@ -274,7 +274,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   skus = [],
   floorColor = '#071326',
   onChangeFloorColor,
-  lang = 'en',
   allocations = [],
   onPinCargo,
   onSetCargoCountInBin,
@@ -283,7 +282,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   onApplyMapEdits,
   onSaveCustomScenario,
 }) => {
-  const isKo = lang === 'ko';
   const isScenarioEveryday =
     scenario.id.startsWith('everyday') || scenario.id.startsWith('tpl-life-');
   const [persona, setPersona] = useState<EditorPersona>(
@@ -330,7 +328,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   const [boxTab, setBoxTab] = useState<'existing' | 'custom'>('existing');
   const [showAllSkus, setShowAllSkus] = useState<boolean>(false);
   const [customBoxName, setCustomBoxName] = useState<string>(
-    isKo ? 'Custom Storage Box' : 'Custom Storage Box'
+    'Custom Storage Box'
   );
   const [customBoxL, setCustomBoxL] = useState<number>(40);
   const [customBoxW, setCustomBoxW] = useState<number>(30);
@@ -901,7 +899,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
       binId,
       name:
         customBoxName.trim() ||
-        (isKo ? 'Custom Storage Box' : 'Custom Storage Box'),
+        (('Custom Storage Box')),
       skuCode: `BOX-${customBoxL}x${customBoxW}x${customBoxH}`,
       lengthCm: customBoxL,
       widthCm: customBoxW,
@@ -1347,14 +1345,10 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             <MapIcon className="h-4 w-4 text-[var(--t-accent)]" />
             <div>
               <h3 className="text-sm font-bold">
-                {isKo
-                  ? 'Free-Canvas 2D Space & Map Editor (Pro & Everyday)'
-                  : 'Free-Canvas 2D Space & Map Editor (Pro & Everyday)'}
+                {'Free-Canvas 2D Space & Map Editor (Pro & Everyday)'}
               </h3>
               <p className="text-[11px] text-[var(--t-muted)]">
-                {isKo
-                  ? 'Drag racks/obstacles/depot anywhere · Drag floor handles to resize space · Marquee drag to move groups · Right-click to edit'
-                  : 'Drag racks/obstacles/depot anywhere · Drag floor handles to resize space · Marquee drag to move groups · Right-click to edit'}
+                {'Drag racks/obstacles/depot anywhere · Drag floor handles to resize space · Marquee drag to move groups · Right-click to edit'}
               </p>
             </div>
           </div>
@@ -1371,7 +1365,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 }`}
               >
                 <Briefcase className="h-3 w-3" />
-                {isKo ? 'Pro' : 'Pro'}
+                {'Pro'}
               </button>
               <button
                 type="button"
@@ -1383,7 +1377,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 }`}
               >
                 <Home className="h-3 w-3" />
-                {isKo ? 'Everyday' : 'Everyday'}
+                {'Everyday'}
               </button>
             </div>
 
@@ -1395,7 +1389,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               title="Undo (Ctrl+Z)"
             >
               <Undo2 className="h-3.5 w-3.5" />
-              {isKo ? 'Undo' : 'Undo'}
+              {'Undo'}
             </button>
             <button
               type="button"
@@ -1407,7 +1401,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             </button>
             <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 py-1.5">
               <Upload className="h-3.5 w-3.5" />
-              {isKo ? 'Import' : 'Import'}
+              {'Import'}
               <input
                 type="file"
                 accept=".json"
@@ -1429,7 +1423,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
           <div className="space-y-3 overflow-y-auto pr-1 text-xs lg:col-span-4">
             <div>
               <label className="mb-1 block text-[11px] text-[var(--t-muted)]">
-                {isKo ? 'Map Name' : 'Map Name'}
+                {'Map Name'}
               </label>
               <input
                 value={mapName}
@@ -1442,7 +1436,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="flex items-center justify-between font-semibold">
                 <span className="inline-flex items-center gap-1.5">
                   <Maximize2 className="h-3.5 w-3.5 text-[var(--t-accent)]" />
-                  {isKo ? 'Easy Space Size Controls' : 'Easy Space Size Controls'}
+                  {'Easy Space Size Controls'}
                 </span>
                 <span className="text-[10px] text-[var(--t-accent)]">
                   {floorWidthM}m × {floorDepthM}m
@@ -1468,7 +1462,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               <div>
                 <div className="flex justify-between text-[10px] text-[var(--t-muted)]">
-                  <span>{isKo ? 'Floor Width' : 'Floor Width'}</span>
+                  <span>{'Floor Width'}</span>
                   <span>{floorWidthM} m</span>
                 </div>
                 <input
@@ -1484,7 +1478,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               <div>
                 <div className="flex justify-between text-[10px] text-[var(--t-muted)]">
-                  <span>{isKo ? 'Floor Depth' : 'Floor Depth'}</span>
+                  <span>{'Floor Depth'}</span>
                   <span>{floorDepthM} m</span>
                 </div>
                 <input
@@ -1501,16 +1495,16 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               {onChangeFloorColor && (
                 <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 text-[10px]">
                   <span className="font-semibold text-[var(--t-text)]">
-                    {isKo ? 'Map Floor Color:' : 'Map Floor Color:'}
+                    {'Map Floor Color:'}
                   </span>
                   <div className="flex items-center gap-1">
                     {[
-                      ['#e2e8f0', isKo ? 'Light Tile' : 'Light Tile'],
-                      ['#e7d5b8', isKo ? 'Warm Wood' : 'Warm Wood'],
-                      ['#cbd5e1', isKo ? 'Concrete' : 'Concrete'],
-                      ['#bbf7d0', isKo ? 'Epoxy Green' : 'Epoxy Green'],
-                      ['#172554', isKo ? 'Blueprint' : 'Blueprint'],
-                      ['#1e293b', isKo ? 'Dark Slate' : 'Dark Slate'],
+                      ['#e2e8f0', ('Light Tile')],
+                      ['#e7d5b8', ('Warm Wood')],
+                      ['#cbd5e1', ('Concrete')],
+                      ['#bbf7d0', ('Epoxy Green')],
+                      ['#172554', ('Blueprint')],
+                      ['#1e293b', ('Dark Slate')],
                     ].map(([col, title]) => (
                       <button
                         key={col}
@@ -1530,7 +1524,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                       value={floorColor}
                       onChange={(e) => onChangeFloorColor(e.target.value)}
                       className="h-5 w-6 cursor-pointer border-0 bg-transparent"
-                      title={isKo ? 'Pick Floor Color' : 'Pick Floor Color'}
+                      title={'Pick Floor Color'}
                     />
                   </div>
                 </div>
@@ -1538,7 +1532,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               <div className="flex items-center justify-between gap-1.5 pt-0.5 text-[10px]">
                 <span className="text-[var(--t-muted)]">
-                  {isKo ? 'Scale All Shelves:' : 'Scale All Shelves:'}
+                  {'Scale All Shelves:'}
                 </span>
                 <div className="flex gap-1">
                   <button
@@ -1561,7 +1555,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? 'Aisles' : 'Aisles'}
+                    {'Aisles'}
                   </span>
                   <input
                     type="number"
@@ -1576,7 +1570,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? 'Bays' : 'Bays'}
+                    {'Bays'}
                   </span>
                   <input
                     type="number"
@@ -1593,7 +1587,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? 'Max Z' : 'Max Z'}
+                    {'Max Z'}
                   </span>
                   <input
                     type="number"
@@ -1615,7 +1609,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? 'Bin L (cm)' : 'Bin L (cm)'}
+                    {'Bin L (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1634,7 +1628,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? 'Bin W (cm)' : 'Bin W (cm)'}
+                    {'Bin W (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1653,7 +1647,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? 'Bin H (cm)' : 'Bin H (cm)'}
+                    {'Bin H (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1706,28 +1700,28 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   onClick={() => regenerateGrid('full')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  {isKo ? 'Rebuild Full Grid' : 'Rebuild Full Grid'}
+                  {'Rebuild Full Grid'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('cross_aisle')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  {isKo ? 'Cross-Aisle Grid' : 'Cross-Aisle Grid'}
+                  {'Cross-Aisle Grid'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('u_shape')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  {isKo ? 'U-Shape Floor' : 'U-Shape Floor'}
+                  {'U-Shape Floor'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('mezzanine')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  {isKo ? 'Mezzanine Step' : 'Mezzanine Step'}
+                  {'Mezzanine Step'}
                 </button>
               </div>
             </div>
@@ -1973,21 +1967,17 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 <div className="flex items-center justify-between gap-1 font-semibold text-emerald-300">
                   <span className="inline-flex items-center gap-1">
                     <PackagePlus className="h-3.5 w-3.5" />
-                    {isKo
-                      ? `Place Boxes in Rack (A${primarySelectedRack.aisle}-B${primarySelectedRack.bay})`
-                      : `Place Boxes in Rack (A${primarySelectedRack.aisle}-B${primarySelectedRack.bay})`}
+                    {`Place Boxes in Rack (A${primarySelectedRack.aisle}-B${primarySelectedRack.bay})`}
                   </span>
                   <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold">
-                    {isKo
-                      ? `${selectedRackTotalQty} pcs`
-                      : `${selectedRackTotalQty} pcs`}
+                    {`${selectedRackTotalQty} pcs`}
                   </span>
                 </div>
 
                 <div>
                   <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--t-muted)]">
                     <span>
-                      {isKo ? '1. Choose Target Shelf Level (Z):' : '1. Choose Target Shelf Level (Z):'}
+                      {'1. Choose Target Shelf Level (Z):'}
                     </span>
                     <span className="font-mono font-bold text-cyan-300">
                       A{primarySelectedRack.aisle}-B{primarySelectedRack.bay}-Z{targetLevel}
@@ -2037,7 +2027,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                               : 'text-[var(--t-muted)] hover:text-white'
                           }`}
                         >
-                          {isKo ? 'Quick SKU (+1)' : 'Quick SKU (+1)'}
+                          {'Quick SKU (+1)'}
                         </button>
                         {onPlaceCustomBoxInBin && (
                           <button
@@ -2050,14 +2040,14 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             }`}
                           >
                             <Ruler className="h-2.5 w-2.5" />
-                            {isKo ? 'Custom Box Size' : 'Custom Box Size'}
+                            {'Custom Box Size'}
                           </button>
                         )}
                       </div>
                       {placedFlashBinId && (
                         <span className="inline-flex items-center gap-0.5 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
                           <Check className="h-3 w-3" />
-                          {isKo ? `Added!` : `Added!`}
+                          {`Added!`}
                         </span>
                       )}
                     </div>
@@ -2075,9 +2065,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                               {onSetBinTotalBoxQuota && (
                                 <div className="flex flex-wrap items-center justify-between gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2 py-1 text-[10px]">
                                   <span className="font-semibold text-white">
-                                    {isKo
-                                      ? `Z${targetLevel} Total Box Count:`
-                                      : `Z${targetLevel} Total Box Count:`}
+                                    {`Z${targetLevel} Total Box Count:`}
                                   </span>
                                   <div className="flex items-center gap-1">
                                     {[0, 1, 2, 4, 6, 8].map((q) => (
@@ -2121,13 +2109,11 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                       }
                                       className="w-11 rounded border border-cyan-500/50 bg-[var(--t-surface)] px-1 py-0.5 text-center font-mono text-[11px] font-bold text-amber-300"
                                       title={
-                                        isKo
-                                          ? 'Enter exact total box count for this level'
-                                          : 'Enter exact total box count for this level'
+                                        'Enter exact total box count for this level'
                                       }
                                     />
                                     <span className="text-[var(--t-muted)]">
-                                      {isKo ? 'pcs' : 'pcs'}
+                                      {'pcs'}
                                     </span>
                                   </div>
                                 </div>
@@ -2135,9 +2121,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
                               <div className="flex items-center justify-between text-[10px] text-[var(--t-muted)]">
                                 <span>
-                                  {isKo
-                                    ? `[Z${targetLevel}] Enter exact box quantity per SKU:`
-                                    : `[Z${targetLevel}] Enter exact box quantity per SKU:`}
+                                  {`[Z${targetLevel}] Enter exact box quantity per SKU:`}
                                 </span>
                                 {skus.length > 6 && (
                                   <button
@@ -2146,12 +2130,8 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                     className="font-semibold text-cyan-300 hover:underline"
                                   >
                                     {showAllSkus
-                                      ? isKo
-                                        ? 'Show Less'
-                                        : 'Show Less'
-                                      : isKo
-                                        ? `All (${skus.length})`
-                                        : `All (${skus.length})`}
+                                      ? ('Show Less')
+                                      : (`All (${skus.length})`)}
                                   </button>
                                 )}
                               </div>
@@ -2239,9 +2219,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                             }
                                             className="w-11 rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-1 py-0.5 text-center font-mono text-[11px] font-bold text-amber-300 focus:border-cyan-400 focus:outline-none"
                                             title={
-                                              isKo
-                                                ? 'Enter exact box quantity for this SKU in this level'
-                                                : 'Enter exact box quantity for this SKU in this level'
+                                              'Enter exact box quantity for this SKU in this level'
                                             }
                                           />
                                           <button
@@ -2275,28 +2253,28 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         <div className="grid grid-cols-3 gap-1">
                           {[
                             {
-                              label: isKo ? 'Small 25×20×15' : 'Small 25×20×15',
+                              label: 'Small 25×20×15',
                               l: 25,
                               w: 20,
                               h: 15,
                               kg: 2,
-                              name: isKo ? 'Small Carton' : 'Small Carton',
+                              name: 'Small Carton',
                             },
                             {
-                              label: isKo ? 'Med 40×30×24' : 'Med 40×30×24',
+                              label: 'Med 40×30×24',
                               l: 40,
                               w: 30,
                               h: 24,
                               kg: 5,
-                              name: isKo ? 'Medium Box' : 'Medium Box',
+                              name: 'Medium Box',
                             },
                             {
-                              label: isKo ? 'Large 60×40×35' : 'Large 60×40×35',
+                              label: 'Large 60×40×35',
                               l: 60,
                               w: 40,
                               h: 35,
                               kg: 10,
-                              name: isKo ? 'Large Crate' : 'Large Crate',
+                              name: 'Large Crate',
                             },
                           ].map((preset) => (
                             <button
@@ -2319,7 +2297,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         <div className="grid grid-cols-3 gap-1.5">
                           <div>
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? 'L (cm)' : 'L (cm)'}
+                              {'L (cm)'}
                             </span>
                             <input
                               type="number"
@@ -2338,7 +2316,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           </div>
                           <div>
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? 'W (cm)' : 'W (cm)'}
+                              {'W (cm)'}
                             </span>
                             <input
                               type="number"
@@ -2357,7 +2335,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           </div>
                           <div>
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? 'H (cm)' : 'H (cm)'}
+                              {'H (cm)'}
                             </span>
                             <input
                               type="number"
@@ -2379,7 +2357,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         <div className="grid grid-cols-12 gap-1.5">
                           <div className="col-span-5">
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? 'Box Name' : 'Box Name'}
+                              {'Box Name'}
                             </span>
                             <input
                               type="text"
@@ -2390,7 +2368,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           </div>
                           <div className="col-span-3">
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? 'Weight' : 'Weight'}
+                              {'Weight'}
                             </span>
                             <input
                               type="number"
@@ -2408,7 +2386,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           </div>
                           <div className="col-span-2">
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? 'Qty' : 'Qty'}
+                              {'Qty'}
                             </span>
                             <input
                               type="number"
@@ -2471,7 +2449,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                 setCustomBoxFragile(e.target.checked)
                               }
                             />
-                            {isKo ? 'Fragile' : 'Fragile'}
+                            {'Fragile'}
                           </label>
                         </div>
 
@@ -2486,9 +2464,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-1.5 text-[11px] font-bold text-slate-950 shadow hover:bg-emerald-400"
                         >
                           <PackagePlus className="h-3.5 w-3.5" />
-                          {isKo
-                            ? `Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box in Z${targetLevel}`
-                            : `Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box in Z${targetLevel}`}
+                          {`Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box in Z${targetLevel}`}
                         </button>
                       </div>
                     )}
@@ -2497,9 +2473,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
                 {selectedRackLevels.length === 0 ? (
                   <p className="text-[10px] leading-relaxed text-[var(--t-muted)]">
-                    {isKo
-                      ? 'New rack. Click any SKU or custom box above to immediately create the shelf bins and insert boxes!'
-                      : 'New rack. Click any SKU or custom box above to immediately create the shelf bins and insert boxes!'}
+                    {'New rack. Click any SKU or custom box above to immediately create the shelf bins and insert boxes!'}
                   </p>
                 ) : (
                   <div className="max-h-72 space-y-1.5 overflow-y-auto pr-0.5">
@@ -2531,14 +2505,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                 </span>
                                 {alloc.bin.isGoldenZone && (
                                   <span className="ml-1 text-[9px] text-emerald-300">
-                                    {isKo ? 'Golden' : 'Golden'}
+                                    {'Golden'}
                                   </span>
                                 )}
                               </span>
                               <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">
-                                {isKo
-                                  ? `${alloc.boxes.length} pcs`
-                                  : `${alloc.boxes.length} pcs`}
+                                {`${alloc.boxes.length} pcs`}
                               </span>
                             </div>
                             <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-800">
@@ -2552,7 +2524,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             </div>
                             <div className="mt-0.5 flex justify-between text-[9px] text-[var(--t-muted)]">
                               <span>
-                                {isKo ? 'Fill' : 'Fill'} {pct.toFixed(0)}%
+                                {'Fill'} {pct.toFixed(0)}%
                               </span>
                               <span>
                                 {alloc.currentWeightKg.toFixed(1)}/
@@ -2562,9 +2534,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
                             {groups.length === 0 ? (
                               <div className="mt-1 text-[10px] text-[var(--t-muted)]">
-                                {isKo
-                                  ? 'Empty (Click a SKU above to insert)'
-                                  : 'Empty (Click a SKU above to insert)'}
+                                {'Empty (Click a SKU above to insert)'}
                               </div>
                             ) : (
                               <div
@@ -2603,7 +2573,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                             : onPinCargo(alloc.bin.id, g.skuId, -1)
                                         }
                                         className="rounded border border-[var(--t-border)] p-0.5 text-rose-300 hover:border-rose-400"
-                                        title={isKo ? 'Remove 1' : 'Remove 1'}
+                                        title={'Remove 1'}
                                       >
                                         <Minus className="h-2.5 w-2.5" />
                                       </button>
@@ -2634,9 +2604,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                       }}
                                       className="w-10 rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1 py-0.5 text-center font-mono text-[10px] font-bold text-amber-300 focus:border-cyan-400 focus:outline-none"
                                       title={
-                                        isKo
-                                          ? 'Edit exact SKU quantity in this shelf bin'
-                                          : 'Edit exact SKU quantity in this shelf bin'
+                                        'Edit exact SKU quantity in this shelf bin'
                                       }
                                     />
                                     {onPinCargo && (
@@ -2653,7 +2621,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                             : onPinCargo(alloc.bin.id, g.skuId, 1)
                                         }
                                         className="rounded border border-[var(--t-border)] p-0.5 text-emerald-300 hover:border-emerald-400"
-                                        title={isKo ? 'Add 1' : 'Add 1'}
+                                        title={'Add 1'}
                                       >
                                         <Plus className="h-2.5 w-2.5" />
                                       </button>
@@ -2665,9 +2633,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
                             {alloc.safetyViolation && (
                               <div className="mt-1 text-[9px] font-semibold text-rose-300">
-                                {isKo
-                                  ? '⚠ Heavy item on upper level'
-                                  : '⚠ Heavy item on upper level'}
+                                {'⚠ Heavy item on upper level'}
                               </div>
                             )}
                           </div>
@@ -2682,23 +2648,17 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-amber-300">
                 <span className="inline-flex items-center gap-1.5">
                   <Route className="h-3.5 w-3.5" />
-                  {isKo
-                    ? 'Pick Route Editor (Depot → Waypoints)'
-                    : 'Pick Route Editor (Depot → Waypoints)'}
+                  {'Pick Route Editor (Depot → Waypoints)'}
                 </span>
                 <div className="flex items-center gap-1">
                   {unoptimizedRouteComparison.savedDistM > 0.1 && (
                     <span
                       className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[9.5px] font-bold text-emerald-300"
                       title={
-                        isKo
-                          ? 'Distance and time saved vs naive frequency-ordered visiting'
-                          : 'Distance and time saved vs naive frequency-ordered visiting'
+                        'Distance and time saved vs naive frequency-ordered visiting'
                       }
                     >
-                      {isKo
-                        ? `-${unoptimizedRouteComparison.savedDistM}m / -${unoptimizedRouteComparison.savedSec}s saved`
-                        : `-${unoptimizedRouteComparison.savedDistM}m / -${unoptimizedRouteComparison.savedSec}s saved`}
+                      {`-${unoptimizedRouteComparison.savedDistM}m / -${unoptimizedRouteComparison.savedSec}s saved`}
                     </span>
                   )}
                   <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold">
@@ -2713,28 +2673,28 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   onClick={() => handleApplyRoutePattern('tsp_shortest')}
                   className="rounded border border-emerald-500/40 bg-emerald-500/15 px-2 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/25"
                 >
-                  {isKo ? '✨ Shortest TSP Route' : '✨ Shortest TSP Route'}
+                  {'✨ Shortest TSP Route'}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyRoutePattern('s_shape_aisle')}
                   className="rounded border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 font-semibold text-cyan-300 hover:bg-cyan-500/25"
                 >
-                  {isKo ? '〰 S-Shape Aisle Tour' : '〰 S-Shape Aisle Tour'}
+                  {'〰 S-Shape Aisle Tour'}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyRoutePattern('golden_first')}
                   className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-1 font-semibold text-amber-300 hover:bg-amber-500/25"
                 >
-                  {isKo ? '🎯 Golden Zone First' : '🎯 Golden Zone First'}
+                  {'🎯 Golden Zone First'}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyRoutePattern('all_occupied')}
                   className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1 font-semibold text-[var(--t-text)] hover:border-cyan-400"
                 >
-                  {isKo ? '📦 Connect All Loaded' : '📦 Connect All Loaded'}
+                  {'📦 Connect All Loaded'}
                 </button>
               </div>
 
@@ -2755,9 +2715,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   className="min-w-0 flex-1 rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1 text-[10px]"
                 >
                   <option value="">
-                    {isKo
-                      ? '+ Add shelf bin to route...'
-                      : '+ Add shelf bin to route...'}
+                    {'+ Add shelf bin to route...'}
                   </option>
                   {allocations.map((a) => (
                     <option key={a.bin.id} value={a.bin.id}>
@@ -2779,7 +2737,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     }
                     className="accent-emerald-400"
                   />
-                  {isKo ? 'Return Depot' : 'Return Depot'}
+                  {'Return Depot'}
                 </label>
               </div>
 
@@ -2798,11 +2756,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   }`}
                 >
                   <Route className="h-3 w-3" />
-                  {isKo
-                    ? tool === 'route_edit'
-                      ? 'Editing Route (Click to Exit)'
-                      : 'Click Racks to Draw Route'
-                    : tool === 'route_edit'
+                  {tool === 'route_edit'
                       ? 'Editing Route (Click to Exit)'
                       : 'Click Racks to Draw Route'}
                 </button>
@@ -2812,7 +2766,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/25"
                 >
                   <Sparkles className="h-3 w-3" />
-                  {isKo ? 'Auto Shortest Order' : 'Auto Shortest Order'}
+                  {'Auto Shortest Order'}
                 </button>
                 {routeBinIds.length > 0 && (
                   <button
@@ -2821,7 +2775,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     className="inline-flex items-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/15 px-2 py-1 font-semibold text-rose-300 hover:bg-rose-500/25"
                   >
                     <RotateCcw className="h-3 w-3" />
-                    {isKo ? 'Reset to Auto' : 'Reset to Auto'}
+                    {'Reset to Auto'}
                   </button>
                 )}
               </div>
@@ -2829,9 +2783,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="max-h-44 space-y-1 overflow-y-auto pr-0.5">
                 {activeRouteStops.length === 0 ? (
                   <div className="rounded border border-dashed border-[var(--t-border)] p-2 text-center text-[10px] text-[var(--t-muted)]">
-                    {isKo
-                      ? 'No waypoints yet. Click racks in Route Editor mode to add.'
-                      : 'No waypoints yet. Click racks in Route Editor mode to add.'}
+                    {'No waypoints yet. Click racks in Route Editor mode to add.'}
                   </div>
                 ) : (
                   activeRouteStops.map((stop, idx) => (
@@ -2847,7 +2799,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           {stop.bin.id}
                         </span>
                         <span className="truncate text-[var(--t-muted)]">
-                          ({stop.boxes[0]?.name.split(' (')[0] ?? (isKo ? 'Empty' : 'Empty')})
+                          ({stop.boxes[0]?.name.split(' (')[0] ?? (('Empty'))})
                         </span>
                       </div>
                       <div className="flex shrink-0 items-center gap-0.5">
@@ -2866,7 +2818,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             commitCustomRoute(next);
                           }}
                           className="rounded border border-[var(--t-border)] p-0.5 text-[var(--t-muted)] hover:border-cyan-400 hover:text-white disabled:opacity-30"
-                          title={isKo ? 'Move Up' : 'Move Up'}
+                          title={'Move Up'}
                         >
                           <ArrowUp className="h-2.5 w-2.5" />
                         </button>
@@ -2885,7 +2837,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             commitCustomRoute(next);
                           }}
                           className="rounded border border-[var(--t-border)] p-0.5 text-[var(--t-muted)] hover:border-cyan-400 hover:text-white disabled:opacity-30"
-                          title={isKo ? 'Move Down' : 'Move Down'}
+                          title={'Move Down'}
                         >
                           <ArrowDown className="h-2.5 w-2.5" />
                         </button>
@@ -2900,7 +2852,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             );
                           }}
                           className="rounded border border-[var(--t-border)] p-0.5 text-rose-300 hover:border-rose-400"
-                          title={isKo ? 'Remove Stop' : 'Remove Stop'}
+                          title={'Remove Stop'}
                         >
                           <X className="h-2.5 w-2.5" />
                         </button>
@@ -2917,13 +2869,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="flex flex-wrap gap-1">
                 {(
                   [
-                    ['select', isKo ? 'Drag / Select' : 'Drag / Select', MousePointer2],
-                    ['route_edit', isKo ? 'Route Editor' : 'Route Editor', Route],
-                    ['add_rack', isKo ? `+Rack (Z${levels})` : `+Rack (Z${levels})`, PlusSquare],
-                    ['add_low', isKo ? '+Low Shelf' : '+Low Shelf', PlusSquare],
-                    ['add_obstacle', isKo ? '+Pillar / Wall' : '+Pillar / Wall', Ban],
-                    ['move_depot', isKo ? 'Move Depot' : 'Move Depot', Navigation],
-                    ['erase', isKo ? 'Erase' : 'Erase', Eraser],
+                    ['select', ('Drag / Select'), MousePointer2],
+                    ['route_edit', ('Route Editor'), Route],
+                    ['add_rack', (`+Rack (Z${levels})`), PlusSquare],
+                    ['add_low', ('+Low Shelf'), PlusSquare],
+                    ['add_obstacle', ('+Pillar / Wall'), Ban],
+                    ['move_depot', ('Move Depot'), Navigation],
+                    ['erase', ('Erase'), Eraser],
                   ] as const
                 ).map(([id, label, Icon]) => (
                   <button
@@ -2952,15 +2904,11 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                       : 'border-[var(--t-border)] text-[var(--t-muted)]'
                   }`}
                   title={
-                    isKo
-                      ? 'Toggle pick route path & stop numbers on 2D canvas'
-                      : 'Toggle pick route path & stop numbers on 2D canvas'
+                    'Toggle pick route path & stop numbers on 2D canvas'
                   }
                 >
                   <Route className="h-3 w-3" />
-                  {isKo
-                    ? `Route ${showRouteLine ? 'ON' : 'OFF'}`
-                    : `Route ${showRouteLine ? 'ON' : 'OFF'}`}
+                  {`Route ${showRouteLine ? 'ON' : 'OFF'}`}
                 </button>
                 <button
                   type="button"
@@ -2971,15 +2919,11 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                       : 'border-[var(--t-border)] text-[var(--t-muted)]'
                   }`}
                   title={
-                    isKo
-                      ? 'Toggle box quantity badges & level fill strips'
-                      : 'Toggle box quantity badges & level fill strips'
+                    'Toggle box quantity badges & level fill strips'
                   }
                 >
                   <Package className="h-3 w-3" />
-                  {isKo
-                    ? `Qty ${showQty ? 'ON' : 'OFF'}`
-                    : `Qty ${showQty ? 'ON' : 'OFF'}`}
+                  {`Qty ${showQty ? 'ON' : 'OFF'}`}
                 </button>
                 <select
                   value={snapStepM}
@@ -3035,9 +2979,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     );
                   }}
                   className="rounded border border-cyan-500/45 bg-cyan-500/15 px-1.5 py-1 text-[10px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
-                  title={isKo ? 'Auto-Fit 2D Zoom' : 'Auto-Fit 2D Zoom'}
+                  title={'Auto-Fit 2D Zoom'}
                 >
-                  {isKo ? 'Fit' : 'Fit'}
+                  {'Fit'}
                 </button>
                 <button
                   type="button"
@@ -3305,12 +3249,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   const stripSeg =
                     rack.levels > 0 ? Math.max(2, (rh - 8) / rack.levels) : 0;
                   const tooltip = [
-                    `A${rack.aisle}-B${rack.bay} · ${isKo ? 'Total' : 'Total'} ${rackQty}${isKo ? ' pcs' : ' pcs'}`,
+                    `A${rack.aisle}-B${rack.bay} · ${'Total'} ${rackQty}${' pcs'}`,
                     ...[...rackAllocs]
                       .sort((a, b) => b.bin.level - a.bin.level)
                       .map(
                         (a) =>
-                          `Z${a.bin.level}: ${a.boxes.length}${isKo ? ' pcs' : ' pcs'} (${a.cubicUtilizationPct.toFixed(0)}%)`
+                          `Z${a.bin.level}: ${a.boxes.length}${' pcs'} (${a.cubicUtilizationPct.toFixed(0)}%)`
                       ),
                   ].join('\n');
                   return (
@@ -3529,9 +3473,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2.5 text-xs">
               <span className="text-[11px] text-[var(--t-muted)]">
-                {isKo
-                  ? 'Drag racks/depot/edges freely · Drag empty floor to multi-select group · Right-click anywhere to edit'
-                  : 'Drag racks/depot/edges freely · Drag empty floor to multi-select group · Right-click anywhere to edit'}
+                {'Drag racks/depot/edges freely · Drag empty floor to multi-select group · Right-click anywhere to edit'}
               </span>
               <div className="flex gap-2">
                 <button
@@ -3540,7 +3482,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-3 py-1.5 font-semibold hover:border-[var(--t-accent)]"
                 >
                   <Save className="h-3.5 w-3.5 text-emerald-400" />
-                  {isKo ? 'Save as New Map Card' : 'Save as New Map Card'}
+                  {'Save as New Map Card'}
                 </button>
                 <button
                   type="button"
@@ -3552,7 +3494,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   }}
                 >
                   <Check className="h-3.5 w-3.5" />
-                  {isKo ? 'Apply Canvas to 3D Twin' : 'Apply Canvas to 3D Twin'}
+                  {'Apply Canvas to 3D Twin'}
                 </button>
               </div>
             </div>
@@ -3581,9 +3523,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             <>
               <div className="flex items-center justify-between border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
                 <span>
-                  {isKo
-                    ? `Rack A${ctxRack.aisle}-B${ctxRack.bay}`
-                    : `Rack A${ctxRack.aisle}-B${ctxRack.bay}`}
+                  {`Rack A${ctxRack.aisle}-B${ctxRack.bay}`}
                 </span>
                 <span className="font-mono text-[10px] text-[var(--t-muted)]">
                   ({ctxRack.xMeters}m, {ctxRack.yMeters}m)
@@ -3594,9 +3534,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 <div className="border-b border-[var(--t-border)] px-2 py-1.5">
                   <div className="mb-1 flex items-center justify-between text-[10px]">
                     <span className="font-semibold text-cyan-300">
-                      {isKo
-                        ? `Z${Math.min(targetLevel, ctxRack.levels)} Total Boxes:`
-                        : `Z${Math.min(targetLevel, ctxRack.levels)} Total Boxes:`}
+                      {`Z${Math.min(targetLevel, ctxRack.levels)} Total Boxes:`}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -3622,9 +3560,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 <div className="border-b border-[var(--t-border)] px-2 py-1.5">
                   <div className="mb-1 flex items-center justify-between text-[10px]">
                     <span className="font-semibold text-emerald-300">
-                      {isKo
-                        ? `Quick Insert Box (Z${Math.min(targetLevel, ctxRack.levels)}):`
-                        : `Quick Insert Box (Z${Math.min(targetLevel, ctxRack.levels)}):`}
+                      {`Quick Insert Box (Z${Math.min(targetLevel, ctxRack.levels)}):`}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-1">
@@ -3661,14 +3597,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="mt-1 flex w-full items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-1.5 text-left font-semibold text-amber-300 hover:bg-amber-500/20"
               >
                 <Route className="h-3.5 w-3.5" />
-                {isKo
-                  ? 'Add / Remove Pick Route Waypoint'
-                  : 'Add / Remove Pick Route Waypoint'}
+                {'Add / Remove Pick Route Waypoint'}
               </button>
 
               <div className="px-2 py-1.5">
                 <div className="mb-1 text-[10px] text-[var(--t-muted)]">
-                  {isKo ? 'Set Z-Levels:' : 'Set Z-Levels:'}
+                  {'Set Z-Levels:'}
                 </div>
                 <div className="grid grid-cols-6 gap-1">
                   {[1, 2, 3, 4, 5, 6].map((lv) => (
@@ -3715,7 +3649,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <RotateCw className="h-3.5 w-3.5 text-cyan-400" />
-                {isKo ? 'Rotate 90° (Swap L ↔ W)' : 'Rotate 90° (Swap L ↔ W)'}
+                {'Rotate 90° (Swap L ↔ W)'}
               </button>
               <button
                 type="button"
@@ -3733,7 +3667,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Copy className="h-3.5 w-3.5 text-emerald-400" />
-                {isKo ? 'Duplicate Rack Nearby' : 'Duplicate Rack Nearby'}
+                {'Duplicate Rack Nearby'}
               </button>
               <button
                 type="button"
@@ -3746,7 +3680,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Ban className="h-3.5 w-3.5 text-amber-400" />
-                {isKo ? 'Convert to Pillar / Block' : 'Convert to Pillar / Block'}
+                {'Convert to Pillar / Block'}
               </button>
               <button
                 type="button"
@@ -3761,15 +3695,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-rose-400 hover:bg-rose-950/40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                {isKo ? 'Delete This Rack' : 'Delete This Rack'}
+                {'Delete This Rack'}
               </button>
             </>
           ) : ctxObstacle ? (
             <>
               <div className="border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
-                {isKo
-                  ? `Obstacle @ (${ctxObstacle.xMeters}m, ${ctxObstacle.yMeters}m)`
-                  : `Obstacle @ (${ctxObstacle.xMeters}m, ${ctxObstacle.yMeters}m)`}
+                {`Obstacle @ (${ctxObstacle.xMeters}m, ${ctxObstacle.yMeters}m)`}
               </div>
               <button
                 type="button"
@@ -3784,7 +3716,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <PlusSquare className="h-3.5 w-3.5 text-cyan-400" />
-                {isKo ? 'Convert to Rack Stack' : 'Convert to Rack Stack'}
+                {'Convert to Rack Stack'}
               </button>
               <button
                 type="button"
@@ -3798,15 +3730,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-rose-400 hover:bg-rose-950/40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                {isKo ? 'Delete Obstacle' : 'Delete Obstacle'}
+                {'Delete Obstacle'}
               </button>
             </>
           ) : (
             <>
               <div className="border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
-                {isKo
-                  ? `Floor @ (${ctxMenu.worldX}m, {ctxMenu.worldY}m)`
-                  : `Floor @ (${ctxMenu.worldX}m, {ctxMenu.worldY}m)`}
+                {`Floor @ (${ctxMenu.worldX}m, {ctxMenu.worldY}m)`}
               </div>
               <button
                 type="button"
@@ -3817,9 +3747,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <PlusSquare className="h-3.5 w-3.5 text-cyan-400" />
-                {isKo
-                  ? `Add Rack Stack Here (Z1–${levels})`
-                  : `Add Rack Stack Here (Z1–${levels})`}
+                {`Add Rack Stack Here (Z1–${levels})`}
               </button>
               <button
                 type="button"
@@ -3830,9 +3758,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <PlusSquare className="h-3.5 w-3.5 text-emerald-400" />
-                {isKo
-                  ? 'Add Low Shelf Here (Z1–2)'
-                  : 'Add Low Shelf Here (Z1–2)'}
+                {'Add Low Shelf Here (Z1–2)'}
               </button>
               <button
                 type="button"
@@ -3843,7 +3769,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Ban className="h-3.5 w-3.5 text-amber-400" />
-                {isKo ? 'Add Pillar / Wall Here' : 'Add Pillar / Wall Here'}
+                {'Add Pillar / Wall Here'}
               </button>
               <button
                 type="button"
@@ -3856,9 +3782,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Navigation className="h-3.5 w-3.5 text-sky-400" />
-                {isKo
-                  ? 'Move I/O Depot / Entry Here'
-                  : 'Move I/O Depot / Entry Here'}
+                {'Move I/O Depot / Entry Here'}
               </button>
               <button
                 type="button"
@@ -3869,9 +3793,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-emerald-300 hover:bg-[var(--t-surface-alt)]"
               >
                 <Route className="h-3.5 w-3.5" />
-                {isKo
-                  ? 'Auto-Sort Shortest Pick Route'
-                  : 'Auto-Sort Shortest Pick Route'}
+                {'Auto-Sort Shortest Pick Route'}
               </button>
             </>
           )}

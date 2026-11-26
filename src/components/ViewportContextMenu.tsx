@@ -16,7 +16,6 @@ import {
   Flame,
   Home,
   Keyboard,
-  Languages,
   Layers,
   LayoutGrid,
   Map as MapIcon,
@@ -195,7 +194,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
   xrayBins = false,
   appView = 'workspace',
   simpleMode = true,
-  lang = 'en',
   onClose,
   onInspectBin,
   onPinSkuToBin,
@@ -252,7 +250,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
   onCycleTheme,
   onToggleAppView,
   onToggleSimpleMode,
-  onToggleLanguage,
   onOpenFirebaseSetup,
 }) => {
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -295,7 +292,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
 
   if (!menu) return null;
 
-  const isKo = lang === 'ko';
   const menuWidth = 340;
   const menuMaxHeight = 560;
   const left = Math.max(
@@ -318,16 +314,16 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           <div className="rounded-lg border border-cyan-500/30 bg-slate-950/70 px-2.5 py-2">
             <div className="flex items-center justify-between">
               <span className="font-bold text-cyan-300">
-                {isKo ? `Bin ${alloc.bin.id}` : `Bin ${alloc.bin.id}`}
+                {`Bin ${alloc.bin.id}`}
               </span>
               <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px]">
                 Z{alloc.bin.level} ({alloc.bin.zMeters}m)
               </span>
             </div>
             <div className="mt-0.5 text-[10px] text-[var(--t-muted)]">
-              {alloc.cubicUtilizationPct.toFixed(1)}% {isKo ? 'fill' : 'fill'} ·{' '}
+              {alloc.cubicUtilizationPct.toFixed(1)}% {'fill'} ·{' '}
               {alloc.currentWeightKg.toFixed(1)}/{alloc.bin.maxWeightKg}kg ·{' '}
-              {alloc.boxes.length} {isKo ? 'boxes' : 'boxes'}
+              {alloc.boxes.length} {'boxes'}
             </div>
           </div>
 
@@ -341,7 +337,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="flex items-center gap-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2 py-1.5 text-left text-[11px] font-medium hover:border-[var(--t-accent)]"
             >
               <Eye className="h-3.5 w-3.5 text-cyan-400" />
-              {isKo ? 'Inspect Details' : 'Inspect Details'}
+              {'Inspect Details'}
             </button>
             <button
               type="button"
@@ -352,7 +348,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="flex items-center gap-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2 py-1.5 text-left text-[11px] font-medium hover:border-[var(--t-accent)]"
             >
               <Bot className="h-3.5 w-3.5 text-cyan-400" />
-              {isKo ? 'AI Bin Audit' : 'AI Bin Audit'}
+              {'AI Bin Audit'}
             </button>
           </div>
 
@@ -360,9 +356,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             <div className="space-y-1.5 rounded-lg border border-cyan-500/35 bg-slate-950/75 p-2">
               <div className="flex items-center justify-between text-[10px] font-bold text-cyan-300">
                 <span>
-                  {isKo
-                    ? `Resize Shelf (${alloc.bin.binLengthCm}×${alloc.bin.binWidthCm}×${alloc.bin.binHeightCm}cm)`
-                    : `Resize Shelf (${alloc.bin.binLengthCm}×${alloc.bin.binWidthCm}×${alloc.bin.binHeightCm}cm)`}
+                  {`Resize Shelf (${alloc.bin.binLengthCm}×${alloc.bin.binWidthCm}×${alloc.bin.binHeightCm}cm)`}
                 </span>
                 <div className="flex gap-1 text-[9px]">
                   <button
@@ -404,7 +398,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               <div className="grid grid-cols-3 gap-1 text-[10px]">
                 <div>
                   <span className="text-[9px] text-slate-400">
-                    {isKo ? 'Shelf L(cm)' : 'Shelf L(cm)'}
+                    {'Shelf L(cm)'}
                   </span>
                   <input
                     type="number"
@@ -428,7 +422,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] text-slate-400">
-                    {isKo ? 'Shelf W(cm)' : 'Shelf W(cm)'}
+                    {'Shelf W(cm)'}
                   </span>
                   <input
                     type="number"
@@ -452,7 +446,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] text-slate-400">
-                    {isKo ? 'Shelf H(cm)' : 'Shelf H(cm)'}
+                    {'Shelf H(cm)'}
                   </span>
                   <input
                     type="number"
@@ -483,22 +477,20 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               <div className="flex items-center justify-between text-[10px] font-bold text-emerald-300">
                 <span className="inline-flex items-center gap-1">
                   <Ruler className="h-3 w-3" />
-                  {isKo
-                    ? `Set Box Size & Place in [${alloc.bin.id}]`
-                    : `Set Box Size & Place in [${alloc.bin.id}]`}
+                  {`Set Box Size & Place in [${alloc.bin.id}]`}
                 </span>
                 <span className="font-mono text-[9px] text-slate-400">
-                  {isKo ? 'Shelf' : 'Shelf'} {alloc.bin.binLengthCm}×
+                  {'Shelf'} {alloc.bin.binLengthCm}×
                   {alloc.bin.binWidthCm}×{alloc.bin.binHeightCm}cm
                 </span>
               </div>
               <div className="grid grid-cols-4 gap-1 text-[9px]">
                 {[
-                  { label: isKo ? 'S 25×20×15' : 'S 25×20×15', l: 25, w: 20, h: 15, kg: 2 },
-                  { label: isKo ? 'M 40×30×24' : 'M 40×30×24', l: 40, w: 30, h: 24, kg: 5 },
-                  { label: isKo ? 'L 60×40×35' : 'L 60×40×35', l: 60, w: 40, h: 35, kg: 10 },
+                  { label: 'S 25×20×15', l: 25, w: 20, h: 15, kg: 2 },
+                  { label: 'M 40×30×24', l: 40, w: 30, h: 24, kg: 5 },
+                  { label: 'L 60×40×35', l: 60, w: 40, h: 35, kg: 10 },
                   {
-                    label: isKo ? 'Half Shelf' : 'Half Shelf',
+                    label: 'Half Shelf',
                     l: Math.max(12, Math.floor((alloc.bin.binLengthCm - 4) / 2)),
                     w: Math.max(12, alloc.bin.binWidthCm - 6),
                     h: Math.max(12, Math.floor(alloc.bin.binHeightCm * 0.75)),
@@ -523,7 +515,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               <div className="grid grid-cols-5 gap-1 text-[10px]">
                 <div>
                   <span className="text-[9px] text-slate-400">
-                    {isKo ? 'L(cm)' : 'L(cm)'}
+                    {'L(cm)'}
                   </span>
                   <input
                     type="number"
@@ -538,7 +530,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] text-slate-400">
-                    {isKo ? 'W(cm)' : 'W(cm)'}
+                    {'W(cm)'}
                   </span>
                   <input
                     type="number"
@@ -553,7 +545,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] text-slate-400">
-                    {isKo ? 'H(cm)' : 'H(cm)'}
+                    {'H(cm)'}
                   </span>
                   <input
                     type="number"
@@ -568,7 +560,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] text-slate-400">
-                    {isKo ? 'kg' : 'kg'}
+                    {'kg'}
                   </span>
                   <input
                     type="number"
@@ -584,7 +576,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] text-slate-400">
-                    {isKo ? 'Qty' : 'Qty'}
+                    {'Qty'}
                   </span>
                   <input
                     type="number"
@@ -615,9 +607,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 className="flex w-full items-center justify-center gap-1.5 rounded-md bg-emerald-500 py-1.5 text-[11px] font-bold text-slate-950 hover:bg-emerald-400"
               >
                 <PackagePlus className="h-3.5 w-3.5" />
-                {isKo
-                  ? `Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box Here`
-                  : `Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box Here`}
+                {`Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box Here`}
               </button>
             </div>
           )}
@@ -626,7 +616,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             {onSetBinTotalBoxQuota && (
               <div className="flex items-center justify-between gap-1 rounded border border-cyan-500/35 bg-slate-950/90 px-2 py-1 text-[10px]">
                 <span className="font-bold text-cyan-300">
-                  {isKo ? 'Shelf Total Boxes:' : 'Shelf Total Boxes:'}
+                  {'Shelf Total Boxes:'}
                 </span>
                 <div className="flex items-center gap-1">
                   {[0, 1, 2, 4, 6, 8].map((q) => (
@@ -669,9 +659,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--t-muted)]">
               <span className="inline-flex items-center gap-1 text-emerald-300">
                 <PackagePlus className="h-3 w-3" />
-                {isKo
-                  ? `Exact SKU Quantity in Bin · ${skus.length} SKUs`
-                  : `Exact SKU Quantity in Bin · ${skus.length} SKUs`}
+                {`Exact SKU Quantity in Bin · ${skus.length} SKUs`}
               </span>
               {skus.length > 6 && (
                 <button
@@ -680,12 +668,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                   className="text-[10px] text-cyan-300 hover:underline"
                 >
                   {showAllSkus
-                    ? isKo
-                      ? 'Less'
-                      : 'Less'
-                    : isKo
-                      ? `All (${skus.length})`
-                      : `All (${skus.length})`}
+                    ? ('Less')
+                    : (`All (${skus.length})`)}
                 </button>
               )}
             </div>
@@ -725,7 +709,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                         style={{ backgroundColor: sku.color }}
                       />
                       <span className="truncate font-medium">
-                        {isKo ? sku.name.split(' (')[0] : sku.skuCode}
+                        {sku.skuCode}
                       </span>
                     </button>
                     <div className="flex shrink-0 items-center gap-1">
@@ -802,9 +786,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           {alloc.boxes.length > 0 && onMoveSkuToLevel && (
             <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
               <div className="mb-1 text-[10px] font-semibold text-amber-300">
-                {isKo
-                  ? 'Move / Remove Packed Items in Bin'
-                  : 'Move / Remove Packed Items in Bin'}
+                {'Move / Remove Packed Items in Bin'}
               </div>
               <div className="max-h-28 space-y-1 overflow-y-auto pr-0.5">
                 {Array.from(
@@ -826,9 +808,9 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                             onClose();
                           }}
                           className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] text-emerald-300 hover:bg-emerald-500/25"
-                          title={isKo ? 'Move to Z1' : 'Move to Z1'}
+                          title={'Move to Z1'}
                         >
-                          {isKo ? '→Z1' : '→Z1'}
+                          {'→Z1'}
                         </button>
                       )}
                       {alloc.bin.level !== 2 && (
@@ -840,10 +822,10 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                           }}
                           className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[9px] text-cyan-300 hover:bg-cyan-500/25"
                           title={
-                            isKo ? 'Move to Z2' : 'Move to Z2'
+                            'Move to Z2'
                           }
                         >
-                          {isKo ? '→Z2' : '→Z2'}
+                          {'→Z2'}
                         </button>
                       )}
                     </div>
@@ -863,9 +845,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5 text-left text-[11px] text-emerald-300 hover:bg-emerald-500/20"
             >
               <PlusSquare className="h-3.5 w-3.5" />
-              {isKo
-                ? `Add +Z${alloc.bin.level + 1}`
-                : `Add +Z${alloc.bin.level + 1}`}
+              {`Add +Z${alloc.bin.level + 1}`}
             </button>
             <button
               type="button"
@@ -879,12 +859,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             >
               <Layers className="h-3.5 w-3.5 text-cyan-400" />
               {levelFilter === alloc.bin.level
-                ? isKo
-                  ? 'Show All Z'
-                  : 'Show All Z'
-                : isKo
-                  ? `Slice Z${alloc.bin.level}`
-                  : `Slice Z${alloc.bin.level}`}
+                ? ('Show All Z')
+                : (`Slice Z${alloc.bin.level}`)}
             </button>
             <button
               type="button"
@@ -895,7 +871,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="flex items-center gap-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2 py-1.5 text-left text-[11px] hover:border-amber-400"
             >
               <Eraser className="h-3.5 w-3.5 text-amber-400" />
-              {isKo ? 'Unpin Bin' : 'Unpin Bin'}
+              {'Unpin Bin'}
             </button>
             <button
               type="button"
@@ -906,7 +882,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-left text-[11px] text-rose-300 hover:bg-rose-500/20"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              {isKo ? 'Delete Bin' : 'Delete Bin'}
+              {'Delete Bin'}
             </button>
           </div>
         </>
@@ -916,7 +892,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         <div className="space-y-1.5 rounded-lg border border-emerald-500/40 bg-emerald-950/20 p-2">
           <div className="flex items-center justify-between text-[11px] font-bold text-emerald-300">
             <span>
-              {isKo ? `3D Furniture: ${prop.label}` : `3D Furniture: ${prop.label}`}
+              {`3D Furniture: ${prop.label}`}
             </span>
             <span className="font-mono text-[10px] text-slate-400">
               ({prop.xMeters}m, {prop.yMeters}m)
@@ -1004,7 +980,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 className="inline-flex items-center justify-center gap-0.5 rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 hover:border-emerald-400"
               >
                 <Copy className="h-3 w-3" />
-                {isKo ? 'Copy' : 'Copy'}
+                {'Copy'}
               </button>
             )}
             {onDeleteInteriorProp && (
@@ -1017,7 +993,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 className="inline-flex items-center justify-center gap-0.5 rounded border border-rose-500/40 bg-rose-500/15 py-1 text-rose-300 hover:bg-rose-500/25"
               >
                 <Trash2 className="h-3 w-3" />
-                {isKo ? 'Del' : 'Del'}
+                {'Del'}
               </button>
             )}
           </div>
@@ -1028,10 +1004,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--t-muted)]">
           <span>
             {menu.floorPoint
-              ? `${isKo ? 'Cursor Floor' : 'Cursor Floor'} @ (${menu.floorPoint.x}m, ${menu.floorPoint.z}m)`
-              : isKo
-                ? 'Quick Add to 3D Space'
-                : 'Quick Add to 3D Space'}
+              ? `${'Cursor Floor'} @ (${menu.floorPoint.x}m, ${menu.floorPoint.z}m)`
+              : ('Quick Add to 3D Space')}
           </span>
         </div>
 
@@ -1045,9 +1019,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           className="flex w-full items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 text-left text-[11px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
         >
           <PlusSquare className="h-3.5 w-3.5" />
-          {isKo
-            ? 'Add Storage Rack Bin at Cursor'
-            : 'Add Storage Rack Bin at Cursor'}
+          {'Add Storage Rack Bin at Cursor'}
         </button>
 
         {(onAddObstacleAtFloor || onMoveDepotToFloor) && (
@@ -1062,7 +1034,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 }}
                 className="flex items-center justify-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/15 px-2 py-1.5 font-semibold text-amber-300 hover:bg-amber-500/25"
               >
-                + {isKo ? 'Add Pillar Here' : 'Add Pillar Here'}
+                + {'Add Pillar Here'}
               </button>
             )}
             {onMoveDepotToFloor && (
@@ -1075,7 +1047,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 }}
                 className="flex items-center justify-center gap-1 rounded-lg border border-sky-500/40 bg-sky-500/15 px-2 py-1.5 font-semibold text-sky-300 hover:bg-sky-500/25"
               >
-                ★ {isKo ? 'Move Depot Here' : 'Move Depot Here'}
+                ★ {'Move Depot Here'}
               </button>
             )}
           </div>
@@ -1084,16 +1056,16 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         {onChangeFloorColor && (
           <div className="flex items-center justify-between rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1.5 text-[10px]">
             <span className="font-semibold text-cyan-300">
-              {isKo ? 'Map Floor Color:' : 'Map Floor Color:'}
+              {'Map Floor Color:'}
             </span>
             <div className="flex items-center gap-1">
               {[
-                ['#e2e8f0', isKo ? 'Light Tile' : 'Light Tile'],
-                ['#e7d5b8', isKo ? 'Warm Wood' : 'Warm Wood'],
-                ['#cbd5e1', isKo ? 'Concrete' : 'Concrete'],
-                ['#bbf7d0', isKo ? 'Epoxy Green' : 'Epoxy Green'],
-                ['#172554', isKo ? 'Blueprint' : 'Blueprint'],
-                ['#1e293b', isKo ? 'Dark Slate' : 'Dark Slate'],
+                ['#e2e8f0', ('Light Tile')],
+                ['#e7d5b8', ('Warm Wood')],
+                ['#cbd5e1', ('Concrete')],
+                ['#bbf7d0', ('Epoxy Green')],
+                ['#172554', ('Blueprint')],
+                ['#1e293b', ('Dark Slate')],
               ].map(([col, title]) => (
                 <button
                   key={col}
@@ -1113,7 +1085,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 value={floorColor}
                 onChange={(e) => onChangeFloorColor(e.target.value)}
                 className="h-5 w-6 cursor-pointer border-0 bg-transparent"
-                title={isKo ? 'Custom Floor Color' : 'Custom Floor Color'}
+                title={'Custom Floor Color'}
               />
             </div>
           </div>
@@ -1122,9 +1094,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         {onAddInteriorPropAt && (
           <div>
             <div className="mb-1 text-[10px] text-[var(--t-muted)]">
-              {isKo
-                ? 'Place 3D Furniture / Appliance Here:'
-                : 'Place 3D Furniture / Appliance Here:'}
+              {'Place 3D Furniture / Appliance Here:'}
             </div>
             <div className="grid grid-cols-3 gap-1">
               {INTERIOR_PROP_CATALOG.slice(0, 9).map((item) => (
@@ -1143,7 +1113,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 >
                   <span>{item.icon}</span>
                   <span className="truncate">
-                    {isKo ? item.nameKo.split(' ')[0] : item.nameEn.split(' ')[0]}
+                    {item.nameEn.split(' ')[0]}
                   </span>
                 </button>
               ))}
@@ -1167,7 +1137,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           className="inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 text-[11px] font-medium hover:border-[var(--t-accent)] disabled:opacity-35"
         >
           <Undo2 className="h-3.5 w-3.5 text-cyan-400" />
-          {isKo ? 'Undo' : 'Undo'}
+          {'Undo'}
         </button>
         <button
           type="button"
@@ -1179,7 +1149,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           className="inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 text-[11px] font-medium hover:border-[var(--t-accent)] disabled:opacity-35"
         >
           <Redo2 className="h-3.5 w-3.5 text-cyan-400" />
-          {isKo ? 'Redo' : 'Redo'}
+          {'Redo'}
         </button>
         <button
           type="button"
@@ -1191,27 +1161,23 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         >
           <Sparkles className="h-3.5 w-3.5" />
           {activeLayout === 'optimized_3d'
-            ? isKo
-              ? '2D Before'
-              : '2D Before'
-            : isKo
-              ? '3D After'
-              : '3D After'}
+            ? ('2D Before')
+            : ('3D After')}
         </button>
       </div>
 
       {onChangeOptimizationPreset && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
-            {isKo ? '3D Optimization Goal' : '3D Optimization Goal'}
+            {'3D Optimization Goal'}
           </div>
           <div className="grid grid-cols-2 gap-1 text-[10px]">
             {(
               [
-                ['balanced', isKo ? 'Balanced' : 'Balanced'],
-                ['speed', isKo ? 'Fast Pick' : 'Fast Pick'],
-                ['density', isKo ? 'Max Density' : 'Max Density'],
-                ['safety', isKo ? 'Max Safety' : 'Max Safety'],
+                ['balanced', ('Balanced')],
+                ['speed', ('Fast Pick')],
+                ['density', ('Max Density')],
+                ['safety', ('Max Safety')],
               ] as const
             ).map(([preset, label]) => (
               <button
@@ -1248,9 +1214,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 : 'border-[var(--t-border)] bg-[var(--t-surface-alt)]'
             }`}
           >
-            {isKo
-              ? `6-Axis Co-Pack: ${allowRotationAndCoPack ? 'ON' : 'OFF'}`
-              : `6-Axis Co-Pack: ${allowRotationAndCoPack ? 'ON' : 'OFF'}`}
+            {`6-Axis Co-Pack: ${allowRotationAndCoPack ? 'ON' : 'OFF'}`}
           </button>
         )}
         {onChangeEquipmentMode && (
@@ -1270,12 +1234,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               <Cpu className="h-3 w-3 text-emerald-400" />
             )}
             {equipmentMode === 'reach_truck'
-              ? isKo
-                ? 'Reach Truck'
-                : 'Reach Truck'
-              : isKo
-                ? 'AS/RS Crane'
-                : 'AS/RS Crane'}
+              ? ('Reach Truck')
+              : ('AS/RS Crane')}
           </button>
         )}
       </div>
@@ -1295,7 +1255,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Move className="h-3 w-3" />
-            {isKo ? 'Drag Single Item' : 'Drag Single Item'}
+            {'Drag Single Item'}
           </button>
           <button
             type="button"
@@ -1310,7 +1270,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Move className="h-3 w-3" />
-            {isKo ? 'Drag Single Bin' : 'Drag Single Bin'}
+            {'Drag Single Bin'}
           </button>
           <button
             type="button"
@@ -1325,7 +1285,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Move className="h-3 w-3" />
-            {isKo ? 'Drag Rack Column' : 'Drag Rack Column'}
+            {'Drag Rack Column'}
           </button>
           <button
             type="button"
@@ -1340,7 +1300,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Move className="h-3 w-3" />
-            {isKo ? 'Drag Whole Template' : 'Drag Whole Template'}
+            {'Drag Whole Template'}
           </button>
         </div>
       )}
@@ -1348,9 +1308,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
       {onTranslateWholeTemplate && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
-            {isKo
-              ? 'Whole-Template 1-Click Transform'
-              : 'Whole-Template 1-Click Transform'}
+            {'Whole-Template 1-Click Transform'}
           </div>
           <div className="grid grid-cols-4 gap-1 text-[10px]">
             <button
@@ -1390,7 +1348,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 }}
                 className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 font-semibold text-emerald-300 hover:border-emerald-400"
               >
-                90° {isKo ? 'Rot' : 'Rot'}
+                90° {'Rot'}
               </button>
             )}
             {onScaleWholeTemplateSpacing && (
@@ -1400,14 +1358,14 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                   onClick={() => onScaleWholeTemplateSpacing(1.12)}
                   className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 hover:border-emerald-400"
                 >
-                  {isKo ? 'Span+' : 'Span+'}
+                  {'Span+'}
                 </button>
                 <button
                   type="button"
                   onClick={() => onScaleWholeTemplateSpacing(0.88)}
                   className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 hover:border-emerald-400"
                 >
-                  {isKo ? 'Span-' : 'Span-'}
+                  {'Span-'}
                 </button>
               </>
             )}
@@ -1420,7 +1378,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 }}
                 className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 font-semibold text-cyan-300 hover:border-cyan-400"
               >
-                {isKo ? 'Center' : 'Center'}
+                {'Center'}
               </button>
             )}
           </div>
@@ -1437,7 +1395,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }}
             className="rounded-lg border border-amber-500/30 bg-amber-500/10 py-1.5 font-medium text-amber-300 hover:bg-amber-500/20"
           >
-            {isKo ? 'Clear All Pinned SKUs' : 'Clear All Pinned SKUs'}
+            {'Clear All Pinned SKUs'}
           </button>
         )}
         {onResetSpaceEdits && (
@@ -1449,7 +1407,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }}
             className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 font-medium hover:border-rose-400"
           >
-            {isKo ? 'Reset Space Edits' : 'Reset Space Edits'}
+            {'Reset Space Edits'}
           </button>
         )}
       </div>
@@ -1460,7 +1418,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
     <div className="space-y-2">
       <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
         <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
-          {isKo ? '3D Camera & Pick Route' : '3D Camera & Pick Route'}
+          {'3D Camera & Pick Route'}
         </div>
         <div className="grid grid-cols-4 gap-1 text-[10px]">
           <button
@@ -1476,7 +1434,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Compass className="h-3 w-3" />
-            {isKo ? '3D Iso' : '3D Iso'}
+            {'3D Iso'}
           </button>
           <button
             type="button"
@@ -1491,7 +1449,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Camera className="h-3 w-3" />
-            {isKo ? '2D Top' : '2D Top'}
+            {'2D Top'}
           </button>
           <button
             type="button"
@@ -1506,7 +1464,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <RotateCcw className="h-3 w-3" />
-            {isKo ? 'Z-Elev' : 'Z-Elev'}
+            {'Z-Elev'}
           </button>
           <button
             type="button"
@@ -1517,7 +1475,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             className="inline-flex flex-col items-center gap-0.5 rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 text-emerald-300 hover:border-emerald-400"
           >
             <Compass className="h-3 w-3" />
-            {isKo ? 'Reset' : 'Reset'}
+            {'Reset'}
           </button>
         </div>
 
@@ -1535,16 +1493,14 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Play className="h-3 w-3" />
-            {isKo
-              ? `Pick Route Animation: ${animateRoute ? 'ON' : 'OFF'}`
-              : `Pick Route Animation: ${animateRoute ? 'ON' : 'OFF'}`}
+            {`Pick Route Animation: ${animateRoute ? 'ON' : 'OFF'}`}
           </button>
         )}
       </div>
 
       <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
         <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
-          {isKo ? '3D Visualization Layer' : '3D Visualization Layer'}
+          {'3D Visualization Layer'}
         </div>
         <div className="grid grid-cols-3 gap-1 text-[10px]">
           <button
@@ -1560,7 +1516,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Layers className="h-3 w-3" />
-            {isKo ? '3D Pack' : '3D Pack'}
+            {'3D Pack'}
           </button>
           <button
             type="button"
@@ -1575,7 +1531,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Flame className="h-3 w-3" />
-            {isKo ? 'Heatmap' : 'Heatmap'}
+            {'Heatmap'}
           </button>
           <button
             type="button"
@@ -1590,14 +1546,14 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             }`}
           >
             <Sparkles className="h-3 w-3" />
-            {isKo ? 'Golden' : 'Golden'}
+            {'Golden'}
           </button>
         </div>
       </div>
 
       <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
         <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
-          {isKo ? 'Z-Level Cross-Section Slice' : 'Z-Level Cross-Section Slice'}
+          {'Z-Level Cross-Section Slice'}
         </div>
         <div className="flex flex-wrap gap-1 text-[10px]">
           <button
@@ -1612,7 +1568,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 : 'border-[var(--t-border)] bg-[var(--t-surface)]'
             }`}
           >
-            {isKo ? 'All' : 'All'}
+            {'All'}
           </button>
           {Array.from({ length: maxLevels }, (_, i) => i + 1).map((lvl) => (
             <button
@@ -1637,7 +1593,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
       {onApplyScenePreset && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-[var(--t-muted)]">
-            <span>{isKo ? '3D Lighting Preset' : '3D Lighting Preset'}</span>
+            <span>{'3D Lighting Preset'}</span>
             {onToggleXrayBins && (
               <button
                 type="button"
@@ -1647,18 +1603,16 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 }}
                 className="text-cyan-300 hover:underline"
               >
-                {isKo
-                  ? `X-Ray: ${xrayBins ? 'ON' : 'OFF'}`
-                  : `X-Ray: ${xrayBins ? 'ON' : 'OFF'}`}
+                {`X-Ray: ${xrayBins ? 'ON' : 'OFF'}`}
               </button>
             )}
           </div>
           <div className="grid grid-cols-2 gap-1 text-[10px]">
             {[
-              ['daylight-studio', isKo ? 'Daylight' : 'Daylight'],
-              ['warm-home', isKo ? 'Warm Home' : 'Warm Home'],
-              ['pure-white', isKo ? 'White Showroom' : 'White Showroom'],
-              ['cyber-night', isKo ? 'Dark Twin' : 'Dark Twin'],
+              ['daylight-studio', ('Daylight')],
+              ['warm-home', ('Warm Home')],
+              ['pure-white', ('White Showroom')],
+              ['cyber-night', ('Dark Twin')],
             ].map(([pid, label]) => (
               <button
                 key={pid}
@@ -1691,7 +1645,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 py-1.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
           >
             <Home className="h-3.5 w-3.5" />
-            {isKo ? '3D Interior Studio' : '3D Interior Studio'}
+            {'3D Interior Studio'}
           </button>
         )}
         {onOpenSceneBgModal && (
@@ -1704,7 +1658,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             className="inline-flex items-center justify-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/15 py-1.5 font-semibold text-amber-300 hover:bg-amber-500/25"
           >
             <Sun className="h-3.5 w-3.5" />
-            {isKo ? '3D Background' : '3D Background'}
+            {'3D Background'}
           </button>
         )}
         {onAutoPopulateInterior && (
@@ -1717,9 +1671,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             className="col-span-2 inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 font-medium hover:border-emerald-400"
           >
             <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-            {isKo
-              ? 'Auto-Populate Matching 3D Interior Props'
-              : 'Auto-Populate Matching 3D Interior Props'}
+            {'Auto-Populate Matching 3D Interior Props'}
           </button>
         )}
       </div>
@@ -1739,9 +1691,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             className="flex w-full items-center gap-2 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 py-1.5 text-left text-[11px] font-semibold hover:border-cyan-400"
           >
             <LayoutGrid className="h-3.5 w-3.5 text-cyan-400" />
-            {isKo
-              ? '1. Open 24-Template Gallery'
-              : '1. Open 24-Template Gallery'}
+            {'1. Open 24-Template Gallery'}
           </button>
         )}
         <button
@@ -1753,9 +1703,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           className="flex w-full items-center gap-2 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 py-1.5 text-left text-[11px] font-semibold hover:border-emerald-400"
         >
           <MapIcon className="h-3.5 w-3.5 text-emerald-400" />
-          {isKo
-            ? '2. Open 2D Free-Canvas Map Editor'
-            : '2. Open 2D Free-Canvas Map Editor'}
+          {'2. Open 2D Free-Canvas Map Editor'}
         </button>
         <button
           type="button"
@@ -1766,25 +1714,23 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           className="flex w-full items-center gap-2 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 py-1.5 text-left text-[11px] font-semibold hover:border-cyan-400"
         >
           <Ruler className="h-3.5 w-3.5 text-cyan-400" />
-          {isKo
-            ? '3. Export 2D CAD Blueprint (.DXF / .SVG)'
-            : '3. Export 2D CAD Blueprint (.DXF / .SVG)'}
+          {'3. Export 2D CAD Blueprint (.DXF / .SVG)'}
         </button>
       </div>
 
       {onQuickSelectScenario && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
-            {isKo ? 'Quick Space Switch' : 'Quick Space Switch'}
+            {'Quick Space Switch'}
           </div>
           <div className="grid grid-cols-2 gap-1 text-[10px]">
             {[
-              ['everyday-home-pantry', isKo ? 'Home Pantry' : 'Home Pantry'],
-              ['tpl-life-14-closet', isKo ? 'Walk-In Closet' : 'Walk-In Closet'],
-              ['tpl-life-18-oneroom', isKo ? 'Studio Wall' : 'Studio Wall'],
-              ['everyday-mini-shop', isKo ? 'Mini E-Shop' : 'Mini E-Shop'],
-              ['omni-highbay', isKo ? 'Omni High-Bay' : 'Omni High-Bay'],
-              ['asrs-cube-tall', isKo ? 'AS/RS Cube' : 'AS/RS Cube'],
+              ['everyday-home-pantry', ('Home Pantry')],
+              ['tpl-life-14-closet', ('Walk-In Closet')],
+              ['tpl-life-18-oneroom', ('Studio Wall')],
+              ['everyday-mini-shop', ('Mini E-Shop')],
+              ['omni-highbay', ('Omni High-Bay')],
+              ['asrs-cube-tall', ('AS/RS Cube')],
             ].map(([scId, label]) => (
               <button
                 key={scId}
@@ -1805,7 +1751,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
       {onOpenLeftTab && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
-            {isKo ? 'Jump to Left Panel Tab' : 'Jump to Left Panel Tab'}
+            {'Jump to Left Panel Tab'}
           </div>
           <div className="grid grid-cols-3 gap-1 text-[10px]">
             <button
@@ -1816,7 +1762,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               }}
               className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 hover:border-cyan-400"
             >
-              {isKo ? '1. Optimize' : '1. Optimize'}
+              {'1. Optimize'}
             </button>
             <button
               type="button"
@@ -1826,7 +1772,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               }}
               className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 hover:border-cyan-400"
             >
-              {isKo ? '2. Space/SKU' : '2. Space/SKU'}
+              {'2. Space/SKU'}
             </button>
             <button
               type="button"
@@ -1836,7 +1782,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               }}
               className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] py-1 hover:border-cyan-400"
             >
-              {isKo ? '3. Inspect' : '3. Inspect'}
+              {'3. Inspect'}
             </button>
           </div>
         </div>
@@ -1854,7 +1800,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 font-medium hover:border-cyan-400"
             >
               <FileSpreadsheet className="h-3.5 w-3.5 text-cyan-400" />
-              {isKo ? 'Export SKUs CSV' : 'Export SKUs CSV'}
+              {'Export SKUs CSV'}
             </button>
           )}
           {onExportSlottingCsv && (
@@ -1867,7 +1813,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 py-1.5 font-semibold text-emerald-300 hover:bg-emerald-500/20"
             >
               <Download className="h-3.5 w-3.5" />
-              {isKo ? 'Slotting CSV' : 'Slotting CSV'}
+              {'Slotting CSV'}
             </button>
           )}
         </div>
@@ -1881,9 +1827,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-cyan-300">
             <Bot className="h-3 w-3" />
-            {isKo
-              ? '1-Click Hybrid AI Co-Pilot'
-              : '1-Click Hybrid AI Co-Pilot'}
+            {'1-Click Hybrid AI Co-Pilot'}
           </div>
           <div className="space-y-1 text-[10px]">
             <button
@@ -1895,9 +1839,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="flex w-full items-center justify-between rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1.5 text-left hover:border-cyan-400"
             >
               <span>
-                {isKo
-                  ? 'Space Efficiency & Golden Zone Audit'
-                  : 'Space Efficiency & Golden Zone Audit'}
+                {'Space Efficiency & Golden Zone Audit'}
               </span>
               <Sparkles className="h-3 w-3 text-cyan-400" />
             </button>
@@ -1910,9 +1852,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="flex w-full items-center justify-between rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1.5 text-left hover:border-cyan-400"
             >
               <span>
-                {isKo
-                  ? 'Heavy Load Safety & Congestion Check'
-                  : 'Heavy Load Safety & Congestion Check'}
+                {'Heavy Load Safety & Congestion Check'}
               </span>
               <Sparkles className="h-3 w-3 text-amber-400" />
             </button>
@@ -1925,9 +1865,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="flex w-full items-center justify-between rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1.5 text-left hover:border-cyan-400"
             >
               <span>
-                {isKo
-                  ? 'Offline On-Device Bin Audit'
-                  : 'Offline On-Device Bin Audit'}
+                {'Offline On-Device Bin Audit'}
               </span>
               <Cpu className="h-3 w-3 text-emerald-400" />
             </button>
@@ -1944,14 +1882,14 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               className="inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 hover:border-cyan-400"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
-              {isKo ? 'Prev Theme' : 'Prev Theme'}
+              {'Prev Theme'}
             </button>
             <button
               type="button"
               onClick={() => onCycleTheme(1)}
               className="inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 hover:border-cyan-400"
             >
-              {isKo ? 'Next Theme' : 'Next Theme'}
+              {'Next Theme'}
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </>
@@ -1966,7 +1904,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             className="inline-flex items-center justify-center gap-1 rounded-lg border border-cyan-500/40 bg-cyan-500/15 py-1.5 font-semibold text-cyan-300 hover:bg-cyan-500/25"
           >
             <Palette className="h-3.5 w-3.5" />
-            {isKo ? '24 Themes' : '24 Themes'}
+            {'24 Themes'}
           </button>
         )}
       </div>
@@ -1987,12 +1925,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
               <Home className="h-3.5 w-3.5 text-emerald-400" />
             )}
             {appView === 'home'
-              ? isKo
-                ? 'Go to 3D Studio'
-                : 'Go to 3D Studio'
-              : isKo
-                ? 'Go to Home View'
-                : 'Go to Home View'}
+              ? ('Go to 3D Studio')
+              : ('Go to Home View')}
           </button>
         )}
         {onToggleSimpleMode && (
@@ -2006,25 +1940,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           >
             <Sliders className="h-3.5 w-3.5 text-cyan-400" />
             {simpleMode
-              ? isKo
-                ? 'Switch to Pro Terms'
-                : 'Switch to Pro Terms'
-              : isKo
-                ? 'Switch to Easy Mode'
-                : 'Switch to Easy Mode'}
-          </button>
-        )}
-        {onToggleLanguage && (
-          <button
-            type="button"
-            onClick={() => {
-              onToggleLanguage();
-              onClose();
-            }}
-            className="inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 font-medium text-amber-300 hover:border-amber-400"
-          >
-            <Languages className="h-3.5 w-3.5" />
-            English (EN)
+              ? ('Switch to Pro Terms')
+              : ('Switch to Easy Mode')}
           </button>
         )}
         {onOpenInteriorModal && (
@@ -2037,7 +1954,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             className="inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 font-medium hover:border-cyan-400"
           >
             <Keyboard className="h-3.5 w-3.5 text-cyan-400" />
-            {isKo ? 'Shortcuts Guide' : 'Shortcuts Guide'}
+            {'Shortcuts Guide'}
           </button>
         )}
         {onOpenFirebaseSetup && (
@@ -2050,9 +1967,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             className="col-span-2 inline-flex items-center justify-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-1.5 font-medium hover:border-cyan-400"
           >
             <Settings className="h-3.5 w-3.5 text-amber-400" />
-            {isKo
-              ? 'Firebase AI Logic & App Check Setup'
-              : 'Firebase AI Logic & App Check Setup'}
+            {'Firebase AI Logic & App Check Setup'}
           </button>
         )}
       </div>
@@ -2069,9 +1984,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
       <div className="border-b border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 pt-2 pb-1.5">
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-[11px] font-bold text-cyan-300">
-            {isKo
-              ? 'Right-Click All-Features Command Center'
-              : 'Right-Click All-Features Command Center'}
+            {'Right-Click All-Features Command Center'}
           </span>
           <button
             type="button"
@@ -2085,12 +1998,12 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         <div className="grid grid-cols-6 gap-0.5 text-[10px]">
           {(
             [
-              ['target', isKo ? 'Target' : 'Target'],
-              ['optimize', isKo ? 'Optimize' : 'Optimize'],
-              ['view3d', isKo ? '3D View' : '3D View'],
-              ['space_data', isKo ? 'Space' : 'Space'],
-              ['ai_system', isKo ? 'AI/Sys' : 'AI/Sys'],
-              ['all', isKo ? 'All' : 'All'],
+              ['target', ('Target')],
+              ['optimize', ('Optimize')],
+              ['view3d', ('3D View')],
+              ['space_data', ('Space')],
+              ['ai_system', ('AI/Sys')],
+              ['all', ('All')],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -2144,10 +2057,10 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           className="inline-flex items-center gap-1 font-medium text-cyan-300 hover:underline"
         >
           <ArrowDownToLine className="h-3 w-3" />
-          {isKo ? 'Open Space & SKU Editor' : 'Open Space & SKU Editor'}
+          {'Open Space & SKU Editor'}
         </button>
         <span>
-          {isKo ? 'Right-click anywhere' : 'Right-click anywhere'}
+          {'Right-click anywhere'}
         </span>
       </div>
     </div>

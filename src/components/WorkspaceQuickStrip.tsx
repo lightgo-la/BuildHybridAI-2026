@@ -165,7 +165,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
                 className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
               >
                 <Sparkles className="h-3 w-3" />
-                {lang === 'ko' ? 'Show Quick Guide' : 'Show Quick Guide'}
+                {'Show Quick Guide'}
               </button>
             )}
             {!simpleMode && (
@@ -211,9 +211,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
               <Sparkles className="h-3 w-3" />
-              {lang === 'ko'
-                ? '3-Step Quick Start:'
-                : '3-Step Quick Start:'}
+              {'3-Step Quick Start:'}
             </span>
 
             <button
@@ -222,9 +220,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
               className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-cyan-400"
             >
               <span className="font-bold text-cyan-400">STEP 1</span>
-              {lang === 'ko'
-                ? 'Choose Space Template'
-                : 'Choose Space Template'}
+              {'Choose Space Template'}
             </button>
 
             <button
@@ -252,9 +248,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
               className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-amber-400"
             >
               <span className="font-bold text-amber-400">STEP 3</span>
-              {lang === 'ko'
-                ? 'Select Golden Zone Shelf & Place Item'
-                : 'Select Golden Zone Shelf & Place Item'}
+              {'Select Golden Zone Shelf & Place Item'}
             </button>
           </div>
 
@@ -263,7 +257,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
             onClick={() => onChangeShowBeginnerGuide(false)}
             className="text-[11px] text-slate-400 hover:text-white"
           >
-            {lang === 'ko' ? 'Hide ×' : 'Hide ×'}
+            {'Hide ×'}
           </button>
         </section>
       )}

@@ -631,8 +631,8 @@ export function App() {
   }, []);
 
   const toggleLanguage = useCallback(() => {
-    setLang((prev) => {
-      const next: LangCode = prev === 'ko' ? 'en' : 'ko';
+    setLang(() => {
+      const next: LangCode = 'en';
       saveLang(next);
       return next;
     });
@@ -945,9 +945,7 @@ export function App() {
               if (alwaysOptimizedLock) {
                 setActiveLayout('optimized_3d');
                 showToast(
-                  lang === 'ko'
-                    ? '🔒 Always-Optimized Lock is ON. Keeping 3D Optimized layout.'
-                    : '🔒 Always-Optimized Lock is ON. Keeping 3D Optimized layout.'
+                  '🔒 Always-Optimized Lock is ON. Keeping 3D Optimized layout.'
                 );
                 return;
               }
@@ -957,18 +955,14 @@ export function App() {
                   : 'optimized_3d';
               setActiveLayout(next);
               showToast(
-                lang === 'ko'
-                  ? `Switched to ${next}`
-                  : `Switched to ${next}`
+                `Switched to ${next}`
               );
             }}
             onSelectRecommendedBin={(targetAlloc) => {
               setSelectedBinId(targetAlloc.bin.id);
               setLeftTab('inspector');
               showToast(
-                lang === 'ko'
-                  ? `Selected [${targetAlloc.bin.id}] in Inspector`
-                  : `Selected [${targetAlloc.bin.id}] in Inspector`
+                `Selected [${targetAlloc.bin.id}] in Inspector`
               );
             }}
           />
@@ -1066,12 +1060,10 @@ export function App() {
                 className="flex w-full items-center justify-between rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 text-left text-[11px] font-semibold text-emerald-200 transition hover:bg-emerald-500/25"
               >
                 <span>
-                  {lang === 'ko'
-                    ? '📦 Resize Shelf / Set Box Size & Place'
-                    : '📦 Resize Shelf / Set Box Size & Place'}
+                  {'📦 Resize Shelf / Set Box Size & Place'}
                 </span>
                 <span className="rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950">
-                  {lang === 'ko' ? 'Open →' : 'Open →'}
+                  {'Open →'}
                 </span>
               </button>
             </div>
@@ -1198,9 +1190,7 @@ export function App() {
                     id: Date.now(),
                     mode: 'prefer_on_device',
                     prompt:
-                      lang === 'ko'
-                        ? `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Give concise 3D slotting advice.`
-                        : `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Give concise 3D slotting advice.`,
+                      `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Give concise 3D slotting advice.`,
                   });
                 }}
                 onDeleteBin={handleDeleteBin}
@@ -1259,12 +1249,8 @@ export function App() {
                   if (next) setActiveLayout('optimized_3d');
                   showToast(
                     next
-                      ? lang === 'ko'
-                        ? '🔒 Always-Optimized Lock ON'
-                        : '🔒 Always-Optimized Lock ON'
-                      : lang === 'ko'
-                        ? '🔓 Always-Optimized Lock OFF'
-                        : '🔓 Always-Optimized Lock OFF'
+                      ? ('🔒 Always-Optimized Lock ON')
+                      : ('🔓 Always-Optimized Lock OFF')
                   );
                 }}
                 className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold transition ${
@@ -1273,9 +1259,7 @@ export function App() {
                     : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'
                 }`}
                 title={
-                  lang === 'ko'
-                    ? 'Keep viewport locked to 3D Optimized layout at all times'
-                    : 'Keep viewport locked to 3D Optimized layout at all times'
+                  'Keep viewport locked to 3D Optimized layout at all times'
                 }
               >
                 {alwaysOptimizedLock ? (
@@ -1283,17 +1267,15 @@ export function App() {
                 ) : (
                   <Unlock className="h-3 w-3" />
                 )}
-                {lang === 'ko'
-                  ? `Always Optimized ${alwaysOptimizedLock ? 'ON' : 'OFF'}`
-                  : `Always Optimized ${alwaysOptimizedLock ? 'ON' : 'OFF'}`}
+                {`Always Optimized ${alwaysOptimizedLock ? 'ON' : 'OFF'}`}
               </button>
 
               <div className="flex overflow-hidden rounded-lg border border-cyan-500/40 bg-slate-950 text-[10px]">
                 {(
                   [
-                    ['off', lang === 'ko' ? '3D Only' : '3D Only'],
-                    ['split', lang === 'ko' ? '3D + 2D Plan' : '3D + 2D Plan'],
-                    ['full_2d', lang === 'ko' ? '2D Plan Full' : '2D Plan Full'],
+                    ['off', ('3D Only')],
+                    ['split', ('3D + 2D Plan')],
+                    ['full_2d', ('2D Plan Full')],
                   ] as const
                 ).map(([m, label]) => (
                   <button
@@ -1306,9 +1288,7 @@ export function App() {
                         : 'text-cyan-300 hover:bg-slate-900'
                     }`}
                     title={
-                      lang === 'ko'
-                        ? 'View 2D Layout & Pick Route directly on the main screen'
-                        : 'View 2D Layout & Pick Route directly on the main screen'
+                      'View 2D Layout & Pick Route directly on the main screen'
                     }
                   >
                     <MapIcon className="h-2.5 w-2.5" />
@@ -1334,9 +1314,7 @@ export function App() {
                     : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-cyan-400'
                 }`}
                 title={
-                  lang === 'ko'
-                    ? 'Maximize Optimization Viewport to Full Window'
-                    : 'Maximize Optimization Viewport to Full Window'
+                  'Maximize Optimization Viewport to Full Window'
                 }
               >
                 {windowMaximized ? (
@@ -1344,11 +1322,7 @@ export function App() {
                 ) : (
                   <Maximize2 className="h-3 w-3 text-cyan-300" />
                 )}
-                {lang === 'ko'
-                  ? windowMaximized
-                    ? 'Restore Window'
-                    : 'Maximize Window'
-                  : windowMaximized
+                {windowMaximized
                     ? 'Restore Window'
                     : 'Maximize Window'}
               </button>
@@ -1430,13 +1404,11 @@ export function App() {
                 }}
                 className="inline-flex items-center gap-1 rounded-md border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-1 font-semibold text-emerald-200 hover:bg-emerald-500/30"
                 title={
-                  lang === 'ko'
-                    ? 'Open 3D Space Interior & Furniture Studio (Shortcut: I)'
-                    : 'Open 3D Space Interior & Furniture Studio (Shortcut: I)'
+                  'Open 3D Space Interior & Furniture Studio (Shortcut: I)'
                 }
               >
                 <Home className="h-3.5 w-3.5 text-emerald-300" />
-                {lang === 'ko' ? '3D Interior' : '3D Interior'}
+                {'3D Interior'}
               </button>
 
               <button
@@ -1444,13 +1416,11 @@ export function App() {
                 onClick={() => setSceneBgModalOpen(true)}
                 className="inline-flex items-center gap-1 rounded-md border border-amber-400/50 bg-amber-500/20 px-2.5 py-1 font-semibold text-amber-200 hover:bg-amber-500/30"
                 title={
-                  lang === 'ko'
-                    ? 'Open 3D Background & Lighting Studio Editor (Shortcut: B)'
-                    : 'Open 3D Background & Lighting Studio Editor (Shortcut: B)'
+                  'Open 3D Background & Lighting Studio Editor (Shortcut: B)'
                 }
               >
                 <Sun className="h-3.5 w-3.5 text-amber-300" />
-                {lang === 'ko' ? '3D Background' : '3D Background'}
+                {'3D Background'}
               </button>
 
               <button
@@ -1461,13 +1431,11 @@ export function App() {
                 }}
                 className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 font-semibold text-cyan-300 hover:border-cyan-400"
                 title={
-                  lang === 'ko'
-                    ? 'Open Keyboard Shortcuts Guide (Shortcut: ? or K)'
-                    : 'Open Keyboard Shortcuts Guide (Shortcut: ? or K)'
+                  'Open Keyboard Shortcuts Guide (Shortcut: ? or K)'
                 }
               >
                 <Keyboard className="h-3.5 w-3.5" />
-                {lang === 'ko' ? 'Keys' : 'Keys'}
+                {'Keys'}
               </button>
             </div>
           </div>
@@ -1487,23 +1455,17 @@ export function App() {
                       setSelectedBinId(target.bin.id);
                       setLeftTab('inspector');
                       showToast(
-                        lang === 'ko'
-                          ? `Opened Box & Shelf Size Configurator for [${target.bin.id}].`
-                          : `Opened Box & Shelf Size Configurator for [${target.bin.id}].`
+                        `Opened Box & Shelf Size Configurator for [${target.bin.id}].`
                       );
                     }
                   }}
                   className="inline-flex items-center gap-1 rounded-md border border-emerald-400/60 bg-emerald-500/20 px-2.5 py-1 font-bold text-emerald-200 hover:bg-emerald-500/30"
                   title={
-                    lang === 'ko'
-                      ? 'Resize shelf or configure custom box dimensions (L×W×H cm) and place into shelf'
-                      : 'Resize shelf or configure custom box dimensions (L×W×H cm) and place into shelf'
+                    'Resize shelf or configure custom box dimensions (L×W×H cm) and place into shelf'
                   }
                 >
                   <Plus className="h-3.5 w-3.5 text-emerald-300" />
-                  {lang === 'ko'
-                    ? 'Shelf & Custom Box Size'
-                    : 'Shelf & Custom Box Size'}
+                  {'Shelf & Custom Box Size'}
                 </button>
 
                 <select
@@ -1540,27 +1502,21 @@ export function App() {
                         (b) => b.skuId === skuId
                       ).length;
                       showToast(
-                        lang === 'ko'
-                          ? `🔍 Located [${box?.name.split(' (')[0]}] in Bin ${foundAlloc.bin.id} (Z${foundAlloc.bin.level}, ${totalInBin} pcs) — Zoomed in!`
-                          : `🔍 Located [${box?.name.split(' (')[0]}] in Bin ${foundAlloc.bin.id} (Z${foundAlloc.bin.level}, ${totalInBin} pcs) — Zoomed in!`
+                        `🔍 Located [${box?.name.split(' (')[0]}] in Bin ${foundAlloc.bin.id} (Z${foundAlloc.bin.level}, ${totalInBin} pcs) — Zoomed in!`
                       );
                     } else {
                       showToast(
-                        lang === 'ko'
-                          ? 'This SKU is currently unplaced.'
-                          : 'This SKU is currently unplaced.'
+                        'This SKU is currently unplaced.'
                       );
                     }
                   }}
                   className="max-w-[175px] cursor-pointer rounded-md border border-cyan-500/45 bg-slate-900 px-2 py-1 font-semibold text-cyan-200 hover:border-cyan-400"
                   title={
-                    lang === 'ko'
-                      ? 'Select any item to automatically locate and zoom to its 3D shelf and box'
-                      : 'Select any item to automatically locate and zoom to its 3D shelf and box'
+                    'Select any item to automatically locate and zoom to its 3D shelf and box'
                   }
                 >
                   <option value="">
-                    {lang === 'ko' ? '🔍 Find Item in 3D...' : '🔍 Find Item in 3D...'}
+                    {'🔍 Find Item in 3D...'}
                   </option>
                   {skus.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -1578,17 +1534,11 @@ export function App() {
                       : 'border-emerald-500/45 bg-slate-900 text-emerald-300 hover:border-emerald-400'
                   }`}
                   title={
-                    lang === 'ko'
-                      ? 'Quickly add or delete 3D interior furniture, appliances, doors & windows inline'
-                      : 'Quickly add or delete 3D interior furniture, appliances, doors & windows inline'
+                    'Quickly add or delete 3D interior furniture, appliances, doors & windows inline'
                   }
                 >
                   <Home className="h-3.5 w-3.5 text-emerald-300" />
-                  {lang === 'ko'
-                    ? `🛋️ Quick Interior (${effectiveInteriorProps.length}) ${
-                        showQuickInteriorBar ? '▴' : '▾'
-                      }`
-                    : `🛋️ Quick Interior (${effectiveInteriorProps.length}) ${
+                  {`🛋️ Quick Interior (${effectiveInteriorProps.length}) ${
                         showQuickInteriorBar ? '▴' : '▾'
                       }`}
                 </button>
@@ -1621,16 +1571,14 @@ export function App() {
                     onClick={() => {
                       handleWorkspaceUndo();
                       showToast(
-                        lang === 'ko'
-                          ? 'Undo 3D Edit'
-                          : 'Undo 3D Edit'
+                        'Undo 3D Edit'
                       );
                     }}
                     className="inline-flex items-center gap-1 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
                     title="Undo 3D Workspace Edit (Ctrl+Z)"
                   >
                     <Undo2 className="h-3 w-3 text-cyan-400" />
-                    {lang === 'ko' ? 'Undo' : 'Undo'}
+                    {'Undo'}
                   </button>
                   <button
                     type="button"
@@ -1638,16 +1586,14 @@ export function App() {
                     onClick={() => {
                       handleWorkspaceRedo();
                       showToast(
-                        lang === 'ko'
-                          ? 'Redo 3D Edit'
-                          : 'Redo 3D Edit'
+                        'Redo 3D Edit'
                       );
                     }}
                     className="inline-flex items-center gap-1 border-l border-slate-700 px-2 py-0.5 text-slate-200 hover:bg-slate-800 disabled:opacity-35"
                     title="Redo 3D Workspace Edit (Ctrl+Y / Ctrl+Shift+Z)"
                   >
                     <Redo2 className="h-3 w-3 text-cyan-400" />
-                    {lang === 'ko' ? 'Redo' : 'Redo'}
+                    {'Redo'}
                   </button>
                 </div>
 
@@ -1685,15 +1631,15 @@ export function App() {
               <div className="flex flex-wrap items-center gap-1.5">
                 <div className="flex items-center gap-1 rounded-md border border-cyan-500/35 bg-slate-900 px-1.5 py-0.5">
                   <span className="font-semibold text-cyan-300">
-                    {lang === 'ko' ? 'Floor:' : 'Floor:'}
+                    {'Floor:'}
                   </span>
                   {[
-                    ['#e2e8f0', lang === 'ko' ? 'Light Tile' : 'Light Tile'],
-                    ['#e7d5b8', lang === 'ko' ? 'Warm Wood' : 'Warm Wood'],
-                    ['#cbd5e1', lang === 'ko' ? 'Concrete' : 'Concrete'],
-                    ['#bbf7d0', lang === 'ko' ? 'Epoxy Green' : 'Epoxy Green'],
-                    ['#172554', lang === 'ko' ? 'Blueprint' : 'Blueprint'],
-                    ['#1e293b', lang === 'ko' ? 'Dark Slate' : 'Dark Slate'],
+                    ['#e2e8f0', ('Light Tile')],
+                    ['#e7d5b8', ('Warm Wood')],
+                    ['#cbd5e1', ('Concrete')],
+                    ['#bbf7d0', ('Epoxy Green')],
+                    ['#172554', ('Blueprint')],
+                    ['#1e293b', ('Dark Slate')],
                   ].map(([col, title]) => (
                     <button
                       key={col}
@@ -1719,9 +1665,7 @@ export function App() {
                     onChange={(e) => handleChangeFloorColor(e.target.value)}
                     className="h-4 w-5 cursor-pointer border-0 bg-transparent"
                     title={
-                      lang === 'ko'
-                        ? 'Pick Custom Map Floor Color'
-                        : 'Pick Custom Map Floor Color'
+                      'Pick Custom Map Floor Color'
                     }
                   />
                 </div>
@@ -1729,10 +1673,10 @@ export function App() {
                 <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900 px-1.5 py-0.5">
                   <Sun className="h-3 w-3 text-amber-400" />
                   {[
-                    ['daylight-studio', lang === 'ko' ? 'Daylight' : 'Daylight'],
-                    ['warm-home', lang === 'ko' ? 'Warm Home' : 'Warm Home'],
-                    ['pure-white', lang === 'ko' ? 'White' : 'White'],
-                    ['cyber-night', lang === 'ko' ? 'Dark' : 'Dark'],
+                    ['daylight-studio', ('Daylight')],
+                    ['warm-home', ('Warm Home')],
+                    ['pure-white', ('White')],
+                    ['cyber-night', ('Dark')],
                   ].map(([pid, label]) => (
                     <button
                       key={pid}
@@ -1768,11 +1712,7 @@ export function App() {
                         : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-400'
                     }`}
                   >
-                    {lang === 'ko'
-                      ? showAdvanced3DTools
-                        ? 'Hide Advanced ▴'
-                        : 'Advanced Tools ▾'
-                      : showAdvanced3DTools
+                    {showAdvanced3DTools
                         ? 'Hide Advanced ▴'
                         : 'Advanced Tools ▾'}
                   </button>
@@ -1785,7 +1725,7 @@ export function App() {
                 <div className="flex flex-wrap items-center justify-between gap-1.5">
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="font-bold text-emerald-300">
-                      {lang === 'ko' ? '+ Quick Add:' : '+ Quick Add:'}
+                      {'+ Quick Add:'}
                     </span>
                     {INTERIOR_PROP_CATALOG.map((item) => (
                       <button
@@ -1794,16 +1734,12 @@ export function App() {
                         onClick={() => handleAddInteriorProp(item.type)}
                         className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-medium text-slate-200 hover:border-emerald-400 hover:bg-emerald-500/15 hover:text-white"
                         title={
-                          lang === 'ko'
-                            ? `Click to add [${item.nameEn}] to 3D space`
-                            : `Click to add [${item.nameEn}] to 3D space`
+                          `Click to add [${item.nameEn}] to 3D space`
                         }
                       >
                         <span>{item.icon}</span>
                         <span>
-                          {lang === 'ko'
-                            ? item.nameKo.split(' ')[0].split('·')[0]
-                            : item.nameEn.split(' ')[0]}
+                          {item.nameEn.split(' ')[0]}
                         </span>
                       </button>
                     ))}
@@ -1812,10 +1748,10 @@ export function App() {
                   <div className="flex flex-wrap items-center gap-1">
                     {(
                       [
-                        ['cutaway_corner', lang === 'ko' ? 'L-Wall' : 'L-Wall'],
-                        ['three_walls', lang === 'ko' ? '3-Wall' : '3-Wall'],
-                        ['glass_room', lang === 'ko' ? 'Glass' : 'Glass'],
-                        ['open_floor', lang === 'ko' ? 'Open' : 'Open'],
+                        ['cutaway_corner', ('L-Wall')],
+                        ['three_walls', ('3-Wall')],
+                        ['glass_room', ('Glass')],
+                        ['open_floor', ('Open')],
                       ] as const
                     ).map(([st, label]) => (
                       <button
@@ -1846,25 +1782,23 @@ export function App() {
                         }))
                       }
                       className="h-4 w-5 cursor-pointer border-0 bg-transparent"
-                      title={lang === 'ko' ? 'Wall Color' : 'Wall Color'}
+                      title={'Wall Color'}
                     />
                     <button
                       type="button"
                       onClick={handleAutoPopulateInterior}
                       className="rounded border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 font-bold text-emerald-300 hover:bg-emerald-500/30"
                     >
-                      {lang === 'ko' ? '✨ Auto Set' : '✨ Auto Set'}
+                      {'✨ Auto Set'}
                     </button>
 
                     <label
                       className="cursor-pointer rounded border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-bold text-cyan-200 hover:bg-cyan-500/25"
                       title={
-                        lang === 'ko'
-                          ? 'Import 100-item sample JSON (Interior, Obstacles, Bins, SKUs, Custom Boxes) or Full Workspace JSON'
-                          : 'Import 100-item sample JSON (Interior, Obstacles, Bins, SKUs, Custom Boxes) or Full Workspace JSON'
+                        'Import 100-item sample JSON (Interior, Obstacles, Bins, SKUs, Custom Boxes) or Full Workspace JSON'
                       }
                     >
-                      {lang === 'ko' ? '📂 Load JSON' : '📂 Load JSON'}
+                      {'📂 Load JSON'}
                       <input
                         type="file"
                         accept=".json,application/json"
@@ -1885,25 +1819,19 @@ export function App() {
                                     interiorProps: data as InteriorProp[],
                                   }));
                                   showToast(
-                                    lang === 'ko'
-                                      ? `Loaded ${data.length} 3D interior props from JSON!`
-                                      : `Loaded ${data.length} 3D interior props from JSON!`
+                                    `Loaded ${data.length} 3D interior props from JSON!`
                                   );
                                 } else if (first.binLengthCm !== undefined && first.zMeters !== undefined) {
                                   setCustomBinsOverride(data as BinSpec[]);
                                   setExtraBins([]);
                                   setRemovedBinIds([]);
                                   showToast(
-                                    lang === 'ko'
-                                      ? `Loaded ${data.length} 3D shelf bins from JSON!`
-                                      : `Loaded ${data.length} 3D shelf bins from JSON!`
+                                    `Loaded ${data.length} 3D shelf bins from JSON!`
                                   );
                                 } else if (first.dailyPicks !== undefined && first.skuCode) {
                                   setSkus(data as SKUItem[]);
                                   showToast(
-                                    lang === 'ko'
-                                      ? `Loaded ${data.length} SKUs from JSON!`
-                                      : `Loaded ${data.length} SKUs from JSON!`
+                                    `Loaded ${data.length} SKUs from JSON!`
                                   );
                                 } else if (first.sampleId !== undefined && first.binId && first.lengthCm) {
                                   const convertedSkus: SKUItem[] = data.map((c: any, idx: number) => ({
@@ -1923,9 +1851,7 @@ export function App() {
                                   }));
                                   setSkus(convertedSkus);
                                   showToast(
-                                    lang === 'ko'
-                                      ? `Loaded ${data.length} custom box samples from JSON!`
-                                      : `Loaded ${data.length} custom box samples from JSON!`
+                                    `Loaded ${data.length} custom box samples from JSON!`
                                   );
                                 } else if (first.aisle !== undefined && first.bay !== undefined && first.xMeters !== undefined) {
                                   setConfigPatch((prev) => ({
@@ -1933,9 +1859,7 @@ export function App() {
                                     obstacles: data as WarehouseObstacle[],
                                   }));
                                   showToast(
-                                    lang === 'ko'
-                                      ? `Loaded ${data.length} obstacles from JSON!`
-                                      : `Loaded ${data.length} obstacles from JSON!`
+                                    `Loaded ${data.length} obstacles from JSON!`
                                   );
                                 }
                               } else if (data && typeof data === 'object') {
@@ -1951,16 +1875,12 @@ export function App() {
                                   setCustomBinsOverride(data.customBinsOverride);
                                 }
                                 showToast(
-                                  lang === 'ko'
-                                    ? 'Loaded full workspace settings JSON!'
-                                    : 'Loaded full workspace settings JSON!'
+                                  'Loaded full workspace settings JSON!'
                                 );
                               }
                             } catch {
                               showToast(
-                                lang === 'ko'
-                                  ? 'Invalid JSON file format.'
-                                  : 'Invalid JSON file format.'
+                                'Invalid JSON file format.'
                               );
                             }
                           };
@@ -1995,19 +1915,15 @@ export function App() {
                         a.click();
                         URL.revokeObjectURL(url);
                         showToast(
-                          lang === 'ko'
-                            ? 'Saved current 3D interior & workspace settings to JSON.'
-                            : 'Saved current 3D interior & workspace settings to JSON.'
+                          'Saved current 3D interior & workspace settings to JSON.'
                         );
                       }}
                       className="rounded border border-slate-700 bg-slate-950 px-2 py-0.5 font-semibold text-slate-300 hover:border-cyan-400 hover:text-cyan-200"
                       title={
-                        lang === 'ko'
-                          ? 'Export current interior, shelf & SKU settings to JSON'
-                          : 'Export current interior, shelf & SKU settings to JSON'
+                        'Export current interior, shelf & SKU settings to JSON'
                       }
                     >
-                      {lang === 'ko' ? '⬇ Save JSON' : '⬇ Save JSON'}
+                      {'⬇ Save JSON'}
                     </button>
                     {effectiveInteriorProps.length > 0 && (
                       <button
@@ -2020,14 +1936,12 @@ export function App() {
                           }));
                           setSelectedPropId(null);
                           showToast(
-                            lang === 'ko'
-                              ? 'Cleared all 3D interior props.'
-                              : 'Cleared all 3D interior props.'
+                            'Cleared all 3D interior props.'
                           );
                         }}
                         className="rounded border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 font-bold text-rose-300 hover:bg-rose-500/25"
                       >
-                        {lang === 'ko' ? '🗑️ Clear All' : '🗑️ Clear All'}
+                        {'🗑️ Clear All'}
                       </button>
                     )}
                   </div>
@@ -2035,15 +1949,11 @@ export function App() {
 
                 <div className="flex max-h-20 flex-wrap items-center gap-1 overflow-y-auto border-t border-slate-800 pt-1">
                   <span className="font-semibold text-slate-400">
-                    {lang === 'ko'
-                      ? `Placed (${effectiveInteriorProps.length} · Click:Select · ×:Delete):`
-                      : `Placed (${effectiveInteriorProps.length} · Click:Select · ×:Delete):`}
+                    {`Placed (${effectiveInteriorProps.length} · Click:Select · ×:Delete):`}
                   </span>
                   {effectiveInteriorProps.length === 0 ? (
                     <span className="text-slate-500">
-                      {lang === 'ko'
-                        ? 'No props placed. Click any icon above to add.'
-                        : 'No props placed. Click any icon above to add.'}
+                      {'No props placed. Click any icon above to add.'}
                     </span>
                   ) : (
                     effectiveInteriorProps.map((p) => {
@@ -2070,9 +1980,7 @@ export function App() {
                             }}
                             className="inline-flex items-center gap-1 hover:text-cyan-300"
                             title={
-                              lang === 'ko'
-                                ? 'Click to focus & edit this prop'
-                                : 'Click to focus & edit this prop'
+                              'Click to focus & edit this prop'
                             }
                           >
                             <span>{meta?.icon ?? '🛋️'}</span>
@@ -2082,7 +1990,7 @@ export function App() {
                             type="button"
                             onClick={() => handleDeleteInteriorProp(p.id)}
                             className="ml-0.5 rounded px-1 text-rose-400 hover:bg-rose-500/25 hover:text-rose-200"
-                            title={lang === 'ko' ? 'Delete prop' : 'Delete prop'}
+                            title={'Delete prop'}
                           >
                             ×
                           </button>
@@ -2098,7 +2006,7 @@ export function App() {
               <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-800/80 pt-1.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="font-semibold text-cyan-300">
-                    {lang === 'ko' ? 'Drag Scope:' : 'Drag Scope:'}
+                    {'Drag Scope:'}
                   </span>
                   <div className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900">
                     <button
@@ -2118,7 +2026,7 @@ export function App() {
                       }`}
                     >
                       <Move className="h-3 w-3" />
-                      {lang === 'ko' ? 'Single Item' : 'Single Item'}
+                      {'Single Item'}
                     </button>
                     <button
                       type="button"
@@ -2136,7 +2044,7 @@ export function App() {
                           : 'text-sky-300 hover:bg-slate-800'
                       }`}
                     >
-                      {lang === 'ko' ? 'Single Bin' : 'Single Bin'}
+                      {'Single Bin'}
                     </button>
                     <button
                       type="button"
@@ -2154,7 +2062,7 @@ export function App() {
                           : 'text-slate-300 hover:bg-slate-800'
                       }`}
                     >
-                      {lang === 'ko' ? 'Rack Column' : 'Rack Column'}
+                      {'Rack Column'}
                     </button>
                     <button
                       type="button"
@@ -2172,20 +2080,20 @@ export function App() {
                           : 'text-emerald-300 hover:bg-slate-800'
                       }`}
                     >
-                      {lang === 'ko' ? 'Whole Template' : 'Whole Template'}
+                      {'Whole Template'}
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/30 px-1.5 py-0.5">
                   <span className="font-semibold text-emerald-300">
-                    {lang === 'ko' ? 'Whole Space:' : 'Whole Space:'}
+                    {'Whole Space:'}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleTranslateWholeTemplate(-0.5, 0)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                    title={lang === 'ko' ? 'Move All Left 0.5m' : 'Move All Left 0.5m'}
+                    title={'Move All Left 0.5m'}
                   >
                     ←
                   </button>
@@ -2193,7 +2101,7 @@ export function App() {
                     type="button"
                     onClick={() => handleTranslateWholeTemplate(0.5, 0)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                    title={lang === 'ko' ? 'Move All Right 0.5m' : 'Move All Right 0.5m'}
+                    title={'Move All Right 0.5m'}
                   >
                     →
                   </button>
@@ -2201,7 +2109,7 @@ export function App() {
                     type="button"
                     onClick={() => handleTranslateWholeTemplate(0, -0.5)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                    title={lang === 'ko' ? 'Move All Front 0.5m' : 'Move All Front 0.5m'}
+                    title={'Move All Front 0.5m'}
                   >
                     ↑
                   </button>
@@ -2209,7 +2117,7 @@ export function App() {
                     type="button"
                     onClick={() => handleTranslateWholeTemplate(0, 0.5)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                    title={lang === 'ko' ? 'Move All Back 0.5m' : 'Move All Back 0.5m'}
+                    title={'Move All Back 0.5m'}
                   >
                     ↓
                   </button>
@@ -2218,9 +2126,7 @@ export function App() {
                     onClick={() => {
                       handleRotateWholeTemplate90();
                       showToast(
-                        lang === 'ko'
-                          ? 'Rotated Whole Template 90°'
-                          : 'Rotated Whole Template 90°'
+                        'Rotated Whole Template 90°'
                       );
                     }}
                     className="inline-flex items-center gap-0.5 rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 text-emerald-300 hover:border-emerald-400"
@@ -2233,21 +2139,21 @@ export function App() {
                     onClick={() => handleScaleWholeTemplateSpacing(1.12)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
                   >
-                    {lang === 'ko' ? 'Span+' : 'Span+'}
+                    {'Span+'}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleScaleWholeTemplateSpacing(0.88)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
                   >
-                    {lang === 'ko' ? 'Span-' : 'Span-'}
+                    {'Span-'}
                   </button>
                   <button
                     type="button"
                     onClick={handleCenterWholeTemplate}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 text-cyan-300 hover:border-cyan-400"
                   >
-                    {lang === 'ko' ? 'Center' : 'Center'}
+                    {'Center'}
                   </button>
                 </div>
               </div>
@@ -2276,7 +2182,7 @@ export function App() {
 
                 <div className="flex items-center gap-1 rounded-md border border-emerald-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
                   <span className="font-semibold text-emerald-300">
-                    {lang === 'ko' ? 'Size:' : 'Size:'}
+                    {'Size:'}
                   </span>
                   <input
                     type="number"
@@ -2296,7 +2202,7 @@ export function App() {
                       )
                     }
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                    title={lang === 'ko' ? 'Length L (cm)' : 'Length L (cm)'}
+                    title={'Length L (cm)'}
                   />
                   <span className="text-slate-500">×</span>
                   <input
@@ -2317,7 +2223,7 @@ export function App() {
                       )
                     }
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                    title={lang === 'ko' ? 'Width W (cm)' : 'Width W (cm)'}
+                    title={'Width W (cm)'}
                   />
                   <span className="text-slate-500">×</span>
                   <input
@@ -2338,13 +2244,13 @@ export function App() {
                       )
                     }
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                    title={lang === 'ko' ? 'Height H (cm)' : 'Height H (cm)'}
+                    title={'Height H (cm)'}
                   />
                   <span className="text-slate-400">cm</span>
                 </div>
 
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? 'Move Item:' : 'Move Item:'}
+                  {'Move Item:'}
                 </span>
                 <button
                   type="button"
@@ -2357,7 +2263,7 @@ export function App() {
                     )
                   }
                   className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
-                  title={lang === 'ko' ? 'Move to Left Bin (←)' : 'Move to Left Bin (←)'}
+                  title={'Move to Left Bin (←)'}
                 >
                   ←
                 </button>
@@ -2372,7 +2278,7 @@ export function App() {
                     )
                   }
                   className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
-                  title={lang === 'ko' ? 'Move to Right Bin (→)' : 'Move to Right Bin (→)'}
+                  title={'Move to Right Bin (→)'}
                 >
                   →
                 </button>
@@ -2387,7 +2293,7 @@ export function App() {
                     )
                   }
                   className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
-                  title={lang === 'ko' ? 'Move to Front Bin (↑)' : 'Move to Front Bin (↑)'}
+                  title={'Move to Front Bin (↑)'}
                 >
                   ↑
                 </button>
@@ -2402,7 +2308,7 @@ export function App() {
                     )
                   }
                   className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
-                  title={lang === 'ko' ? 'Move to Back Bin (↓)' : 'Move to Back Bin (↓)'}
+                  title={'Move to Back Bin (↓)'}
                 >
                   ↓
                 </button>
@@ -2423,9 +2329,7 @@ export function App() {
                       }
                       className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300 hover:border-emerald-400"
                       title={
-                        lang === 'ko'
-                          ? `Move this item to Z${lv}`
-                          : `Move this item to Z${lv}`
+                        `Move this item to Z${lv}`
                       }
                     >
                       Z{lv}
@@ -2438,7 +2342,7 @@ export function App() {
                     handlePinCargo(selectedCargo.binId, selectedCargo.skuId, 1)
                   }
                   className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
-                  title={lang === 'ko' ? 'Add +1 here' : 'Add +1 here'}
+                  title={'Add +1 here'}
                 >
                   +1
                 </button>
@@ -2466,12 +2370,10 @@ export function App() {
                   }}
                   className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
                   title={
-                    lang === 'ko'
-                      ? 'Move entire SKU batch in this bin to Golden Zone'
-                      : 'Move entire SKU batch in this bin to Golden Zone'
+                    'Move entire SKU batch in this bin to Golden Zone'
                   }
                 >
-                  {lang === 'ko' ? 'Move Batch' : 'Move Batch'}
+                  {'Move Batch'}
                 </button>
                 <button
                   type="button"
@@ -2480,7 +2382,7 @@ export function App() {
                     setSelectedCargo(null);
                   }}
                   className="rounded border border-rose-500/40 bg-rose-500/20 p-1 text-rose-300 hover:bg-rose-500/30"
-                  title={lang === 'ko' ? 'Remove 1 unit (Del)' : 'Remove 1 unit (Del)'}
+                  title={'Remove 1 unit (Del)'}
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
@@ -2501,14 +2403,12 @@ export function App() {
               !selectedDepot && (
                 <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-sky-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                   <span className="font-bold text-sky-300">
-                    {lang === 'ko'
-                      ? `Shelf [${selectedBin.bin.id}]`
-                      : `Shelf [${selectedBin.bin.id}]`}
+                    {`Shelf [${selectedBin.bin.id}]`}
                   </span>
 
                   <div className="flex items-center gap-1 rounded-md border border-emerald-500/45 bg-slate-900/95 px-1.5 py-0.5 text-[10px]">
                     <span className="font-semibold text-emerald-300">
-                      {lang === 'ko' ? 'Boxes:' : 'Boxes:'}
+                      {'Boxes:'}
                     </span>
                     {[0, 1, 2, 4, 6].map((q) => (
                       <button
@@ -2547,16 +2447,14 @@ export function App() {
                       }
                       className="w-10 rounded border border-emerald-500/50 bg-slate-950 px-1 py-0.2 text-center font-mono font-bold text-amber-300"
                       title={
-                        lang === 'ko'
-                          ? 'Enter exact total box count for this shelf bin'
-                          : 'Enter exact total box count for this shelf bin'
+                        'Enter exact total box count for this shelf bin'
                       }
                     />
                   </div>
 
                   <div className="flex items-center gap-1 rounded-md border border-cyan-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
                     <span className="font-semibold text-cyan-300">
-                      {lang === 'ko' ? 'Shelf Size:' : 'Shelf Size:'}
+                      {'Shelf Size:'}
                     </span>
                     <input
                       type="number"
@@ -2580,7 +2478,7 @@ export function App() {
                         )
                       }
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                      title={lang === 'ko' ? 'Shelf Length L (cm)' : 'Shelf Length L (cm)'}
+                      title={'Shelf Length L (cm)'}
                     />
                     <span className="text-slate-500">×</span>
                     <input
@@ -2605,7 +2503,7 @@ export function App() {
                         )
                       }
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                      title={lang === 'ko' ? 'Shelf Width W (cm)' : 'Shelf Width W (cm)'}
+                      title={'Shelf Width W (cm)'}
                     />
                     <span className="text-slate-500">×</span>
                     <input
@@ -2630,7 +2528,7 @@ export function App() {
                         )
                       }
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                      title={lang === 'ko' ? 'Shelf Height H (cm)' : 'Shelf Height H (cm)'}
+                      title={'Shelf Height H (cm)'}
                     />
                     <span className="text-slate-400">cm</span>
                     <button
@@ -2653,7 +2551,7 @@ export function App() {
                         )
                       }
                       className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[9px] text-slate-300 hover:border-cyan-400"
-                      title={lang === 'ko' ? 'Scale this bin -10%' : 'Scale this bin -10%'}
+                      title={'Scale this bin -10%'}
                     >
                       -10%
                     </button>
@@ -2677,7 +2575,7 @@ export function App() {
                         )
                       }
                       className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[9px] text-slate-300 hover:border-cyan-400"
-                      title={lang === 'ko' ? 'Scale this bin +10%' : 'Scale this bin +10%'}
+                      title={'Scale this bin +10%'}
                     >
                       +10%
                     </button>
@@ -2693,7 +2591,7 @@ export function App() {
                       )
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
-                    title={lang === 'ko' ? 'Move Left' : 'Move Left'}
+                    title={'Move Left'}
                   >
                     ←
                   </button>
@@ -2707,7 +2605,7 @@ export function App() {
                       )
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
-                    title={lang === 'ko' ? 'Move Right' : 'Move Right'}
+                    title={'Move Right'}
                   >
                     →
                   </button>
@@ -2721,7 +2619,7 @@ export function App() {
                       )
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
-                    title={lang === 'ko' ? 'Move Front' : 'Move Front'}
+                    title={'Move Front'}
                   >
                     ↑
                   </button>
@@ -2735,7 +2633,7 @@ export function App() {
                       )
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
-                    title={lang === 'ko' ? 'Move Back' : 'Move Back'}
+                    title={'Move Back'}
                   >
                     ↓
                   </button>
@@ -2751,7 +2649,7 @@ export function App() {
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:border-sky-400"
                   >
-                    {lang === 'ko' ? 'Z-' : 'Z-'}
+                    {'Z-'}
                   </button>
                   <button
                     type="button"
@@ -2765,7 +2663,7 @@ export function App() {
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:border-sky-400"
                   >
-                    {lang === 'ko' ? 'Z+' : 'Z+'}
+                    {'Z+'}
                   </button>
                   <button
                     type="button"
@@ -2780,9 +2678,7 @@ export function App() {
             {selectedObstacle && (
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-yellow-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span className="font-bold text-yellow-300">
-                  {lang === 'ko'
-                    ? `Obstacle: ${selectedObstacle.label}`
-                    : `Obstacle: ${selectedObstacle.label}`}
+                  {`Obstacle: ${selectedObstacle.label}`}
                 </span>
                 <span className="font-mono text-[10px] text-slate-400">
                   ({selectedObstacle.xMeters}m, {selectedObstacle.yMeters}m)
@@ -2855,9 +2751,7 @@ export function App() {
             {selectedDepot && (
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-sky-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span className="font-bold text-sky-300">
-                  {lang === 'ko'
-                    ? '★ I/O Depot / Entry Point'
-                    : '★ I/O Depot / Entry Point'}
+                  {'★ I/O Depot / Entry Point'}
                 </span>
                 <span className="font-mono text-[10px] text-slate-400">
                   ({activeDepotX.toFixed(2)}m, {activeDepotZ.toFixed(2)}m)
@@ -2910,7 +2804,7 @@ export function App() {
                   }
                   className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-500/25"
                 >
-                  {lang === 'ko' ? 'Reset Center' : 'Reset Center'}
+                  {'Reset Center'}
                 </button>
                 <button
                   type="button"
@@ -3085,12 +2979,8 @@ export function App() {
                       const next = !prev;
                       showToast(
                         next
-                          ? lang === 'ko'
-                            ? '✨ Smart Auto-Zoom ON'
-                            : '✨ Smart Auto-Zoom ON'
-                          : lang === 'ko'
-                            ? 'Smart Auto-Zoom OFF'
-                            : 'Smart Auto-Zoom OFF'
+                          ? ('✨ Smart Auto-Zoom ON')
+                          : ('Smart Auto-Zoom OFF')
                       );
                       return next;
                     })
@@ -3114,13 +3004,11 @@ export function App() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                     title={
-                      lang === 'ko'
-                        ? '3D Isometric Auto-Fit (Shortcut: 1)'
-                        : '3D Isometric Auto-Fit (Shortcut: 1)'
+                      '3D Isometric Auto-Fit (Shortcut: 1)'
                     }
                   >
                     <Compass className="h-3 w-3" />
-                    {lang === 'ko' ? '3D Iso' : '3D Iso'}
+                    {'3D Iso'}
                   </button>
                   <button
                     type="button"
@@ -3134,13 +3022,11 @@ export function App() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                     title={
-                      lang === 'ko'
-                        ? '2D Top-Down Auto-Fit (Shortcut: 2)'
-                        : '2D Top-Down Auto-Fit (Shortcut: 2)'
+                      '2D Top-Down Auto-Fit (Shortcut: 2)'
                     }
                   >
                     <Camera className="h-3 w-3" />
-                    {lang === 'ko' ? '2D Top' : '2D Top'}
+                    {'2D Top'}
                   </button>
                   <button
                     type="button"
@@ -3154,13 +3040,11 @@ export function App() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                     title={
-                      lang === 'ko'
-                        ? 'Z-Elevation Auto-Fit (Shortcut: 3)'
-                        : 'Z-Elevation Auto-Fit (Shortcut: 3)'
+                      'Z-Elevation Auto-Fit (Shortcut: 3)'
                     }
                   >
                     <RotateCcw className="h-3 w-3" />
-                    {lang === 'ko' ? 'Z-Elevation' : 'Z-Elevation'}
+                    {'Z-Elevation'}
                   </button>
                   <button
                     type="button"
@@ -3174,13 +3058,11 @@ export function App() {
                         : 'text-slate-400 hover:text-white'
                     }`}
                     title={
-                      lang === 'ko'
-                        ? 'Eye-Level Golden Zone Closeup View (Shortcut: 4)'
-                        : 'Eye-Level Golden Zone Closeup View (Shortcut: 4)'
+                      'Eye-Level Golden Zone Closeup View (Shortcut: 4)'
                     }
                   >
                     <Sparkles className="h-3 w-3" />
-                    {lang === 'ko' ? 'Closeup' : 'Closeup'}
+                    {'Closeup'}
                   </button>
                   <button
                     type="button"
@@ -3193,12 +3075,8 @@ export function App() {
                   >
                     <Play className="h-3 w-3" />
                     {animateRoute
-                      ? lang === 'ko'
-                        ? 'Route On'
-                        : 'Route On'
-                      : lang === 'ko'
-                        ? 'Route Off'
-                        : 'Route Off'}
+                      ? ('Route On')
+                      : ('Route Off')}
                   </button>
                   <button
                     type="button"
@@ -3212,12 +3090,8 @@ export function App() {
                   >
                     <Move className="h-3 w-3" />
                     {dragMoveMode
-                      ? lang === 'ko'
-                        ? '3D Drag: ON'
-                        : '3D Drag: ON'
-                      : lang === 'ko'
-                        ? 'Move 3D'
-                        : 'Move 3D'}
+                      ? ('3D Drag: ON')
+                      : ('Move 3D')}
                   </button>
 
                   <div className="flex items-center gap-0.5 border-l border-slate-700 pl-1.5">
@@ -3230,7 +3104,7 @@ export function App() {
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      {lang === 'ko' ? 'All' : 'All'}
+                      {'All'}
                     </button>
                     {zBreakdown.map((z) => (
                       <button
@@ -3262,24 +3136,18 @@ export function App() {
                       className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: activeTheme.scene.golden }}
                     />
-                    {lang === 'ko'
-                      ? `Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`
-                      : `Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`}
+                    {`Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`}
                   </div>
                   <div className="mt-1 flex items-center gap-1.5">
                     <span
                       className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: activeTheme.scene.route }}
                     />
-                    {lang === 'ko'
-                      ? 'Active Pick Wave Path'
-                      : 'Active Pick Wave Path'}
+                    {'Active Pick Wave Path'}
                   </div>
                   <div className="mt-1 flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-rose-500" />
-                    {lang === 'ko'
-                      ? 'Heavy-on-Upper Violation'
-                      : 'Heavy-on-Upper Violation'}
+                    {'Heavy-on-Upper Violation'}
                   </div>
                 </div>
               </div>
@@ -3303,14 +3171,10 @@ export function App() {
                   <div className="flex items-center gap-2">
                     <MapIcon className="h-3.5 w-3.5 text-cyan-400" />
                     <span className="font-bold text-cyan-200">
-                      {lang === 'ko'
-                        ? `Main Screen Live 2D Floor Plan & Pick Route (${activeScenario.name})`
-                        : `Main Screen Live 2D Floor Plan & Pick Route (${activeScenario.name})`}
+                      {`Main Screen Live 2D Floor Plan & Pick Route (${activeScenario.name})`}
                     </span>
                     <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
-                      {lang === 'ko'
-                        ? `Left-click bin to inspect · Right-click to toggle route stop`
-                        : `Left-click bin to inspect · Right-click to toggle route stop`}
+                      {`Left-click bin to inspect · Right-click to toggle route stop`}
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
@@ -3350,7 +3214,7 @@ export function App() {
                                 : 'text-slate-300 hover:text-white'
                             }`}
                           >
-                            {lang === 'ko' ? opt.ko : opt.en}
+                            {opt.en}
                           </button>
                         ))}
                       </div>
@@ -3361,7 +3225,7 @@ export function App() {
                       className="inline-flex items-center gap-1 rounded border border-cyan-500/50 bg-cyan-500/20 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/30"
                     >
                       <Route className="h-3 w-3" />
-                      {lang === 'ko' ? 'Open 2D & Route Editor' : 'Open 2D & Route Editor'}
+                      {'Open 2D & Route Editor'}
                     </button>
                     <button
                       type="button"
@@ -3388,13 +3252,11 @@ export function App() {
                       }}
                       className="inline-flex items-center gap-1 rounded border border-amber-500/50 bg-amber-500/20 px-2 py-0.5 font-semibold text-amber-200 hover:bg-amber-500/30"
                       title={
-                        lang === 'ko'
-                          ? 'Pop out 2D layout blueprint in a standalone desktop window'
-                          : 'Pop out 2D layout blueprint in a standalone desktop window'
+                        'Pop out 2D layout blueprint in a standalone desktop window'
                       }
                     >
                       <ExternalLink className="h-3 w-3" />
-                      {lang === 'ko' ? 'Pop-out Desktop Window' : 'Pop-out Desktop Window'}
+                      {'Pop-out Desktop Window'}
                     </button>
                     <button
                       type="button"
@@ -3424,7 +3286,7 @@ export function App() {
                       className="inline-flex items-center gap-1 rounded border border-emerald-500/50 bg-emerald-500/20 px-2 py-0.5 font-semibold text-emerald-200 hover:bg-emerald-500/30"
                     >
                       <Download className="h-3 w-3" />
-                      {lang === 'ko' ? 'Save 2D Layout (.SVG)' : 'Save 2D Layout (.SVG)'}
+                      {'Save 2D Layout (.SVG)'}
                     </button>
                   </div>
                 </div>
@@ -3608,12 +3470,8 @@ export function App() {
                                 }));
                                 showToast(
                                   existingIdx !== -1
-                                    ? lang === 'ko'
-                                      ? `Removed [${targetAlloc.bin.id}] from Pick Route`
-                                      : `Removed [${targetAlloc.bin.id}] from Pick Route`
-                                    : lang === 'ko'
-                                      ? `Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`
-                                      : `Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`
+                                    ? (`Removed [${targetAlloc.bin.id}] from Pick Route`)
+                                    : (`Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`)
                                 );
                               }}
                             >
@@ -3744,9 +3602,7 @@ export function App() {
               setCameraFocusTick((n) => n + 1);
               setLeftTab('inspector');
               showToast(
-                lang === 'ko'
-                  ? `Focused & Zoomed to Recommended Bin [${binId}]`
-                  : `Focused & Zoomed to Recommended Bin [${binId}]`
+                `Focused & Zoomed to Recommended Bin [${binId}]`
               );
             }}
             onExecuteAiAction={(action: HybridAIAction) => {
@@ -3772,9 +3628,7 @@ export function App() {
                 setActiveLayout('optimized_3d');
               }
               showToast(
-                lang === 'ko'
-                  ? `Applied Action: ${action.labelEn}`
-                  : `Applied Action: ${action.labelEn}`
+                `Applied Action: ${action.labelEn}`
               );
             }}
             lang={lang}
@@ -3872,26 +3726,18 @@ export function App() {
             id: Date.now(),
             mode: 'prefer_on_device',
             prompt:
-              lang === 'ko'
-                ? `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Recommend exact 3D slotting improvements.`
-                : `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Recommend exact 3D slotting improvements.`,
+              `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Recommend exact 3D slotting improvements.`,
           });
         }}
         onRunQuickAiPrompt={(kind) => {
           setAppView('workspace');
           const promptMap = {
             efficiency:
-              lang === 'ko'
-                ? `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage.`
-                : `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage.`,
+              `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage.`,
             safety:
-              lang === 'ko'
-                ? 'Check for heavy items placed too high or aisle congestion.'
-                : 'Check for heavy items placed too high or aisle congestion.',
+              'Check for heavy items placed too high or aisle congestion.',
             offline:
-              lang === 'ko'
-                ? 'Run a local-only check on the currently focused bin.'
-                : 'Run a local-only check on the currently focused bin.',
+              'Run a local-only check on the currently focused bin.',
           };
           setExternalAiPrompt({
             id: Date.now(),
@@ -3932,9 +3778,7 @@ export function App() {
             setAlwaysOptimizedLock(false);
             setActiveLayout('baseline_2d');
             showToast(
-              lang === 'ko'
-                ? 'Unlocked Always-Optimized lock and switched to 2D Baseline comparison.'
-                : 'Unlocked Always-Optimized lock and switched to 2D Baseline comparison.'
+              'Unlocked Always-Optimized lock and switched to 2D Baseline comparison.'
             );
             return;
           }

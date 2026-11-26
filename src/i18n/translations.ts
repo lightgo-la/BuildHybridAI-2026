@@ -1,4 +1,4 @@
-export type LangCode = 'ko' | 'en';
+export type LangCode = 'en';
 
 export interface UIMessages {
   appSubtitle: string;
@@ -197,10 +197,9 @@ const ENGLISH_MESSAGES: UIMessages = {
 };
 
 export const UI_MESSAGES: Record<LangCode, UIMessages> = {
-  ko: ENGLISH_MESSAGES,
   en: ENGLISH_MESSAGES,
 };
 
-export function t(lang: LangCode, key: keyof UIMessages): string {
-  return UI_MESSAGES[lang][key];
+export function t(_lang: LangCode, key: keyof UIMessages): string {
+  return ENGLISH_MESSAGES[key];
 }

@@ -268,9 +268,7 @@ export function useWarehouseTransforms({
               nextH > targetBin.binHeightCm
             ) {
               showToast(
-                lang === 'ko'
-                  ? `Shelf [${binId}] auto-expanded from ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm to ${nextL}×${nextW}×${nextH}cm to fit ${clampedCount} boxes.`
-                  : `Shelf [${binId}] auto-expanded from ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm to ${nextL}×${nextW}×${nextH}cm to fit ${clampedCount} boxes.`
+                `Shelf [${binId}] auto-expanded from ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm to ${nextL}×${nextW}×${nextH}cm to fit ${clampedCount} boxes.`
               );
             }
           }
@@ -438,16 +436,10 @@ export function useWarehouseTransforms({
       );
       showToast(
         swappedSkuId
-          ? lang === 'ko'
-            ? `Swapped item between [${fromBinId}] and [${toBinId}].`
-            : `Swapped item between [${fromBinId}] and [${toBinId}].`
+          ? (`Swapped item between [${fromBinId}] and [${toBinId}].`)
           : transferCount === 'all' && movedUnits > 1
-            ? lang === 'ko'
-              ? `Moved batch of ${movedUnits} items from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
-              : `Moved batch of ${movedUnits} items from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
-            : lang === 'ko'
-              ? `Moved individual item from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
-              : `Moved individual item from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
+            ? (`Moved batch of ${movedUnits} items from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`)
+            : (`Moved individual item from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`)
       );
     },
     [
@@ -535,9 +527,7 @@ export function useWarehouseTransforms({
           : prev
       );
       showToast(
-        lang === 'ko'
-          ? `Moved item to 3D floor spot [${binId}] (${snappedX}m, ${snappedY}m).`
-          : `Moved item to 3D floor spot [${binId}] (${snappedX}m, ${snappedY}m).`
+        `Moved item to 3D floor spot [${binId}] (${snappedX}m, ${snappedY}m).`
       );
     },
     [
@@ -768,9 +758,7 @@ export function useWarehouseTransforms({
       setExtraBins([]);
       setRemovedBinIds([]);
       showToast(
-        lang === 'ko'
-          ? `Placed single bin [${binId}] at (${finalX.toFixed(2)}m, ${finalY.toFixed(2)}m, Z${nextLevel})`
-          : `Placed single bin [${binId}] at (${finalX.toFixed(2)}m, ${finalY.toFixed(2)}m, Z${nextLevel})`
+        `Placed single bin [${binId}] at (${finalX.toFixed(2)}m, ${finalY.toFixed(2)}m, Z${nextLevel})`
       );
     },
     [
@@ -1144,7 +1132,7 @@ export function useWarehouseTransforms({
       const newProp: InteriorProp = {
         id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         type,
-        label: lang === 'ko' ? cat.nameKo : cat.nameEn,
+        label: cat.nameEn,
         xMeters: Number(chosenX.toFixed(2)),
         yMeters: Number(chosenY.toFixed(2)),
         rotationDeg: 0,
@@ -1159,9 +1147,7 @@ export function useWarehouseTransforms({
       setSelectedBinId(null);
       setSelectedCargo(null);
       showToast(
-        lang === 'ko'
-          ? `Added 3D Interior: ${newProp.label} (${newProp.xMeters}m, ${newProp.yMeters}m)`
-          : `Added 3D Interior: ${newProp.label} (${newProp.xMeters}m, ${newProp.yMeters}m)`
+        `Added 3D Interior: ${newProp.label} (${newProp.xMeters}m, ${newProp.yMeters}m)`
       );
     },
     [
@@ -1235,7 +1221,7 @@ export function useWarehouseTransforms({
       {
         id: `prop-auto-1-${Date.now()}`,
         type: 'desk_work',
-        label: lang === 'ko' ? 'Study & Packing Desk' : 'Study & Packing Desk',
+        label: 'Study & Packing Desk',
         xMeters: Number((maxX + 1.8).toFixed(2)),
         yMeters: 0.8,
         rotationDeg: 270,
@@ -1245,7 +1231,7 @@ export function useWarehouseTransforms({
       {
         id: `prop-auto-2-${Date.now()}`,
         type: 'sofa_lounge',
-        label: lang === 'ko' ? 'Cozy Lounge Sofa' : 'Cozy Lounge Sofa',
+        label: 'Cozy Lounge Sofa',
         xMeters: -1.4,
         yMeters: Number((maxZ * 0.45).toFixed(2)),
         rotationDeg: 90,
@@ -1255,7 +1241,7 @@ export function useWarehouseTransforms({
       {
         id: `prop-auto-3-${Date.now()}`,
         type: 'plant_pot',
-        label: lang === 'ko' ? 'Indoor Monstera Plant' : 'Indoor Monstera Plant',
+        label: 'Indoor Monstera Plant',
         xMeters: -1.3,
         yMeters: 0.4,
         rotationDeg: 0,
@@ -1265,7 +1251,7 @@ export function useWarehouseTransforms({
       {
         id: `prop-auto-4-${Date.now()}`,
         type: 'door_entry',
-        label: lang === 'ko' ? 'Room Entrance Door' : 'Room Entrance Door',
+        label: 'Room Entrance Door',
         xMeters: -1.5,
         yMeters: Number((maxZ - 0.5).toFixed(2)),
         rotationDeg: 90,
@@ -1280,9 +1266,7 @@ export function useWarehouseTransforms({
     }));
     setSelectedPropId(autoList[0].id);
     showToast(
-      lang === 'ko'
-        ? 'Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room).'
-        : 'Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room).'
+      'Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room).'
     );
   }, [
     config.aisleSpacingM,
@@ -1403,9 +1387,7 @@ export function useWarehouseTransforms({
         depotYMeters: ny,
       }));
       showToast(
-        lang === 'ko'
-          ? `★ Moved I/O Depot to (${nx}m, ${ny}m)`
-          : `★ Moved I/O Depot to (${nx}m, ${ny}m)`
+        `★ Moved I/O Depot to (${nx}m, ${ny}m)`
       );
     },
     [lang, pushWorkspaceUndo, setConfigPatch, showToast]
@@ -1424,16 +1406,14 @@ export function useWarehouseTransforms({
         bay: Math.max(1, Math.round((ny - 1.8) / baySp) + 1),
         xMeters: nx,
         yMeters: ny,
-        label: label || (lang === 'ko' ? 'PILLAR' : 'PILLAR'),
+        label: label || (('PILLAR')),
       };
       setConfigPatch((prev) => ({
         ...prev,
         obstacles: [...(prev.obstacles ?? config.obstacles ?? []), newObs],
       }));
       showToast(
-        lang === 'ko'
-          ? `Added 3D Pillar/Obstacle at (${nx}m, ${ny}m)`
-          : `Added 3D Pillar/Obstacle at (${nx}m, ${ny}m)`
+        `Added 3D Pillar/Obstacle at (${nx}m, ${ny}m)`
       );
       return newObs;
     },
@@ -1495,7 +1475,7 @@ export function useWarehouseTransforms({
         ),
       }));
       showToast(
-        lang === 'ko' ? 'Deleted obstacle.' : 'Deleted obstacle.'
+        'Deleted obstacle.'
       );
     },
     [config.obstacles, lang, pushWorkspaceUndo, setConfigPatch, showToast]
@@ -1558,9 +1538,7 @@ export function useWarehouseTransforms({
         setRemovedBinIds([]);
         if (needsLengthExpand || needsWidthExpand || needsHeightExpand) {
           expandedDimsNotice =
-            lang === 'ko'
-              ? ` (Shelf auto-expanded to ${nextL}×${nextW}×${nextH}cm)`
-              : ` (Shelf auto-expanded to ${nextL}×${nextW}×${nextH}cm)`;
+            ` (Shelf auto-expanded to ${nextL}×${nextW}×${nextH}cm)`;
         }
       }
 
@@ -1569,9 +1547,7 @@ export function useWarehouseTransforms({
         input.skuCode?.trim() || `BOX-${boxL}x${boxW}x${boxH}`;
       const name =
         input.name?.trim() ||
-        (lang === 'ko'
-          ? `Custom Box ${boxL}×${boxW}×${boxH}cm`
-          : `Custom Box ${boxL}×${boxW}×${boxH}cm`);
+        ((`Custom Box ${boxL}×${boxW}×${boxH}cm`));
       const abcClass: ABCClass =
         input.abcClass ?? (targetBin.isGoldenZone ? 'A' : 'B');
       const color = input.color || '#22d3ee';
@@ -1613,9 +1589,7 @@ export function useWarehouseTransforms({
       });
 
       showToast(
-        lang === 'ko'
-          ? `Placed ${qty}× custom box (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) into shelf [${targetBin.id}].${expandedDimsNotice}`
-          : `Placed ${qty}× custom box (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) into shelf [${targetBin.id}].${expandedDimsNotice}`
+        `Placed ${qty}× custom box (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) into shelf [${targetBin.id}].${expandedDimsNotice}`
       );
     },
     [
@@ -1707,9 +1681,7 @@ export function useWarehouseTransforms({
           setExtraBins([]);
           setRemovedBinIds([]);
           showToast(
-            lang === 'ko'
-              ? `Shelf [${targetBin.id}] auto-expanded to ${nextL}×${nextW}×${nextH}cm to fit updated box dimensions.`
-              : `Shelf [${targetBin.id}] auto-expanded to ${nextL}×${nextW}×${nextH}cm to fit updated box dimensions.`
+            `Shelf [${targetBin.id}] auto-expanded to ${nextL}×${nextW}×${nextH}cm to fit updated box dimensions.`
           );
         }
       }
