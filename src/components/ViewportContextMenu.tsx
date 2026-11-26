@@ -298,8 +298,14 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
   const isKo = lang === 'ko';
   const menuWidth = 340;
   const menuMaxHeight = 560;
-  const left = Math.min(menu.clientX, window.innerWidth - menuWidth - 12);
-  const top = Math.min(menu.clientY, window.innerHeight - menuMaxHeight - 12);
+  const left = Math.max(
+    8,
+    Math.min(menu.clientX, window.innerWidth - menuWidth - 12)
+  );
+  const top = Math.max(
+    8,
+    Math.min(menu.clientY, window.innerHeight - menuMaxHeight - 12)
+  );
   const alloc = menu.binAlloc;
   const prop = menu.interiorProp ?? selectedProp ?? null;
 

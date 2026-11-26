@@ -24,7 +24,8 @@ function escapeXml(value: string): string {
 function buildOrthogonalPlanRoute2D(
   pickRoute: Array<{ xMeters: number; yMeters: number }>,
   depotX: number,
-  depotY: number
+  depotY: number,
+  returnToDepot = true
 ): Array<{ x: number; y: number }> {
   const corridorY = Math.min(depotY + 0.75, 0.85);
   const pts: Array<{ x: number; y: number }> = [{ x: depotX, y: depotY }];
@@ -46,7 +47,9 @@ function buildOrthogonalPlanRoute2D(
   for (const wp of pickRoute) {
     pushTransition(wp.xMeters, wp.yMeters);
   }
-  pushTransition(depotX, depotY);
+  if (returnToDepot) {
+    pushTransition(depotX, depotY);
+  }
   return pts;
 }
 
@@ -366,7 +369,12 @@ export function generateWarehouseDXF(
   }
 
   if (options.includePickRoute && pickRoute.length > 0) {
-    const pts = buildOrthogonalPlanRoute2D(pickRoute, depotX, depotY);
+    const pts = buildOrthogonalPlanRoute2D(
+      pickRoute,
+      depotX,
+      depotY,
+      config.routeReturnToDepot !== false
+    );
     for (let i = 0; i < pts.length - 1; i++) {
       entities.push(
         dxfLine('PICK_ROUTE', 2, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y)
@@ -628,7 +636,12 @@ export function generateWarehouseSVG(
   }
 
   if (options.includePickRoute && pickRoute.length > 0) {
-    const orthoPts = buildOrthogonalPlanRoute2D(pickRoute, depotX, depotY);
+    const orthoPts = buildOrthogonalPlanRoute2D(
+      pickRoute,
+      depotX,
+      depotY,
+      config.routeReturnToDepot !== false
+    );
     const polyPts = orthoPts.map((pt) => `${px(pt.x)},${py(pt.y)}`).join(' ');
     parts.push(
       `<polyline points="${polyPts}" fill="none" stroke="#facc15" stroke-width="2" stroke-dasharray="5,3"/>`

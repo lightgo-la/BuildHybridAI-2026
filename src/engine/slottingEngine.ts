@@ -726,7 +726,6 @@ function evaluateAllocations(
       ? occupied.reduce((acc, a) => acc + a.bin.zMeters * a.dailyPickLoad, 0) /
         Math.max(1, totalPickLoad)
       : 1;
-  const travelEnergyIndex = avgCycleTimeSec * (1 + avgZ * 0.14);
 
   const idealPerOccupied = totalPickLoad / Math.max(1, occupied.length);
   const maxCongestionPct =
@@ -819,16 +818,39 @@ function evaluateAllocations(
     (sum, wp) => sum + wp.stepTimeSec,
     0
   );
+  const returnToDepotSec =
+    config.routeReturnToDepot && pickRoute.length > 0
+      ? (() => {
+          const returnDist = computeAisleTravelDistanceM(
+            prevX,
+            prevY,
+            depotX,
+            depotY,
+            corridorY
+          );
+          return config.equipmentMode === 'asrs_crane'
+            ? returnDist / 2.6 + 0.8
+            : returnDist / 1.9 + 1.0;
+        })()
+      : 0;
   const effectiveCycleTimeSec =
     customRouteAllocs.length > 0 && pickRoute.length > 0
-      ? Number((customRouteTimeSum / pickRoute.length).toFixed(1))
-      : Number(avgCycleTimeSec.toFixed(1));
+      ? Number(
+          ((customRouteTimeSum + returnToDepotSec) / pickRoute.length).toFixed(1)
+        )
+      : Number(
+          (
+            avgCycleTimeSec +
+            returnToDepotSec / Math.max(1, pickRoute.length)
+          ).toFixed(1)
+        );
+  const effectiveTravelEnergyIndex = effectiveCycleTimeSec * (1 + avgZ * 0.14);
 
   const kpis: WarehouseKPIs = {
     cubicUtilizationPct: Number(cubicUtilizationPct.toFixed(1)),
     honeycombingWastePct: Number(honeycombingWastePct.toFixed(1)),
     avgCycleTimeSec: effectiveCycleTimeSec,
-    travelEnergyIndex: Number(travelEnergyIndex.toFixed(1)),
+    travelEnergyIndex: Number(effectiveTravelEnergyIndex.toFixed(1)),
     goldenZoneHitRatePct: Number(goldenZoneHitRatePct.toFixed(1)),
     ergonomicsScore: Number(ergonomicsScore.toFixed(1)),
     safetyViolations,

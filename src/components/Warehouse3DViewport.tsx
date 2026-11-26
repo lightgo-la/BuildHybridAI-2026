@@ -2601,8 +2601,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         curX = wp.xMeters;
         curZ = wp.yMeters;
       }
-      appendCorridorTransition(depotX, depotZ);
-      points.push(new THREE.Vector3(depotX, 0.35, depotZ));
+      if (config.routeReturnToDepot !== false) {
+        appendCorridorTransition(depotX, depotZ);
+        points.push(new THREE.Vector3(depotX, 0.35, depotZ));
+      }
 
       const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.08);
       routeCurveRef.current = curve;

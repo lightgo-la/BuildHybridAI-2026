@@ -513,3 +513,28 @@ test('Exact box count per shelf bin pins all SKU placements and prevents unpinne
     'Target bin should contain 0 boxes of sku-fast-a after setting count to 0'
   );
 });
+
+test('Custom pick route and return-to-depot option dynamically update pickRoute sequence and cycle time KPIs', () => {
+  const bins = generateWarehouseBins(sampleConfig);
+  const customIds = ['A2-B3-Z2', 'A1-B1-Z1', 'A3-B2-Z2'];
+  const resNoReturn = runOptimized3DSlotting(bins, sampleSkus, {
+    ...sampleConfig,
+    customRouteBinIds: customIds,
+    routeReturnToDepot: false,
+  });
+  assert.deepEqual(
+    resNoReturn.pickRoute.map((w) => w.binId),
+    customIds,
+    'Custom pick route should visit waypoints in exact user-specified sequence'
+  );
+
+  const resWithReturn = runOptimized3DSlotting(bins, sampleSkus, {
+    ...sampleConfig,
+    customRouteBinIds: customIds,
+    routeReturnToDepot: true,
+  });
+  assert.ok(
+    resWithReturn.kpis.avgCycleTimeSec > resNoReturn.kpis.avgCycleTimeSec,
+    `Enabling routeReturnToDepot (${resWithReturn.kpis.avgCycleTimeSec}s) should add return leg time above one-way route (${resNoReturn.kpis.avgCycleTimeSec}s)`
+  );
+});

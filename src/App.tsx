@@ -3492,6 +3492,16 @@ export function App() {
                       cx = wp.xMeters;
                       cy = wp.yMeters;
                     }
+                    if (
+                      config.routeReturnToDepot !== false &&
+                      shownResult.pickRoute.length > 0
+                    ) {
+                      if (Math.abs(depotX - cx) >= 0.35 && cy > corridorY) {
+                        routePts.push({ x: cx, y: corridorY });
+                        routePts.push({ x: depotX, y: corridorY });
+                      }
+                      routePts.push({ x: depotX, y: depotY });
+                    }
 
                     return (
                       <svg
@@ -3779,7 +3789,23 @@ export function App() {
       )}
 
       <ViewportContextMenu
-        menu={contextMenu}
+        menu={
+          contextMenu
+            ? {
+                ...contextMenu,
+                binAlloc: contextMenu.binAlloc
+                  ? (shownResult.allocations.find(
+                      (a) => a.bin.id === contextMenu.binAlloc?.bin.id
+                    ) ?? contextMenu.binAlloc)
+                  : null,
+                interiorProp: contextMenu.interiorProp
+                  ? (effectiveInteriorProps.find(
+                      (p) => p.id === contextMenu.interiorProp?.id
+                    ) ?? contextMenu.interiorProp)
+                  : null,
+              }
+            : null
+        }
         skus={skus}
         selectedProp={selectedProp}
         levelFilter={levelFilter}
@@ -3905,11 +3931,21 @@ export function App() {
           setAppView('workspace');
         }}
         onToggleAnimateRoute={() => setAnimateRoute((v) => !v)}
-        onToggleLayout={() =>
+        onToggleLayout={() => {
+          if (alwaysOptimizedLock && activeLayout === 'optimized_3d') {
+            setAlwaysOptimizedLock(false);
+            setActiveLayout('baseline_2d');
+            showToast(
+              lang === 'ko'
+                ? '항상 최적화 고정 잠금을 해제하고 2D 기존 배치 비교 화면으로 전환했습니다.'
+                : 'Unlocked Always-Optimized lock and switched to 2D Baseline comparison.'
+            );
+            return;
+          }
           setActiveLayout((l) =>
             l === 'optimized_3d' ? 'baseline_2d' : 'optimized_3d'
-          )
-        }
+          );
+        }}
         onChangeOptimizationPreset={(preset) => {
           setOptimizationPreset(preset);
           setActiveLayout('optimized_3d');
