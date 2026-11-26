@@ -32,7 +32,7 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
   goldenZoneMinM,
   goldenZoneMaxM,
   simpleMode = true,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   const b = baseline.kpis;
   const o = optimized.kpis;
@@ -65,17 +65,17 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
                 cubicGainPts >= 0 ? 'text-emerald-400' : 'text-rose-400'
               }`}
             >
-              {formatDelta(cubicGainPts, lang === 'ko' ? '%p 향상' : '%p better')}
+              {formatDelta(cubicGainPts, lang === 'ko' ? '%p better' : '%p better')}
             </span>
           ) : (
             <span className="text-[11px] text-slate-400">
-              {lang === 'ko' ? '3D 후' : 'After 3D'}: {o.cubicUtilizationPct}%
+              {lang === 'ko' ? 'After 3D' : 'After 3D'}: {o.cubicUtilizationPct}%
             </span>
           )}
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
           {lang === 'ko' && simpleMode
-            ? `빈틈 낭비 ${current.honeycombingWastePct}%`
+            ? `Honeycombing waste: ${current.honeycombingWastePct}%`
             : `Honeycombing waste: ${current.honeycombingWastePct}%`}
         </div>
       </div>
@@ -95,17 +95,17 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
                 cycleGainPct >= 0 ? 'text-emerald-400' : 'text-rose-400'
               }`}
             >
-              {formatDelta(-cycleGainPct, lang === 'ko' ? '% 단축' : '% faster')}
+              {formatDelta(-cycleGainPct, lang === 'ko' ? '% faster' : '% faster')}
             </span>
           ) : (
             <span className="text-[11px] text-slate-400">
-              {lang === 'ko' ? '3D 후' : 'After 3D'}: {o.avgCycleTimeSec}s
+              {lang === 'ko' ? 'After 3D' : 'After 3D'}: {o.avgCycleTimeSec}s
             </span>
           )}
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
           {lang === 'ko' && simpleMode
-            ? `이동 에너지 지수 ${current.travelEnergyIndex}`
+            ? `Energy idx: ${current.travelEnergyIndex} (${isOpt ? `2D: ${b.travelEnergyIndex}` : `3D: ${o.travelEnergyIndex}`})`
             : `Energy idx: ${current.travelEnergyIndex} (${isOpt ? `2D: ${b.travelEnergyIndex}` : `3D: ${o.travelEnergyIndex}`})`}
         </div>
       </div>
@@ -129,13 +129,13 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
             </span>
           ) : (
             <span className="text-[11px] text-slate-400">
-              {lang === 'ko' ? '3D 후' : 'After 3D'}: {o.goldenZoneHitRatePct}%
+              {lang === 'ko' ? 'After 3D' : 'After 3D'}: {o.goldenZoneHitRatePct}%
             </span>
           )}
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
           {goldenZoneMinM}m–{goldenZoneMaxM}m{' '}
-          {lang === 'ko' && simpleMode ? '편한 손높이 구역' : 'Z-axis ergonomic band'}
+          {lang === 'ko' && simpleMode ? 'Z-axis ergonomic band' : 'Z-axis ergonomic band'}
         </div>
       </div>
 
@@ -149,13 +149,13 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
             {current.occupiedBins}/{current.totalBins}
           </span>
           <span className="text-[11px] font-medium text-emerald-400">
-            {freedBins >= 0 ? `+${freedBins} ${lang === 'ko' ? '여유' : 'free'}` : `${freedBins}`}
+            {freedBins >= 0 ? `+${freedBins} ${lang === 'ko' ? 'free' : 'free'}` : `${freedBins}`}
           </span>
         </div>
         <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
           <span>
             {lang === 'ko' && simpleMode
-              ? `인체공학 점수 ${current.ergonomicsScore}/100`
+              ? `Ergo score: ${current.ergonomicsScore}/100 (2D: ${b.ergonomicsScore})`
               : `Ergo score: ${current.ergonomicsScore}/100 (2D: ${b.ergonomicsScore})`}
           </span>
           {currentResult.unplacedUnits > 0 && (
@@ -166,7 +166,7 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
                 .join(', ')}
             >
               {lang === 'ko'
-                ? `미적재 ${currentResult.unplacedUnits}개`
+                ? `${currentResult.unplacedUnits} unplaced`
                 : `${currentResult.unplacedUnits} unplaced`}
             </span>
           )}
@@ -190,19 +190,19 @@ export const KPIComparisonBar: React.FC<KPIComparisonBarProps> = ({
           >
             {current.safetyViolations === 0
               ? lang === 'ko' && simpleMode
-                ? '안전 (0)'
+                ? '0'
                 : '0'
               : current.safetyViolations}
           </span>
           <span className="text-[11px] text-slate-400">
             {isOpt
-              ? `(${lang === 'ko' ? '이전' : 'Before'}: ${b.safetyViolations})`
-              : `(${lang === 'ko' ? '3D 개선' : '3D fixes to'} ${o.safetyViolations})`}
+              ? `(${lang === 'ko' ? 'Before' : 'Before'}: ${b.safetyViolations})`
+              : `(${lang === 'ko' ? '3D fixes to' : '3D fixes to'} ${o.safetyViolations})`}
           </span>
         </div>
         <div className="mt-1 text-[11px] text-slate-500">
           {lang === 'ko' && simpleMode
-            ? '무거운 짐(>16kg) 위층 배치 방지'
+            ? 'Heavy (>16kg) on upper Z3–Z5'
             : 'Heavy (>16kg) on upper Z3–Z5'}
         </div>
       </div>

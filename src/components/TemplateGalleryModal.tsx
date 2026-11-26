@@ -28,7 +28,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
   onClose,
   activeTemplateId,
   onSelectTemplate,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   const [personaFilter, setPersonaFilter] = useState<
     'all' | 'professional' | 'everyday'
@@ -86,18 +86,18 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                 [
                   'all',
                   lang === 'ko'
-                    ? `전체 (${WAREHOUSE_TEMPLATES.length})`
+                    ? `All (${WAREHOUSE_TEMPLATES.length})`
                     : `All (${WAREHOUSE_TEMPLATES.length})`,
                   null,
                 ],
                 [
                   'professional',
-                  lang === 'ko' ? '전문 물류 (12)' : 'Pro Logistics (12)',
+                  lang === 'ko' ? 'Pro Logistics (12)' : 'Pro Logistics (12)',
                   Briefcase,
                 ],
                 [
                   'everyday',
-                  lang === 'ko' ? '일상·가정 (12)' : 'Everyday / Home (12)',
+                  lang === 'ko' ? 'Everyday / Home (12)' : 'Everyday / Home (12)',
                   Home,
                 ],
               ] as const
@@ -126,7 +126,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
             className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 text-[11px]"
           >
             <option value="all">
-              {lang === 'ko' ? '전체 카테고리' : 'All Categories'}
+              {lang === 'ko' ? 'All Categories' : 'All Categories'}
             </option>
             {(
               Object.entries(TEMPLATE_CATEGORY_LABELS) as Array<
@@ -186,7 +186,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                     >
                       {tpl.persona === 'everyday'
                         ? lang === 'ko'
-                          ? '일상'
+                          ? 'Everyday'
                           : 'Everyday'
                         : 'Pro'}
                     </span>

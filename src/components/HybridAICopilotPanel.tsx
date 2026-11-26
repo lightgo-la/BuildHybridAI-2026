@@ -50,30 +50,30 @@ interface HybridAICopilotPanelProps {
 
 const buildQuickPrompts = (config: WarehouseConfig, lang: LangCode) => [
   {
-    label: lang === 'ko' ? '공간 활용 개선 추천' : 'Space Efficiency Tips',
+    label: lang === 'ko' ? 'Space Efficiency Tips' : 'Space Efficiency Tips',
     mode: 'prefer_on_device' as HybridModeChoice,
     lite: true,
     prompt:
       lang === 'ko'
-        ? `골든존(${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) 적중률과 3D 공간 활용률을 분석하고, 더 많은 물건을 안전하고 빠르게 수납할 수 있는 핵심 개선안 3가지를 한국어로 추천해줘.`
+        ? `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage. Give 3 simple, actionable tips to fit more items and speed up picking.`
         : `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage. Give 3 simple, actionable tips to fit more items and speed up picking.`,
   },
   {
-    label: lang === 'ko' ? '중량물 / 안전 점검' : 'Safety & Load Audit',
+    label: lang === 'ko' ? 'Safety & Load Audit' : 'Safety & Load Audit',
     mode: 'prefer_on_device' as HybridModeChoice,
     lite: false,
     prompt:
       lang === 'ko'
-        ? '높은 층에 놓인 무거운 물건이나 통로 병목, 빈틈 낭비 구간을 점검하고 어떤 선반 칸(Bin ID)을 조정해야 하는지 한국어로 알려줘.'
+        ? 'Check for any heavy items placed too high, aisle pick congestion, or honeycombing waste, and list exact bin improvements.'
         : 'Check for any heavy items placed too high, aisle pick congestion, or honeycombing waste, and list exact bin improvements.',
   },
   {
-    label: lang === 'ko' ? '오프라인 온디바이스 분석' : 'Offline On-Device Audit',
+    label: lang === 'ko' ? 'Offline On-Device Audit' : 'Offline On-Device Audit',
     mode: 'only_on_device' as HybridModeChoice,
     lite: true,
     prompt:
       lang === 'ko'
-        ? '현재 선택된 선반 칸(또는 최상위 피킹 칸)의 허용 하중, 3D 적재 상태, Z1 바닥층 이동 필요 여부를 로컬 온디바이스 AI로 점검해줘.'
+        ? 'Run a strict local-only check on the currently focused bin (or top bin): verify weight limits, 3D cubic fit, and whether any heavy SKU should move to Z1.'
         : 'Run a strict local-only check on the currently focused bin (or top bin): verify weight limits, 3D cubic fit, and whether any heavy SKU should move to Z1.',
   },
 ];
@@ -89,7 +89,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
   onLastInferenceSource,
   onFocusBinId,
   onExecuteAiAction,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   const [modeChoice, setModeChoice] =
     useState<HybridModeChoice>('prefer_on_device');
@@ -162,11 +162,11 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
             <Bot className="h-4 w-4 text-cyan-400" />
             <div>
               <h2 className="text-sm font-semibold text-white">
-                {lang === 'ko' ? 'AI 공간 최적화 어시스턴트' : 'AI Space Assistant'}
+                {lang === 'ko' ? 'AI Space Assistant' : 'AI Space Assistant'}
               </h2>
               <p className="text-[10px] text-slate-400">
                 {lang === 'ko'
-                  ? '온디바이스(Gemini Nano) + 클라우드 하이브리드 추론'
+                  ? 'Hybrid On-Device (Nano) + Cloud Fallback'
                   : 'Hybrid On-Device (Nano) + Cloud Fallback'}
               </p>
             </div>
@@ -178,7 +178,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                 type="button"
                 onClick={() => setHistory([])}
                 className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[10px] text-slate-400 hover:border-rose-500/40 hover:text-rose-300"
-                title={lang === 'ko' ? '대화 기록 지우기' : 'Clear History'}
+                title={lang === 'ko' ? 'Clear History' : 'Clear History'}
               >
                 <Trash2 className="h-3 w-3" />
               </button>
@@ -189,7 +189,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
               className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[10px] text-slate-300 hover:border-cyan-500/40"
             >
               <Sliders className="h-3 w-3 text-cyan-400" />
-              {lang === 'ko' ? 'AI 설정' : 'AI Settings'}
+              {lang === 'ko' ? 'AI Settings' : 'AI Settings'}
               {showAdvanced ? (
                 <ChevronUp className="h-3 w-3" />
               ) : (
@@ -235,21 +235,21 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
             >
               <option value="prefer_on_device">
                 {lang === 'ko'
-                  ? '자동 하이브리드 (온디바이스 우선 → 클라우드 폴백)'
+                  ? 'Auto Hybrid (On-Device First → Cloud Fallback)'
                   : 'Auto Hybrid (On-Device First → Cloud Fallback)'}
               </option>
               <option value="only_on_device">
                 {lang === 'ko'
-                  ? '완전 오프라인 보안 (온디바이스 전용)'
+                  ? 'Private Only (On-Device Offline)'
                   : 'Private Only (On-Device Offline)'}
               </option>
               <option value="prefer_in_cloud">
                 {lang === 'ko'
-                  ? '클라우드 우선 (정밀 추론 → 로컬 폴백)'
+                  ? 'Cloud First (Deep Reasoning → Local Fallback)'
                   : 'Cloud First (Deep Reasoning → Local Fallback)'}
               </option>
               <option value="only_in_cloud">
-                {lang === 'ko' ? '클라우드 Gemini 전용' : 'Force Cloud Gemini'}
+                {lang === 'ko' ? 'Force Cloud Gemini' : 'Force Cloud Gemini'}
               </option>
             </select>
           </div>
@@ -274,14 +274,14 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
         {history.length === 0 && (
           <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/50 p-3.5 text-slate-400">
             <p className="font-semibold text-slate-200">
-              {lang === 'ko' ? '무엇이든 바로 물어보세요' : 'Ask Your 3D Slotting Co-Pilot'}
+              {lang === 'ko' ? 'Ask Your 3D Slotting Co-Pilot' : 'Ask Your 3D Slotting Co-Pilot'}
             </p>
             <p className="mt-1 text-[11px] leading-relaxed">
               {lang === 'ko' ? (
                 <>
-                  위 버튼 중 하나를 누르거나 아래에 질문을 입력하세요. (예:{' '}
+                  Click a quick audit above or type any question below (e.g.,{' '}
                   <span className="text-cyan-400">
-                    "어느 칸을 정리하면 동선이 제일 빨라질까요?"
+                    "Which bin should move to the Golden Zone first?"
                   </span>
                   )
                 </>
@@ -309,17 +309,17 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                 type="button"
                 onClick={() => handleCopyReport(item.answer.text, idx)}
                 className="inline-flex shrink-0 items-center gap-1 rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-cyan-500/50"
-                title={lang === 'ko' ? '분석 리포트 복사' : 'Copy Audit Report'}
+                title={lang === 'ko' ? 'Copy Audit Report' : 'Copy Audit Report'}
               >
                 {copiedIdx === idx ? (
                   <>
                     <Check className="h-2.5 w-2.5 text-emerald-400" />
-                    {lang === 'ko' ? '복사됨' : 'Copied'}
+                    {lang === 'ko' ? 'Copied' : 'Copied'}
                   </>
                 ) : (
                   <>
                     <Copy className="h-2.5 w-2.5" />
-                    {lang === 'ko' ? '복사' : 'Copy'}
+                    {lang === 'ko' ? 'Copy' : 'Copy'}
                   </>
                 )}
               </button>
@@ -329,26 +329,26 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300">
                   <Lock className="h-2.5 w-2.5" />
                   {lang === 'ko'
-                    ? '온디바이스 AI (Gemini Nano)'
+                    ? 'ON_DEVICE (Gemini Nano)'
                     : 'ON_DEVICE (Gemini Nano)'}
                 </span>
               ) : item.answer.inferenceSource === 'in_cloud' ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-500/15 px-2 py-0.5 font-semibold text-sky-300">
                   <Cloud className="h-2.5 w-2.5" />
                   {lang === 'ko'
-                    ? `클라우드 AI (${item.answer.modelName})`
+                    ? `IN_CLOUD (${item.answer.modelName})`
                     : `IN_CLOUD (${item.answer.modelName})`}
                 </span>
               ) : item.answer.inferenceSource === 'local_engine' ? (
                 <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-300">
                   <Cpu className="h-2.5 w-2.5" />
                   {lang === 'ko'
-                    ? '로컬 슬로팅 분석 엔진 (오프라인 즉시 응답)'
+                    ? 'LOCAL_ENGINE (On-Device Heuristic)'
                     : 'LOCAL_ENGINE (On-Device Heuristic)'}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 font-semibold text-rose-300">
-                  {lang === 'ko' ? '실행되지 않음' : 'NOT EXECUTED'}
+                  {lang === 'ko' ? 'NOT EXECUTED' : 'NOT EXECUTED'}
                 </span>
               )}
               <span className="text-slate-500">{item.answer.latencyMs} ms</span>
@@ -369,7 +369,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                     <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-800/80 pt-2">
                       <span className="text-[10px] font-semibold text-slate-400">
                         {lang === 'ko'
-                          ? '3D 선반 바로가기:'
+                          ? 'Focus Bin in 3D:'
                           : 'Focus Bin in 3D:'}
                       </span>
                       {item.answer.recommendedBinIds.slice(0, 6).map((binId) => (
@@ -391,7 +391,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
                     <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-800/80 pt-2">
                       <span className="text-[10px] font-semibold text-emerald-400">
                         {lang === 'ko'
-                          ? '권장 최적화 실행:'
+                          ? 'Apply Action:'
                           : 'Apply Action:'}
                       </span>
                       {item.answer.recommendedActions.map((act) => (
@@ -428,10 +428,10 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
           placeholder={
             selectedBin
               ? lang === 'ko'
-                ? `${selectedBin.bin.id} 칸에 대해 질문하기...`
+                ? `Ask about bin ${selectedBin.bin.id}...`
                 : `Ask about bin ${selectedBin.bin.id}...`
               : lang === 'ko'
-                ? '공간 활용이나 배치에 대해 질문하세요...'
+                ? 'Ask about 3D slotting, Golden Zone, or space usage...'
                 : 'Ask about 3D slotting, Golden Zone, or space usage...'
           }
           className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
@@ -446,7 +446,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
           ) : (
             <Send className="h-3.5 w-3.5" />
           )}
-          {lang === 'ko' ? '질문' : 'Ask'}
+          {lang === 'ko' ? 'Ask' : 'Ask'}
         </button>
       </form>
     </div>

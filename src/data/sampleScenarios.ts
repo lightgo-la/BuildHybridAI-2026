@@ -3,9 +3,9 @@ import type { WarehouseScenario } from '../types/warehouse';
 export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
   {
     id: 'omni-highbay',
-    name: 'Map 1 · 통합 풀필먼트 물류센터 (Omni High-Bay)',
+    name: 'Map 1 · Omni High-Bay Fulfillment Center',
     description:
-      '출고 빈도(A/B/C)와 중량 음료 팔레트를 균형 있게 배치하는 3열 5단(90칸) 표준 이커머스 물류센터입니다.',
+      'Standard 3-aisle, 5-level (90-bin) e-commerce fulfillment hub balancing A/B/C pick velocity with heavy beverage pallets.',
     config: {
       aisles: 3,
       baysPerAisle: 6,
@@ -19,13 +19,13 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       goldenZoneMinM: 0.8,
       goldenZoneMaxM: 1.65,
       allowRotationAndCoPack: true,
-      mapTag: '3×6×5 · 90칸',
+      mapTag: '3×6×5 · 90 Bins',
     },
     skus: [
       {
         id: 'sku-01',
         skuCode: 'ELC-101',
-        name: '무선 바코드 스캐너 (Barcode Scanner)',
+        name: 'Wireless Barcode Scanner',
         category: 'Electronics',
         abcClass: 'A',
         dailyPicks: 145,
@@ -40,7 +40,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-02',
         skuCode: 'CON-204',
-        name: '감열 운송장 라벨 박스 (Shipping Labels)',
+        name: 'Thermal Shipping Labels Carton',
         category: 'Consumables',
         abcClass: 'A',
         dailyPicks: 132,
@@ -55,7 +55,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-03',
         skuCode: 'BEV-309',
-        name: '이온음료 24입 묶음 (Hydration 24x)',
+        name: 'Electrolyte Hydration 24-Pack',
         category: 'Beverage',
         abcClass: 'A',
         dailyPicks: 118,
@@ -70,7 +70,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-04',
         skuCode: 'PHM-112',
-        name: '응급 구급함 키트 (First-Aid Kit)',
+        name: 'Emergency First-Aid Kit',
         category: 'Medical',
         abcClass: 'A',
         dailyPicks: 96,
@@ -85,7 +85,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-05',
         skuCode: 'HDW-410',
-        name: '브러시리스 임팩트 드릴 (Impact Driver)',
+        name: 'Brushless Impact Driver Kit',
         category: 'Hardware',
         abcClass: 'B',
         dailyPicks: 64,
@@ -100,7 +100,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-06',
         skuCode: 'AUT-502',
-        name: '합성 엔진오일 4L 박스 (Motor Oil 4L)',
+        name: 'Synthetic Motor Oil 4L Case',
         category: 'Automotive',
         abcClass: 'B',
         dailyPicks: 52,
@@ -115,7 +115,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-07',
         skuCode: 'PKG-221',
-        name: '친환경 에어캡 완충재 롤 (Void Fill Roll)',
+        name: 'Eco Air-Cushion Void Fill Roll',
         category: 'Packaging',
         abcClass: 'B',
         dailyPicks: 45,
@@ -130,7 +130,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-08',
         skuCode: 'OPT-615',
-        name: '레이저 정렬 광학 센서 (Laser Sensor)',
+        name: 'Laser Alignment Optical Sensor',
         category: 'Optics',
         abcClass: 'B',
         dailyPicks: 38,
@@ -145,7 +145,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-09',
         skuCode: 'IND-701',
-        name: '중량 강철 캐스터 바퀴 세트 (Steel Caster)',
+        name: 'Heavy-Duty Steel Caster Set',
         category: 'Industrial',
         abcClass: 'C',
         dailyPicks: 14,
@@ -160,7 +160,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-10',
         skuCode: 'SEA-880',
-        name: '방한 작업 장갑 박스 (Thermal Gloves)',
+        name: 'Insulated Thermal Work Gloves',
         category: 'Seasonal',
         abcClass: 'C',
         dailyPicks: 9,
@@ -175,7 +175,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-11',
         skuCode: 'ARC-904',
-        name: '예비 컨베이어 벨트 키트 (Conveyor Belt)',
+        name: 'Spare Conveyor Belt Kit',
         category: 'Maintenance',
         abcClass: 'C',
         dailyPicks: 7,
@@ -190,7 +190,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'sku-12',
         skuCode: 'SPK-119',
-        name: '스마트 IoT 전자가격표시기 (IoT Shelf Tag)',
+        name: 'Smart IoT Electronic Shelf Tag',
         category: 'Electronics',
         abcClass: 'A',
         dailyPicks: 125,
@@ -206,9 +206,9 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
   },
   {
     id: 'asrs-cube-tall',
-    name: 'Map 2 · AS/RS 자동화 고밀도 큐브 (Z1–Z6)',
+    name: 'Map 2 · AS/RS High-Density Automated Cube (Z1–Z6)',
     description:
-      '수평·수직 동시 이동(Chebyshev) 크레인이 운용되는 4열 7칸 6단(168칸) 고밀도 자동화 입체 창고입니다.',
+      'High-density 4-aisle, 7-bay, 6-level (168-bin) automated storage & retrieval cube utilizing simultaneous X-Z Chebyshev crane kinematics.',
     config: {
       aisles: 4,
       baysPerAisle: 7,
@@ -222,13 +222,13 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       goldenZoneMinM: 0.8,
       goldenZoneMaxM: 1.65,
       allowRotationAndCoPack: true,
-      mapTag: '4×7×6 · 168칸',
+      mapTag: '4×7×6 · 168 Bins',
     },
     skus: [
       {
         id: 'pk-01',
         skuCode: 'PRO-010',
-        name: '스마트 허브 컨트롤러 v4 (Smart Hub)',
+        name: 'Smart Hub Controller v4',
         category: 'Electronics',
         abcClass: 'A',
         dailyPicks: 220,
@@ -243,7 +243,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'pk-02',
         skuCode: 'PRO-022',
-        name: '고속 충전 파워셀 모듈 (Power Cell)',
+        name: 'Fast-Charge Power Cell Module',
         category: 'Electronics',
         abcClass: 'A',
         dailyPicks: 195,
@@ -258,7 +258,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'pk-03',
         skuCode: 'BEV-402',
-        name: '콜드브루 원액 크레이트 (Cold Brew Crate)',
+        name: 'Cold Brew Concentrate Crate',
         category: 'Beverage',
         abcClass: 'A',
         dailyPicks: 168,
@@ -273,7 +273,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'pk-04',
         skuCode: 'MED-108',
-        name: '멸균 진단 카트리지 키트 (Diagnostic Kit)',
+        name: 'Sterile Diagnostic Cartridge Kit',
         category: 'Medical',
         abcClass: 'A',
         dailyPicks: 152,
@@ -288,7 +288,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'pk-05',
         skuCode: 'BAT-550',
-        name: '인산철 백업 배터리 모듈 (LiFePO4 Battery)',
+        name: 'LiFePO4 Backup Battery Module',
         category: 'Energy',
         abcClass: 'B',
         dailyPicks: 74,
@@ -303,7 +303,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'pk-06',
         skuCode: 'ACC-331',
-        name: 'USB-C 케이블 벌크 박스 (USB-C Bulk)',
+        name: 'USB-C Braided Cable Bulk Box',
         category: 'Accessories',
         abcClass: 'B',
         dailyPicks: 62,
@@ -318,7 +318,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'pk-07',
         skuCode: 'SEN-610',
-        name: '열화상 센서 어레이 키트 (Thermal Array)',
+        name: 'Thermal Imaging Sensor Array',
         category: 'Optics',
         abcClass: 'B',
         dailyPicks: 44,
@@ -333,7 +333,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'pk-08',
         skuCode: 'RSV-910',
-        name: '프로모션 진열 스탠드 (Display Stand)',
+        name: 'Retail Promotional Display Stand',
         category: 'Retail',
         abcClass: 'C',
         dailyPicks: 11,
@@ -348,7 +348,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'pk-09',
         skuCode: 'RSV-925',
-        name: '교체용 정수 필터 카트리지 (Filter Cartridge)',
+        name: 'Replacement Water Filter Cartridge',
         category: 'Maintenance',
         abcClass: 'C',
         dailyPicks: 8,
@@ -364,9 +364,9 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
   },
   {
     id: 'cold-micro-tight',
-    name: 'Map 3 · 콜드체인 저온 마이크로 허브 (Cold-Chain)',
+    name: 'Map 3 · Cold-Chain Micro Fulfillment Hub',
     description:
-      '100×80×60cm 컴팩트 냉장·냉동 선반(40칸)에서 3D 회전과 칸막이 합포장으로 공간 부족을 해결하는 도심형 저온 허브입니다.',
+      'Urban chilled & frozen storage vault (40 compact 100×80×60cm bins) maximizing cubic density with 6-axis rotation and multi-SKU co-packing.',
     config: {
       aisles: 2,
       baysPerAisle: 5,
@@ -380,13 +380,13 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       goldenZoneMinM: 0.8,
       goldenZoneMaxM: 1.65,
       allowRotationAndCoPack: true,
-      mapTag: '2×5×4 · 저온 40칸',
+      mapTag: '2×5×4 · Cold 40 Bins',
     },
     skus: [
       {
         id: 'cc-01',
         skuCode: 'CLD-101',
-        name: '바이오 보냉 아이스팩 토트 (Cold Pack)',
+        name: 'Bio Thermal Cold Pack Tote',
         category: 'Pharma Cold',
         abcClass: 'A',
         dailyPicks: 165,
@@ -401,7 +401,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'cc-02',
         skuCode: 'FRZ-205',
-        name: '프리미엄 젤라또 12입 박스 (Gelato Case)',
+        name: 'Artisan Gelato 12-Tub Case',
         category: 'Frozen',
         abcClass: 'A',
         dailyPicks: 140,
@@ -416,7 +416,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'cc-03',
         skuCode: 'DAI-310',
-        name: '유기농 우유 크레이트 18L (Organic Milk)',
+        name: 'Organic Dairy Milk Crate 18L',
         category: 'Dairy',
         abcClass: 'A',
         dailyPicks: 128,
@@ -431,7 +431,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'cc-04',
         skuCode: 'PRO-412',
-        name: '무농약 샐러드 채소 트레이 (Fresh Greens)',
+        name: 'Organic Fresh Salad Greens Tray',
         category: 'Produce',
         abcClass: 'B',
         dailyPicks: 72,
@@ -446,7 +446,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'cc-05',
         skuCode: 'SEA-509',
-        name: '급속냉동 연어 필렛 박스 (Frozen Salmon)',
+        name: 'Flash-Frozen Salmon Fillet Box',
         category: 'Seafood',
         abcClass: 'B',
         dailyPicks: 56,
@@ -461,7 +461,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'cc-06',
         skuCode: 'DRY-770',
-        name: '보냉 단열 라이너 롤 (Insulated Liner)',
+        name: 'Insulated Thermal Liner Roll',
         category: 'Packaging',
         abcClass: 'C',
         dailyPicks: 18,
@@ -477,9 +477,9 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
   },
   {
     id: 'heavy-crossdock',
-    name: 'Map 4 · 중량 화물 크로스도킹 센터 (Heavy Bulk)',
+    name: 'Map 4 · Heavy Bulk Cross-Docking Center',
     description:
-      '16kg 이상 고중량 기계 부품의 상부 선반 배치를 차단하고 1단(Z1)에 안전하게 고정하는 5열 4칸 4단(80칸) 물류센터입니다.',
+      'Industrial 5-aisle, 4-bay, 4-level (80-bin) cross-docking hub anchoring heavy machinery (>16 kg) strictly to Z1–Z2 lower levels.',
     config: {
       aisles: 5,
       baysPerAisle: 4,
@@ -493,13 +493,13 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       goldenZoneMinM: 0.8,
       goldenZoneMaxM: 1.65,
       allowRotationAndCoPack: true,
-      mapTag: '5×4×4 · 중량 80칸',
+      mapTag: '5×4×4 · Heavy 80 Bins',
     },
     skus: [
       {
         id: 'hb-01',
         skuCode: 'MTR-100',
-        name: '산업용 서보 액추에이터 (Servo Actuator)',
+        name: 'Industrial Servo Actuator',
         category: 'Machinery',
         abcClass: 'A',
         dailyPicks: 130,
@@ -514,7 +514,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hb-02',
         skuCode: 'VAL-205',
-        name: '유압 매니폴드 블록 (Hydraulic Manifold)',
+        name: 'Hydraulic Manifold Block',
         category: 'Hydraulics',
         abcClass: 'A',
         dailyPicks: 115,
@@ -529,7 +529,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hb-03',
         skuCode: 'PLC-114',
-        name: '안전 PLC 제어 모듈 (Safety PLC)',
+        name: 'Safety PLC Control Module',
         category: 'Automation',
         abcClass: 'A',
         dailyPicks: 155,
@@ -544,7 +544,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hb-04',
         skuCode: 'CBL-312',
-        name: '서보 하네스 케이블 릴 (Harness Reel)',
+        name: 'Servo Harness Cable Reel',
         category: 'Cabling',
         abcClass: 'B',
         dailyPicks: 68,
@@ -559,7 +559,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hb-05',
         skuCode: 'PNU-420',
-        name: '공압 실린더 어셈블리 (Pneumatic Cylinder)',
+        name: 'Pneumatic Cylinder Assembly',
         category: 'Pneumatics',
         abcClass: 'B',
         dailyPicks: 54,
@@ -574,7 +574,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hb-06',
         skuCode: 'GSK-890',
-        name: 'PTFE 불소수지 플랜지 가스켓 (Flange Gasket)',
+        name: 'PTFE Flange Gasket Kit',
         category: 'Seals',
         abcClass: 'C',
         dailyPicks: 14,
@@ -590,9 +590,9 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
   },
   {
     id: 'everyday-home-pantry',
-    name: 'Everyday 1 · 주방 팬트리 & 드레스룸 (Home Pantry)',
+    name: 'Everyday 1 · Home Pantry & Walk-In Closet',
     description:
-      '가정용 수납 선반(80×50×45cm): 무거운 생수 묶음은 바닥 1단에 고정하고 자주 꺼내는 간식·커피는 허리 높이 골든존에 배치합니다.',
+      'Home storage shelves (80×50×45cm): heavy bottled water cases stay anchored on Z1 while daily snacks and coffee sit in the waist-level Golden Zone.',
     config: {
       aisles: 2,
       baysPerAisle: 3,
@@ -606,13 +606,13 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       goldenZoneMinM: 0.8,
       goldenZoneMaxM: 1.65,
       allowRotationAndCoPack: true,
-      mapTag: '2×3×4 · 가정용 24칸',
+      mapTag: '2×3×4 · Home 24 Bins',
     },
     skus: [
       {
         id: 'hm-01',
         skuCode: 'WTR-2L',
-        name: '생수 2L×12팩 (Bottled Water)',
+        name: 'Bottled Water 2L×12 Pack',
         category: 'Pantry',
         abcClass: 'A',
         dailyPicks: 95,
@@ -627,7 +627,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hm-02',
         skuCode: 'SNK-10',
-        name: '데일리 간식·시리얼 (Snack Tote)',
+        name: 'Daily Snacks & Cereal Tote',
         category: 'Pantry',
         abcClass: 'A',
         dailyPicks: 120,
@@ -642,7 +642,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hm-03',
         skuCode: 'KIT-04',
-        name: '원두 커피·티백 세트 (Coffee Box)',
+        name: 'Whole-Bean Coffee & Tea Box',
         category: 'Kitchen',
         abcClass: 'A',
         dailyPicks: 105,
@@ -657,7 +657,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hm-04',
         skuCode: 'CMP-22',
-        name: '주말 캠핑 랜턴·버너 (Camping Kit)',
+        name: 'Weekend Camping Lantern & Stove',
         category: 'Hobby',
         abcClass: 'B',
         dailyPicks: 35,
@@ -672,7 +672,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'hm-05',
         skuCode: 'BED-88',
-        name: '겨울 이불 압축팩 (Winter Blanket)',
+        name: 'Winter Duvet Vacuum Pack',
         category: 'Closet',
         abcClass: 'C',
         dailyPicks: 6,
@@ -688,9 +688,9 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
   },
   {
     id: 'everyday-mini-shop',
-    name: 'Everyday 2 · 온라인 쇼핑몰 & 공방 (Mini-Shop Rack)',
+    name: 'Everyday 2 · Online Mini-Shop & Maker Workshop',
     description:
-      '소규모 온라인 스토어·공방(100×60×50cm 선반): 택배 박스와 주력 상품의 포장 동선을 단축하고 중량 공구함을 안전하게 하단 배치합니다.',
+      'Small e-commerce seller & maker studio (100×60×50cm shelves): speeds up parcel packing routes while keeping heavy tool chests on lower shelves.',
     config: {
       aisles: 3,
       baysPerAisle: 4,
@@ -704,13 +704,13 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       goldenZoneMinM: 0.8,
       goldenZoneMaxM: 1.65,
       allowRotationAndCoPack: true,
-      mapTag: '3×4×4 · 매장 48칸',
+      mapTag: '3×4×4 · Shop 48 Bins',
     },
     skus: [
       {
         id: 'ms-01',
         skuCode: 'BOX-M',
-        name: '택배 박스 묶음 (Courier Box)',
+        name: 'Corrugated Mailer Box Bundle',
         category: 'Shipping',
         abcClass: 'A',
         dailyPicks: 140,
@@ -725,7 +725,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'ms-02',
         skuCode: 'FIL-3D',
-        name: '주력 판매 굿즈·키트 (Craft Kit)',
+        name: 'Bestseller Craft & Merch Kit',
         category: 'Maker',
         abcClass: 'A',
         dailyPicks: 112,
@@ -740,7 +740,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'ms-03',
         skuCode: 'TOL-90',
-        name: '중량 철제 공구함 (Heavy Tool Chest)',
+        name: 'Heavy Steel Tool Chest',
         category: 'Garage',
         abcClass: 'B',
         dailyPicks: 42,
@@ -755,7 +755,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'ms-04',
         skuCode: 'TAP-12',
-        name: '박스테이프 24롤 박스 (Packing Tape)',
+        name: 'Packing Tape 24-Roll Carton',
         category: 'Shipping',
         abcClass: 'A',
         dailyPicks: 128,
@@ -770,7 +770,7 @@ export const SAMPLE_SCENARIOS: WarehouseScenario[] = [
       {
         id: 'ms-05',
         skuCode: 'TNT-70',
-        name: '4인용 캠핑 텐트백 (Camping Tent)',
+        name: '4-Person Camping Tent Bag',
         category: 'Outdoor',
         abcClass: 'C',
         dailyPicks: 10,

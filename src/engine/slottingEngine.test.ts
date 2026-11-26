@@ -191,10 +191,10 @@ test('Pinned cargo placement and Z-level breakdown compute Golden Zone tiers acc
   assert.ok(z2?.isGoldenZone, 'Z2 (0.85m) should be inside Golden Zone 0.80m-1.65m');
 });
 
-test('CSV parser imports SKU master data with Korean/English columns and BOM', () => {
+test('CSV parser imports SKU master data with standard English columns and BOM', () => {
   const csv = `\uFEFFskuCode,name,category,abcClass,dailyPicks,lengthCm,widthCm,heightCm,weightKg,quantity,fragile
-WTR-500,"생수 500mL 묶음",Beverage,A,180,36,24,22,11.5,6,false
-GLS-10,"유리 용기 세트",Kitchen,B,45,28,22,18,3.2,4,true`;
+WTR-500,"Spring Water 500mL Pack",Beverage,A,180,36,24,22,11.5,6,false
+GLS-10,"Glass Container Set",Kitchen,B,45,28,22,18,3.2,4,true`;
 
   const parsed = parseSkusFromCSV(csv);
   assert.equal(parsed.length, 2);
@@ -240,19 +240,21 @@ test('Hybrid AI context builder, bin ID extractor, and action engine produce act
   assert.ok(context.includes('3D Improvement Deltas:'));
   assert.ok(context.includes('Focused Bin A1-B1-Z1'));
 
-  const reportKo = generateLocalDeterministicAudit(
-    '골든존 동선과 중량물 안전, 히트맵을 분석해줘',
+  const reportEn = generateLocalDeterministicAudit(
+    'Analyze Golden Zone pick route, heavy cargo safety, and heatmap congestion',
     context
   );
-  assert.ok(reportKo.includes('로컬 온디바이스 슬로팅 엔진 정량 분석 리포트'));
+  assert.ok(
+    reportEn.includes('Local On-Device Slotting Engine Quantitative Audit')
+  );
 
-  const extractedBins = extractBinIdsFromText(reportKo);
+  const extractedBins = extractBinIdsFromText(reportEn);
   assert.ok(extractedBins.length > 0);
 
   const actions = deriveRecommendedActions(
-    '골든존 동선과 중량물 안전, 히트맵을 분석해줘',
+    'Analyze Golden Zone pick route, heavy cargo safety, and heatmap congestion',
     context,
-    reportKo
+    reportEn
   );
   assert.ok(actions.some((a) => a.kind === 'apply_preset_safety'));
   assert.ok(actions.some((a) => a.kind === 'apply_preset_speed'));
@@ -379,7 +381,7 @@ test('100-SKU x 100-Bin high-volume stress test places 100% of items with 0 safe
   const skus100: SKUItem[] = Array.from({ length: 100 }, (_, i) => ({
     id: `sku-stress-${i + 1}`,
     skuCode: `STRESS-${i + 1}`,
-    name: `대량 테스트 품목 #${i + 1} (Stress Item ${i + 1})`,
+    name: `High-Volume Stress Test Item #${i + 1}`,
     category: 'Stress',
     abcClass: i % 3 === 0 ? 'A' : i % 3 === 1 ? 'B' : 'C',
     dailyPicks: 20 + (i % 100),

@@ -69,67 +69,67 @@ export function deriveRecommendedActions(
     items: HybridAIAction[];
   }> = [
     {
-      regex: /heatmap|congest|bottleneck|frequency|히트맵|병목|혼잡|집중/,
+      regex: /heatmap|congest|bottleneck|frequency/,
       items: [
         {
           id: 'act-view-heatmap',
-          labelKo: '3D 피킹 히트맵 보기',
+          labelKo: 'Show 3D Pick Heatmap',
           labelEn: 'Show 3D Pick Heatmap',
           kind: 'switch_view_heatmap',
         },
       ],
     },
     {
-      regex: /asrs|as\/rs|crane|chebyshev|shuttle|크레인|자동화|스태커/,
+      regex: /asrs|as\/rs|crane|chebyshev|shuttle/,
       items: [
         {
           id: 'act-equip-asrs',
-          labelKo: 'AS/RS 크레인 모드 전환',
+          labelKo: 'Switch to AS/RS Crane Mode',
           labelEn: 'Switch to AS/RS Crane Mode',
           kind: 'switch_equipment_asrs',
         },
       ],
     },
     {
-      regex: /safety|heavy|weight|hazard|z1|안전|무거운|중량|하중|위험/,
+      regex: /safety|heavy|weight|hazard|z1/,
       items: [
         {
           id: 'act-safety',
-          labelKo: '안전 최우선(Max Safety) 적용',
+          labelKo: 'Apply Max-Safety Preset',
           labelEn: 'Apply Max-Safety Preset',
           kind: 'apply_preset_safety',
         },
       ],
     },
     {
-      regex: /speed|cycle|fast|golden|pick|동선|빠른|속도|골든존|피킹/,
+      regex: /speed|cycle|fast|golden|pick/,
       items: [
         {
           id: 'act-speed',
-          labelKo: '빠른 동선(Fast Pick) 적용',
+          labelKo: 'Apply Fast-Pick Preset',
           labelEn: 'Apply Fast-Pick Preset',
           kind: 'apply_preset_speed',
         },
         {
           id: 'act-view-golden',
-          labelKo: '3D 골든존 레이어 보기',
+          labelKo: 'Highlight 3D Golden Zone',
           labelEn: 'Highlight 3D Golden Zone',
           kind: 'switch_view_golden_zone',
         },
       ],
     },
     {
-      regex: /density|cubic|waste|honeycomb|space|공간|빈틈|압축|적재율|합포장/,
+      regex: /density|cubic|waste|honeycomb|space/,
       items: [
         {
           id: 'act-density',
-          labelKo: '공간 압축(Max Density) 적용',
+          labelKo: 'Apply Max-Density Preset',
           labelEn: 'Apply Max-Density Preset',
           kind: 'apply_preset_density',
         },
         {
           id: 'act-smartfit',
-          labelKo: '6축 회전·합포장 활성화',
+          labelKo: 'Enable 6-Axis Co-Packing',
           labelEn: 'Enable 6-Axis Co-Packing',
           kind: 'enable_smart_fit',
         },
@@ -151,7 +151,7 @@ export function deriveRecommendedActions(
   if (actions.length === 0) {
     actions.push({
       id: 'act-opt3d',
-      labelKo: '3D 최적화 배치 적용',
+      labelKo: 'Switch to 3D Optimized',
       labelEn: 'Switch to 3D Optimized',
       kind: 'switch_3d_optimized',
     });
@@ -216,7 +216,6 @@ export function generateLocalDeterministicAudit(
   prompt: string,
   context: string
 ): string {
-  const isKo = /[가-힣]/.test(prompt);
   const binMatches = extractBinIdsFromText(`${context}\n${prompt}`);
   const primaryBins = binMatches.slice(0, 4);
   const binListStr =
@@ -230,30 +229,10 @@ export function generateLocalDeterministicAudit(
   const routeLine = lines.find((l) => l.startsWith('Active Pick Route')) ?? '';
   const focusLine = lines.find((l) => l.startsWith('Focused Bin')) ?? '';
 
-  if (isKo) {
-    return [
-      `[로컬 온디바이스 슬로팅 엔진 정량 분석 리포트]`,
-      `1. **3D 공간·골든존 진단**:`,
-      `   - ${optLine || '3D 최적화 배치가 활성화되어 있습니다.'}`,
-      baseLine ? `   - 기존 2D 대비 비교: ${baseLine}` : '',
-      deltaLine ? `   - 개선 효과 요약: ${deltaLine.replace('3D Improvement Deltas:', '').trim()}` : '',
-      `2. **핵심 점검 대상 선반 & 피킹 동선 (클릭하여 3D 포커스)**: **${binListStr}**`,
-      topLine ? `   - ${topLine.replace('Top Active Bins:', '최상위 피킹 집중 칸:')}` : '',
-      routeLine ? `   - 활성 피킹 동선: ${routeLine}` : '',
-      focusLine ? `   - 현재 선택 칸 상세: ${focusLine}` : '',
-      `3. **권장 액션 3가지**:`,
-      `   - 고빈도 Class A 품목은 허리~가슴 높이 골든존(**${primaryBins[0] ?? 'A1-B1-Z2'}**)에 집중 배치해 수직 리프트 피로도를 줄이세요.`,
-      `   - 16kg 초과 중량 화물은 반드시 하부 **Z1~Z2** 단에 고정하여 전도 위험(Safety Violation 0건)을 유지하세요.`,
-      `   - 동일 세그먼트 소형 박스는 6축 회전 + 합포장(Co-Packing) 옵션을 켜서 빈틈 낭비(Honeycombing)를 최소화하세요.`,
-    ]
-      .filter(Boolean)
-      .join('\n');
-  }
-
   return [
     `[Local On-Device Slotting Engine Quantitative Audit]`,
     `1. **3D Cubic & Golden Zone Telemetry**:`,
-    `   - ${optLine}`,
+    `   - ${optLine || '3D Optimized slotting is active.'}`,
     baseLine ? `   - ${baseLine}` : '',
     deltaLine ? `   - ${deltaLine}` : '',
     `2. **Priority Action Bins & Active Pick Route (Click chip below to focus in 3D)**: **${binListStr}**`,

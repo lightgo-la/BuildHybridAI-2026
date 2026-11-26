@@ -269,7 +269,7 @@ export function useWarehouseTransforms({
             ) {
               showToast(
                 lang === 'ko'
-                  ? `선반 [${binId}] 규격이 박스 수량(${clampedCount}개)에 맞춰 ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm → ${nextL}×${nextW}×${nextH}cm로 자동 확장되었습니다.`
+                  ? `Shelf [${binId}] auto-expanded from ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm to ${nextL}×${nextW}×${nextH}cm to fit ${clampedCount} boxes.`
                   : `Shelf [${binId}] auto-expanded from ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm to ${nextL}×${nextW}×${nextH}cm to fit ${clampedCount} boxes.`
               );
             }
@@ -439,14 +439,14 @@ export function useWarehouseTransforms({
       showToast(
         swappedSkuId
           ? lang === 'ko'
-            ? `[${fromBinId}] ↔ [${toBinId}] 선반 간 물건 위치를 자동 맞교환(Swap)했습니다.`
+            ? `Swapped item between [${fromBinId}] and [${toBinId}].`
             : `Swapped item between [${fromBinId}] and [${toBinId}].`
           : transferCount === 'all' && movedUnits > 1
             ? lang === 'ko'
-              ? `묶음 물건 ${movedUnits}개를 [${fromBinId}] → [${toBinId}] (Z${targetBin.level}층)으로 일괄 이동했습니다.`
+              ? `Moved batch of ${movedUnits} items from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
               : `Moved batch of ${movedUnits} items from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
             : lang === 'ko'
-              ? `낱개 물건을 [${fromBinId}] → [${toBinId}] (Z${targetBin.level}층) 선반으로 이동했습니다.`
+              ? `Moved individual item from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
               : `Moved individual item from [${fromBinId}] to [${toBinId}] (Z${targetBin.level}).`
       );
     },
@@ -536,7 +536,7 @@ export function useWarehouseTransforms({
       );
       showToast(
         lang === 'ko'
-          ? `물건을 3D 바닥 위치 [${binId}] (${snappedX}m, ${snappedY}m)로 이동했습니다.`
+          ? `Moved item to 3D floor spot [${binId}] (${snappedX}m, ${snappedY}m).`
           : `Moved item to 3D floor spot [${binId}] (${snappedX}m, ${snappedY}m).`
       );
     },
@@ -769,7 +769,7 @@ export function useWarehouseTransforms({
       setRemovedBinIds([]);
       showToast(
         lang === 'ko'
-          ? `낱개 선반 칸 [${binId}] 물리 배치: (${finalX.toFixed(2)}m, ${finalY.toFixed(2)}m, Z${nextLevel}층)`
+          ? `Placed single bin [${binId}] at (${finalX.toFixed(2)}m, ${finalY.toFixed(2)}m, Z${nextLevel})`
           : `Placed single bin [${binId}] at (${finalX.toFixed(2)}m, ${finalY.toFixed(2)}m, Z${nextLevel})`
       );
     },
@@ -1160,7 +1160,7 @@ export function useWarehouseTransforms({
       setSelectedCargo(null);
       showToast(
         lang === 'ko'
-          ? `3D 인테리어 추가됨: ${newProp.label} (${newProp.xMeters}m, ${newProp.yMeters}m)`
+          ? `Added 3D Interior: ${newProp.label} (${newProp.xMeters}m, ${newProp.yMeters}m)`
           : `Added 3D Interior: ${newProp.label} (${newProp.xMeters}m, ${newProp.yMeters}m)`
       );
     },
@@ -1235,7 +1235,7 @@ export function useWarehouseTransforms({
       {
         id: `prop-auto-1-${Date.now()}`,
         type: 'desk_work',
-        label: lang === 'ko' ? '책상 & 모니터 작업대' : 'Study & Packing Desk',
+        label: lang === 'ko' ? 'Study & Packing Desk' : 'Study & Packing Desk',
         xMeters: Number((maxX + 1.8).toFixed(2)),
         yMeters: 0.8,
         rotationDeg: 270,
@@ -1245,7 +1245,7 @@ export function useWarehouseTransforms({
       {
         id: `prop-auto-2-${Date.now()}`,
         type: 'sofa_lounge',
-        label: lang === 'ko' ? '패브릭 소파·휴식존' : 'Cozy Lounge Sofa',
+        label: lang === 'ko' ? 'Cozy Lounge Sofa' : 'Cozy Lounge Sofa',
         xMeters: -1.4,
         yMeters: Number((maxZ * 0.45).toFixed(2)),
         rotationDeg: 90,
@@ -1255,7 +1255,7 @@ export function useWarehouseTransforms({
       {
         id: `prop-auto-3-${Date.now()}`,
         type: 'plant_pot',
-        label: lang === 'ko' ? '대형 인테리어 화분' : 'Indoor Monstera Plant',
+        label: lang === 'ko' ? 'Indoor Monstera Plant' : 'Indoor Monstera Plant',
         xMeters: -1.3,
         yMeters: 0.4,
         rotationDeg: 0,
@@ -1265,7 +1265,7 @@ export function useWarehouseTransforms({
       {
         id: `prop-auto-4-${Date.now()}`,
         type: 'door_entry',
-        label: lang === 'ko' ? '실내 출입문' : 'Room Entrance Door',
+        label: lang === 'ko' ? 'Room Entrance Door' : 'Room Entrance Door',
         xMeters: -1.5,
         yMeters: Number((maxZ - 0.5).toFixed(2)),
         rotationDeg: 90,
@@ -1281,7 +1281,7 @@ export function useWarehouseTransforms({
     setSelectedPropId(autoList[0].id);
     showToast(
       lang === 'ko'
-        ? '맞춤 3D 인테리어(책상·소파·화분·출입문·3면 룸)가 자동 배치되었습니다.'
+        ? 'Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room).'
         : 'Auto-populated 3D Room Interior (Desk, Sofa, Plant, Door & 3-Wall Room).'
     );
   }, [
@@ -1404,7 +1404,7 @@ export function useWarehouseTransforms({
       }));
       showToast(
         lang === 'ko'
-          ? `★ 출입구/피킹 출발지 위치 이동: (${nx}m, ${ny}m)`
+          ? `★ Moved I/O Depot to (${nx}m, ${ny}m)`
           : `★ Moved I/O Depot to (${nx}m, ${ny}m)`
       );
     },
@@ -1424,7 +1424,7 @@ export function useWarehouseTransforms({
         bay: Math.max(1, Math.round((ny - 1.8) / baySp) + 1),
         xMeters: nx,
         yMeters: ny,
-        label: label || (lang === 'ko' ? '기둥' : 'PILLAR'),
+        label: label || (lang === 'ko' ? 'PILLAR' : 'PILLAR'),
       };
       setConfigPatch((prev) => ({
         ...prev,
@@ -1432,7 +1432,7 @@ export function useWarehouseTransforms({
       }));
       showToast(
         lang === 'ko'
-          ? `3D 기둥/장애물 추가됨: (${nx}m, ${ny}m)`
+          ? `Added 3D Pillar/Obstacle at (${nx}m, ${ny}m)`
           : `Added 3D Pillar/Obstacle at (${nx}m, ${ny}m)`
       );
       return newObs;
@@ -1495,7 +1495,7 @@ export function useWarehouseTransforms({
         ),
       }));
       showToast(
-        lang === 'ko' ? '기둥/장애물이 삭제되었습니다.' : 'Deleted obstacle.'
+        lang === 'ko' ? 'Deleted obstacle.' : 'Deleted obstacle.'
       );
     },
     [config.obstacles, lang, pushWorkspaceUndo, setConfigPatch, showToast]
@@ -1559,7 +1559,7 @@ export function useWarehouseTransforms({
         if (needsLengthExpand || needsWidthExpand || needsHeightExpand) {
           expandedDimsNotice =
             lang === 'ko'
-              ? ` (선반 규격 ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm → ${nextL}×${nextW}×${nextH}cm 자동 확장)`
+              ? ` (Shelf auto-expanded to ${nextL}×${nextW}×${nextH}cm)`
               : ` (Shelf auto-expanded to ${nextL}×${nextW}×${nextH}cm)`;
         }
       }
@@ -1570,7 +1570,7 @@ export function useWarehouseTransforms({
       const name =
         input.name?.trim() ||
         (lang === 'ko'
-          ? `맞춤 박스 ${boxL}×${boxW}×${boxH}cm (Custom Box)`
+          ? `Custom Box ${boxL}×${boxW}×${boxH}cm`
           : `Custom Box ${boxL}×${boxW}×${boxH}cm`);
       const abcClass: ABCClass =
         input.abcClass ?? (targetBin.isGoldenZone ? 'A' : 'B');
@@ -1614,7 +1614,7 @@ export function useWarehouseTransforms({
 
       showToast(
         lang === 'ko'
-          ? `선반 [${targetBin.id}]에 맞춤 박스 (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) ${qty}개를 넣었습니다.${expandedDimsNotice}`
+          ? `Placed ${qty}× custom box (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) into shelf [${targetBin.id}].${expandedDimsNotice}`
           : `Placed ${qty}× custom box (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) into shelf [${targetBin.id}].${expandedDimsNotice}`
       );
     },
@@ -1708,7 +1708,7 @@ export function useWarehouseTransforms({
           setRemovedBinIds([]);
           showToast(
             lang === 'ko'
-              ? `박스 규격 변경에 맞춰 선반 [${targetBin.id}] 규격이 ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm → ${nextL}×${nextW}×${nextH}cm로 자동 확장되었습니다.`
+              ? `Shelf [${targetBin.id}] auto-expanded to ${nextL}×${nextW}×${nextH}cm to fit updated box dimensions.`
               : `Shelf [${targetBin.id}] auto-expanded to ${nextL}×${nextW}×${nextH}cm to fit updated box dimensions.`
           );
         }

@@ -23,21 +23,21 @@ export const GOLDEN_ZONE_PRESETS: GoldenZonePreset[] = [
   {
     id: 'standard',
     label: 'Standard (0.8m–1.65m · Z2–Z3)',
-    labelKo: '표준 허리~가슴 높이 (0.8m–1.65m · 2~3단)',
+    labelKo: 'Standard (0.8m–1.65m · Z2–Z3)',
     minM: 0.8,
     maxM: 1.65,
   },
   {
     id: 'low_ergo',
     label: 'Compact Reach (0.7m–1.45m · Z2)',
-    labelKo: '낮은 선반·가정용 손높이 (0.7m–1.45m · 2단)',
+    labelKo: 'Compact Reach (0.7m–1.45m · Z2)',
     minM: 0.7,
     maxM: 1.45,
   },
   {
     id: 'tall_op',
     label: 'High Reach (0.85m–2.4m · Z2–Z4)',
-    labelKo: '높은 선반 작업용 (0.85m–2.4m · 2~4단)',
+    labelKo: 'High Reach (0.85m–2.4m · Z2–Z4)',
     minM: 0.85,
     maxM: 2.4,
   },
@@ -70,7 +70,7 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
   onChangeLevelFilter,
   onJumpToOptimization,
   simpleMode = true,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   const freedBins = baseline.kpis.occupiedBins - optimized.kpis.occupiedBins;
   const wasteSavedPts = (
@@ -98,10 +98,10 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
           <div className="rounded-lg bg-slate-950/70 p-2">
             <div className="text-[10px] text-slate-400">{t(lang, 'optimizerFreedBins')}</div>
             <div className="text-base font-bold text-emerald-300">
-              {freedBins >= 0 ? `+${freedBins}` : freedBins} {lang === 'ko' ? '칸' : 'bins'}
+              {freedBins >= 0 ? `+${freedBins}` : freedBins} {lang === 'ko' ? 'bins' : 'bins'}
             </div>
             <div className="text-[10px] text-slate-500">
-              {baseline.kpis.occupiedBins} → {optimized.kpis.occupiedBins} {lang === 'ko' ? '사용' : 'used'}
+              {baseline.kpis.occupiedBins} → {optimized.kpis.occupiedBins} {lang === 'ko' ? 'used' : 'used'}
             </div>
           </div>
           <div className="rounded-lg bg-slate-950/70 p-2">
@@ -111,7 +111,7 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
             </div>
             <div className="text-[10px] text-slate-500">
               {lang === 'ko'
-                ? `미적재: 2D ${baseline.unplacedUnits}개 → 3D ${optimized.unplacedUnits}개`
+                ? `Unplaced: 2D ${baseline.unplacedUnits} / 3D ${optimized.unplacedUnits}`
                 : `Unplaced: 2D ${baseline.unplacedUnits} / 3D ${optimized.unplacedUnits}`}
             </div>
           </div>
@@ -119,7 +119,7 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
         {(baseline.unplacedUnits > 0 || optimized.unplacedUnits > 0) && (
           <div className="mt-2 rounded-lg border border-amber-500/40 bg-amber-950/40 px-2.5 py-1.5 text-[10px] text-amber-200">
             {lang === 'ko'
-              ? `선반 용량 초과 안내: 2D 배치에서 ${baseline.unplacedUnits}개, 3D 최적화에서 ${optimized.unplacedUnits}개가 남았습니다. 자동 회전 & 빈틈 채움을 켜거나 선반을 추가해 보세요.`
+              ? `Overflow detected: 2D left ${baseline.unplacedUnits} units unplaced, 3D left ${optimized.unplacedUnits} units unplaced. Enable 3D Rotation & Co-Pack or reduce SKU quantity.`
               : `Overflow detected: 2D left ${baseline.unplacedUnits} units unplaced, 3D left ${optimized.unplacedUnits} units unplaced. Enable 3D Rotation & Co-Pack or reduce SKU quantity.`}
           </div>
         )}
@@ -208,14 +208,14 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
                 <div className="flex items-center justify-between text-[11px]">
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-white">
-                      {lang === 'ko' && simpleMode ? `${row.level}단 (Z${row.level})` : `Z${row.level}`}
+                      {lang === 'ko' && simpleMode ? `Z${row.level}` : `Z${row.level}`}
                     </span>
                     <span className="text-[10px] text-slate-400">
                       ({row.zMeters}m)
                     </span>
                     {row.isGoldenZone && (
                       <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
-                        {lang === 'ko' ? '허리높이' : 'Golden'}
+                        {lang === 'ko' ? 'Golden' : 'Golden'}
                       </span>
                     )}
                     {row.safetyViolations > 0 && (
@@ -227,10 +227,10 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
                   </div>
                   <div className="flex items-center gap-2 text-[10px] text-slate-300">
                     <span>
-                      {row.occupiedBins}/{row.totalBins} {lang === 'ko' ? '칸' : 'bins'}
+                      {row.occupiedBins}/{row.totalBins} {lang === 'ko' ? 'bins' : 'bins'}
                     </span>
                     <span className="font-semibold text-cyan-300">
-                      {row.avgCubicPct}% {lang === 'ko' ? '채움' : 'fill'}
+                      {row.avgCubicPct}% {lang === 'ko' ? 'fill' : 'fill'}
                     </span>
                     <Eye
                       className={`h-3 w-3 ${
@@ -253,7 +253,7 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
                     />
                   </div>
                   <span className="w-16 text-right text-[9px] text-slate-400">
-                    {row.pickLoadSharePct}% {lang === 'ko' ? '사용빈도' : 'picks'}
+                    {row.pickLoadSharePct}% {lang === 'ko' ? 'picks' : 'picks'}
                   </span>
                 </div>
               </button>

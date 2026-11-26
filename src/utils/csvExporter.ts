@@ -65,7 +65,7 @@ export function exportSkusToCSV(skus: SKUItem[], scenarioName: string): void {
 
   const safeSlug = scenarioName
     .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, '-')
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
   triggerCsvDownload(
     `${safeSlug || 'cubislot'}-skus.csv`,
@@ -144,7 +144,7 @@ export function exportSlottingResultToCSV(
 
   const safeSlug = scenarioName
     .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, '-')
+    .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '');
   triggerCsvDownload(
     `${safeSlug || 'cubislot'}-${result.mode}-allocations.csv`,
@@ -194,7 +194,7 @@ export function parseSkusFromCSV(
   if (lines.length < 2) return [];
 
   const headerCells = splitCsvLine(lines[0]).map((h) =>
-    h.toLowerCase().replace(/[^a-z0-9가-힣]/g, '')
+    h.toLowerCase().replace(/[^a-z0-9]/g, '')
   );
 
   const findCol = (aliases: string[], fallbackIdx: number) => {
@@ -202,18 +202,18 @@ export function parseSkusFromCSV(
     return idx >= 0 ? idx : fallbackIdx;
   };
 
-  const colCode = findCol(['skucode', 'code', 'sku', '품목코드', '코드'], 0);
-  const colName = findCol(['name', 'skuname', 'item', '품명', '이름', '물품명'], 1);
-  const colCat = findCol(['category', 'cat', '카테고리', '분류'], 2);
-  const colAbc = findCol(['abcclass', 'abc', '등급'], 3);
-  const colPicks = findCol(['dailypicks', 'picks', '일일피킹', '피킹수'], 4);
-  const colL = findCol(['lengthcm', 'length', 'l', '가로', '길이'], 5);
-  const colW = findCol(['widthcm', 'width', 'w', '세로', '폭'], 6);
-  const colH = findCol(['heightcm', 'height', 'h', '높이'], 7);
-  const colKg = findCol(['weightkg', 'weight', 'kg', '중량', '무게'], 8);
-  const colQty = findCol(['quantity', 'qty', '수량'], 9);
-  const colFragile = findCol(['fragile', '파손주의', '취급주의'], 10);
-  const colColor = findCol(['color', '색상'], 11);
+  const colCode = findCol(['skucode', 'code', 'sku', 'itemcode'], 0);
+  const colName = findCol(['name', 'skuname', 'item', 'itemname', 'title'], 1);
+  const colCat = findCol(['category', 'cat', 'group', 'type'], 2);
+  const colAbc = findCol(['abcclass', 'abc', 'class', 'grade'], 3);
+  const colPicks = findCol(['dailypicks', 'picks', 'velocity', 'demand'], 4);
+  const colL = findCol(['lengthcm', 'length', 'l', 'depthcm'], 5);
+  const colW = findCol(['widthcm', 'width', 'w'], 6);
+  const colH = findCol(['heightcm', 'height', 'h'], 7);
+  const colKg = findCol(['weightkg', 'weight', 'kg', 'mass'], 8);
+  const colQty = findCol(['quantity', 'qty', 'count', 'units'], 9);
+  const colFragile = findCol(['fragile', 'breakable'], 10);
+  const colColor = findCol(['color', 'hex'], 11);
 
   const parsed: SKUItem[] = [];
   for (let i = 1; i < lines.length; i++) {

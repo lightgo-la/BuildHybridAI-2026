@@ -18,7 +18,7 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
   open,
   onClose,
   onApplyConfig,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   const [form, setForm] = useState<FirebaseRuntimeConfig>(() =>
     loadEnvOrStoredConfig()
@@ -44,7 +44,7 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
             <KeyRound className="h-4 w-4 text-cyan-400" />
             <h3 className="text-sm font-semibold text-white">
               {lang === 'ko'
-                ? 'Firebase AI Logic & App Check 연결 설정'
+                ? 'Firebase AI Logic & App Check Configuration'
                 : 'Firebase AI Logic & App Check Configuration'}
             </h3>
           </div>
@@ -59,7 +59,7 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
 
         <p className="mt-3 text-xs leading-relaxed text-slate-400">
           {lang === 'ko'
-            ? 'Firebase 프로젝트를 연결하면 하이브리드 AI(클라우드 폴백), App Check 보안, Remote Config, Firestore 스냅샷 저장을 사용할 수 있습니다. 설정값은 브라우저에 안전하게 저장됩니다.'
+            ? 'Connect your Firebase project to activate Firebase AI Logic (Cloud Fallback), App Check, Remote Config, and Firestore persistence. Values are stored locally in your browser or loaded from .env.'
             : 'Connect your Firebase project to activate Firebase AI Logic (Cloud Fallback), App Check, Remote Config, and Firestore persistence. Values are stored locally in your browser or loaded from .env.'}
         </p>
 
@@ -107,7 +107,7 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
               onClick={onClose}
               className="rounded-lg border border-slate-700 px-3 py-1.5 text-slate-300 hover:bg-slate-800"
             >
-              {lang === 'ko' ? '취소' : 'Cancel'}
+              {lang === 'ko' ? 'Cancel' : 'Cancel'}
             </button>
             <button
               type="submit"
@@ -116,10 +116,10 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
             >
               {saving
                 ? lang === 'ko'
-                  ? '연결 중...'
+                  ? 'Initializing...'
                   : 'Initializing...'
                 : lang === 'ko'
-                  ? '저장 및 Firebase 연결'
+                  ? 'Save & Connect Firebase'
                   : 'Save & Connect Firebase'}
             </button>
           </div>

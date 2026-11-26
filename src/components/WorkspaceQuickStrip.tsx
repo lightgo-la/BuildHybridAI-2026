@@ -165,7 +165,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
                 className="inline-flex items-center gap-1 rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
               >
                 <Sparkles className="h-3 w-3" />
-                {lang === 'ko' ? '초보자 가이드 열기' : 'Show Quick Guide'}
+                {lang === 'ko' ? 'Show Quick Guide' : 'Show Quick Guide'}
               </button>
             )}
             {!simpleMode && (
@@ -212,7 +212,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/20 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
               <Sparkles className="h-3 w-3" />
               {lang === 'ko'
-                ? '초보자 3단계 빠른 시작:'
+                ? '3-Step Quick Start:'
                 : '3-Step Quick Start:'}
             </span>
 
@@ -223,7 +223,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
             >
               <span className="font-bold text-cyan-400">STEP 1</span>
               {lang === 'ko'
-                ? '우리집·매장 공간 템플릿 고르기'
+                ? 'Choose Space Template'
                 : 'Choose Space Template'}
             </button>
 
@@ -233,9 +233,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
               className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-900/90 px-2.5 py-1 text-[11px] font-medium text-slate-100 hover:border-emerald-400"
             >
               <span className="font-bold text-emerald-400">STEP 2</span>
-              {lang === 'ko'
-                ? `정리 전(2D) ↔ 3D 자동 정리 비교 (${activeLayout === 'optimized_3d' ? '현재: 3D 정리 후' : '현재: 정리 전'})`
-                : 'Compare Before (2D) ↔ After (3D)'}
+              {`Compare Before (2D) ↔ After (3D) (${activeLayout === 'optimized_3d' ? 'Active: 3D' : 'Active: 2D'})`}
             </button>
 
             <button
@@ -255,7 +253,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
             >
               <span className="font-bold text-amber-400">STEP 3</span>
               {lang === 'ko'
-                ? '추천 선반 클릭해 내 물건 바로 넣어보기'
+                ? 'Select Golden Zone Shelf & Place Item'
                 : 'Select Golden Zone Shelf & Place Item'}
             </button>
           </div>
@@ -265,7 +263,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
             onClick={() => onChangeShowBeginnerGuide(false)}
             className="text-[11px] text-slate-400 hover:text-white"
           >
-            {lang === 'ko' ? '가이드 접기 ×' : 'Hide ×'}
+            {lang === 'ko' ? 'Hide ×' : 'Hide ×'}
           </button>
         </section>
       )}

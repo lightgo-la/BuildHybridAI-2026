@@ -64,10 +64,10 @@ const QUICK_ITEM_PRESETS: Array<{
   qty: number;
   fragile: boolean;
 }> = [
-  { label: '+ 생수 2L팩', code: 'WTR-2L', name: '생수 2L×12팩', abc: 'A', picks: 110, l: 36, w: 24, h: 32, kg: 24, qty: 4, fragile: false },
-  { label: '+ 택배박스', code: 'PKG-M', name: '중형 택배박스', abc: 'A', picks: 130, l: 40, w: 30, h: 24, kg: 4.5, qty: 6, fragile: false },
-  { label: '+ 캠핑박스', code: 'CMP-01', name: '캠핑 수납 폴딩박스', abc: 'B', picks: 45, l: 50, w: 35, h: 28, kg: 7.5, qty: 4, fragile: false },
-  { label: '+ 깨짐주의 기기', code: 'FRG-09', name: '정밀/유리 보관함', abc: 'A', picks: 90, l: 32, w: 24, h: 20, kg: 3.2, qty: 4, fragile: true },
+  { label: '+ Water 2L Pack', code: 'WTR-2L', name: 'Bottled Water 2L×12 Pack', abc: 'A', picks: 110, l: 36, w: 24, h: 32, kg: 24, qty: 4, fragile: false },
+  { label: '+ Mailer Box', code: 'PKG-M', name: 'Medium Parcel Carton', abc: 'A', picks: 130, l: 40, w: 30, h: 24, kg: 4.5, qty: 6, fragile: false },
+  { label: '+ Camp Crate', code: 'CMP-01', name: 'Folding Camp Storage Crate', abc: 'B', picks: 45, l: 50, w: 35, h: 28, kg: 7.5, qty: 4, fragile: false },
+  { label: '+ Fragile Tech', code: 'FRG-09', name: 'Precision Glass & Tech Tote', abc: 'A', picks: 90, l: 32, w: 24, h: 20, kg: 3.2, qty: 4, fragile: true },
 ];
 
 export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
@@ -88,7 +88,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   onPinCargo,
   onPlaceCustomBoxInBin,
   onClearAllPins,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   const [step, setStep] = useState<'space' | 'cargo'>('space');
   const [targetPlacementBinId, setTargetPlacementBinId] = useState<string>(
@@ -110,7 +110,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   const maxW = (config.binWidthCm ?? 90) - 2;
   const maxH = (config.binHeightCm ?? 70) - 2;
   const [skuCode, setSkuCode] = useState('ITEM-01');
-  const [skuName, setSkuName] = useState('다용도 수납 박스 (Storage Box)');
+  const [skuName, setSkuName] = useState('Multi-Purpose Storage Box');
   const [abcClass, setAbcClass] = useState<ABCClass>('A');
   const [dailyPicks, setDailyPicks] = useState(120);
   const [lengthCm, setLengthCm] = useState(Math.min(40, maxL));
@@ -224,7 +224,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           }`}
         >
           <Grid className="h-3.5 w-3.5" />
-          {lang === 'ko' ? '1. 공간·선반 설계' : '1. Space Designer'}
+          {lang === 'ko' ? '1. Space Designer' : '1. Space Designer'}
         </button>
         <button
           type="button"
@@ -236,7 +236,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           }`}
         >
           <Package className="h-3.5 w-3.5" />
-          {lang === 'ko' ? '2. 수납 물품 설계' : '2. Cargo Designer'}
+          {lang === 'ko' ? '2. Cargo Designer' : '2. Cargo Designer'}
         </button>
       </div>
 
@@ -245,17 +245,17 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
             <div className="flex items-center justify-between text-[11px] font-semibold text-slate-200">
               <span>
-                {lang === 'ko' ? '공간 격자 & 선반 규격' : 'Warehouse Space Geometry'}
+                {lang === 'ko' ? 'Warehouse Space Geometry' : 'Warehouse Space Geometry'}
               </span>
               <span className="text-[10px] text-cyan-300">
-                {bins.length} {lang === 'ko' ? '개 활성 선반' : 'active bins'}
+                {bins.length} {lang === 'ko' ? 'active bins' : 'active bins'}
               </span>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-[11px]">
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? '선반 열 수 (X)' : 'Aisles (X)'}
+                  {lang === 'ko' ? 'Aisles (X)' : 'Aisles (X)'}
                 </span>
                 <input
                   type="number"
@@ -274,7 +274,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? '가로 칸 수 (Y)' : 'Bays (Y)'}
+                  {lang === 'ko' ? 'Bays (Y)' : 'Bays (Y)'}
                 </span>
                 <input
                   type="number"
@@ -296,7 +296,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? '높이 단수 (Z)' : 'Levels (Z)'}
+                  {lang === 'ko' ? 'Levels (Z)' : 'Levels (Z)'}
                 </span>
                 <input
                   type="number"
@@ -318,7 +318,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="grid grid-cols-3 gap-2 text-[11px]">
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? '칸 가로 L (cm)' : 'Bin L (cm)'}
+                  {lang === 'ko' ? 'Bin L (cm)' : 'Bin L (cm)'}
                 </span>
                 <input
                   type="number"
@@ -337,7 +337,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? '칸 깊이 W (cm)' : 'Bin W (cm)'}
+                  {lang === 'ko' ? 'Bin W (cm)' : 'Bin W (cm)'}
                 </span>
                 <input
                   type="number"
@@ -356,7 +356,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? '칸 높이 H (cm)' : 'Bin H (cm)'}
+                  {lang === 'ko' ? 'Bin H (cm)' : 'Bin H (cm)'}
                 </span>
                 <input
                   type="number"
@@ -383,7 +383,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="flex items-center justify-between font-semibold text-slate-200">
               <span>
                 {lang === 'ko'
-                  ? '개별 선반 칸 추가 / 삭제'
+                  ? 'Add / Delete Storage Bin'
                   : 'Add / Delete Storage Bin'}
               </span>
               {(extraBinsCount > 0 || removedBinsCount > 0) && (
@@ -394,7 +394,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 >
                   <RotateCcw className="h-3 w-3" />
                   {lang === 'ko'
-                    ? `초기화 (+${extraBinsCount} / -${removedBinsCount})`
+                    ? `Reset (${extraBinsCount} added / ${removedBinsCount} removed)`
                     : `Reset (${extraBinsCount} added / ${removedBinsCount} removed)`}
                 </button>
               )}
@@ -403,7 +403,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="grid grid-cols-4 gap-1.5">
               <div>
                 <span className="text-[10px] text-slate-500">
-                  {lang === 'ko' ? '열(Aisle)' : 'Aisle'}
+                  {lang === 'ko' ? 'Aisle' : 'Aisle'}
                 </span>
                 <input
                   type="number"
@@ -418,7 +418,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-500">
-                  {lang === 'ko' ? '칸(Bay)' : 'Bay'}
+                  {lang === 'ko' ? 'Bay' : 'Bay'}
                 </span>
                 <input
                   type="number"
@@ -433,7 +433,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-500">
-                  {lang === 'ko' ? '층(Z)' : 'Level Z'}
+                  {lang === 'ko' ? 'Level Z' : 'Level Z'}
                 </span>
                 <input
                   type="number"
@@ -448,7 +448,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
               <div>
                 <span className="text-[10px] text-slate-500">
-                  {lang === 'ko' ? '하중(kg)' : 'Max kg'}
+                  {lang === 'ko' ? 'Max kg' : 'Max kg'}
                 </span>
                 <input
                   type="number"
@@ -471,7 +471,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-cyan-500 py-1.5 font-semibold text-slate-950 hover:bg-cyan-400"
               >
                 <Plus className="h-3.5 w-3.5" />
-                {lang === 'ko' ? '선반 칸 추가' : 'Add Rack Bin'}
+                {lang === 'ko' ? 'Add Rack Bin' : 'Add Rack Bin'}
               </button>
               {selectedBinId && (
                 <button
@@ -480,13 +480,13 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   className="inline-flex items-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/15 px-2.5 py-1.5 font-semibold text-rose-300 hover:bg-rose-500/25"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  {lang === 'ko' ? `${selectedBinId} 삭제` : `Delete ${selectedBinId}`}
+                  {lang === 'ko' ? `Delete ${selectedBinId}` : `Delete ${selectedBinId}`}
                 </button>
               )}
             </div>
             <p className="text-[10px] text-slate-500">
               {lang === 'ko'
-                ? '팁: 3D 화면에서 마우스 오른쪽 버튼을 누르면 커서 위치에 바로 선반을 추가·삭제할 수 있습니다.'
+                ? 'Tip: Right-click anywhere in the 3D scene to add or delete bins directly at the cursor.'
                 : 'Tip: Right-click anywhere in the 3D scene to add or delete bins directly at the cursor.'}
             </p>
           </form>
@@ -502,7 +502,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
                   <span>
                     {lang === 'ko'
-                      ? `미적재 물품 ${activeResult.unplacedUnits}개 발생 (공간 또는 안전 하중 초과)`
+                      ? `${activeResult.unplacedUnits} units could not be placed (Volume / Weight limit)`
                       : `${activeResult.unplacedUnits} units could not be placed (Volume / Weight limit)`}
                   </span>
                 </div>
@@ -518,10 +518,10 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                       <span className="text-amber-300/90">
                         {u.reason === 'weight_or_safety_limit'
                           ? lang === 'ko'
-                            ? 'Z1~Z2 하중/안전층 부족'
+                            ? 'Z1-Z2 weight/safety limit'
                             : 'Z1-Z2 weight/safety limit'
                           : lang === 'ko'
-                            ? '선반 부피 부족'
+                            ? 'Bin volume full'
                             : 'Bin volume full'}
                       </span>
                     </div>
@@ -535,7 +535,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               <span className="inline-flex items-center gap-1">
                 <FileSpreadsheet className="h-3 w-3 text-emerald-400" />
                 {lang === 'ko'
-                  ? '실무 CSV 데이터 가져오기 / 내보내기'
+                  ? 'CSV Master Data Import / Export'
                   : 'CSV Master Data Import / Export'}
               </span>
               <span className="text-slate-500">{skus.length} SKUs</span>
@@ -543,7 +543,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="grid grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4">
               <label className="inline-flex cursor-pointer items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 font-medium text-cyan-300 hover:border-cyan-400">
                 <Upload className="h-3 w-3" />
-                {lang === 'ko' ? 'SKU CSV 업로드' : 'Import CSV'}
+                {lang === 'ko' ? 'Import CSV' : 'Import CSV'}
                 <input
                   type="file"
                   accept=".csv,text/csv"
@@ -612,11 +612,11 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 type="button"
                 onClick={() => {
                   const cats = [
-                    ['Beverage', '생수·음료 묶음', 'Beverage Crate', '#38bdf8', false],
-                    ['PantryFood', '팬트리 식품팩', 'Pantry Pack', '#f59e0b', false],
-                    ['ColdChain', '신선 냉장·냉동팩', 'Cold-Chain Box', '#22d3ee', false],
-                    ['Apparel', '의류 리빙박스', 'Apparel Tote', '#a78bfa', false],
-                    ['Electronics', '정밀 전자 모듈', 'ESD Tech Module', '#fb7185', true],
+                    ['Beverage', 'Beverage Crate', 'Beverage Crate', '#38bdf8', false],
+                    ['PantryFood', 'Pantry Food Pack', 'Pantry Pack', '#f59e0b', false],
+                    ['ColdChain', 'Fresh Cold-Chain Pack', 'Cold-Chain Box', '#22d3ee', false],
+                    ['Apparel', 'Apparel Living Box', 'Apparel Tote', '#a78bfa', false],
+                    ['Electronics', 'Precision Electronic Module', 'ESD Tech Module', '#fb7185', true],
                   ] as const;
                   const generated100: SKUItem[] = Array.from(
                     { length: 100 },
@@ -661,11 +661,11 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="inline-flex items-center justify-center gap-1 rounded-lg border border-amber-500/45 bg-amber-500/15 px-2 py-1.5 font-semibold text-amber-300 hover:bg-amber-500/25"
                 title={
                   lang === 'ko'
-                    ? '100종 품목(299박스)과 100개 선반(5×5×4) 대량 시뮬레이션 샘플을 원클릭으로 즉시 로드합니다'
+                    ? 'Load 100-SKU (299 boxes) & 100-Bin (5×5×4) benchmark sample in 1 click'
                     : 'Load 100-SKU (299 boxes) & 100-Bin (5×5×4) benchmark sample in 1 click'
                 }
               >
-                {lang === 'ko' ? '🧪 100개 샘플 로드' : '🧪 Load 100 SKUs'}
+                {lang === 'ko' ? '🧪 Load 100 SKUs' : '🧪 Load 100 SKUs'}
               </button>
               <button
                 type="button"
@@ -673,7 +673,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="inline-flex items-center justify-center gap-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 font-medium text-slate-200 hover:border-cyan-400"
               >
                 <Download className="h-3 w-3 text-cyan-400" />
-                {lang === 'ko' ? 'SKU 목록 CSV' : 'Export SKUs'}
+                {lang === 'ko' ? 'Export SKUs' : 'Export SKUs'}
               </button>
               {activeResult && (
                 <button
@@ -684,7 +684,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2 py-1.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
                 >
                   <Download className="h-3 w-3" />
-                  {lang === 'ko' ? '적재결과 CSV' : 'Slotting CSV'}
+                  {lang === 'ko' ? 'Slotting CSV' : 'Slotting CSV'}
                 </button>
               )}
             </div>
@@ -693,7 +693,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
             <div className="mb-1.5 text-[10px] font-semibold text-slate-400">
               {lang === 'ko'
-                ? '원클릭 빠른 물품 추가 (클릭 한 번으로 바로 추가)'
+                ? 'Quick Add Item (1-Click)'
                 : 'Quick Add Item (1-Click)'}
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -734,7 +734,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="col-span-3 flex items-center justify-between">
               <span className="font-bold text-emerald-300">
                 {lang === 'ko'
-                  ? '맞춤 박스 사이즈 설정 & 선반 투입'
+                  ? 'Custom Box Size & Shelf Placement'
                   : 'Custom Box Size & Shelf Placement'}
               </span>
               <span className="font-mono text-[10px] text-cyan-300">
@@ -745,7 +745,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="col-span-3">
               <span className="text-[10px] text-slate-400">
                 {lang === 'ko'
-                  ? '투입할 목표 선반 선택 (특정 선반 지정 또는 자동 배치)'
+                  ? 'Target Shelf Bin'
                   : 'Target Shelf Bin'}
               </span>
               <select
@@ -755,13 +755,13 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               >
                 <option value="">
                   {lang === 'ko'
-                    ? '자동 최적 선반 배치 (3D 엔진 자동 할당)'
+                    ? 'Auto Optimal Placement (3D Engine)'
                     : 'Auto Optimal Placement (3D Engine)'}
                 </option>
                 {bins.map((b) => (
                   <option key={b.id} value={b.id}>
                     {lang === 'ko'
-                      ? `선반 [${b.id}]에 바로 넣기 (Z${b.level}층 · 규격 ${b.binLengthCm}×${b.binWidthCm}×${b.binHeightCm}cm)`
+                      ? `Place Directly in [${b.id}] (Z${b.level} · ${b.binLengthCm}×${b.binWidthCm}×${b.binHeightCm}cm)`
                       : `Place Directly in [${b.id}] (Z${b.level} · ${b.binLengthCm}×${b.binWidthCm}×${b.binHeightCm}cm)`}
                   </option>
                 ))}
@@ -771,16 +771,16 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <div className="col-span-3">
               <div className="mb-1 text-[10px] text-slate-400">
                 {lang === 'ko'
-                  ? '빠른 박스 사이즈 선택 (가로×세로×높이 cm):'
+                  ? 'Quick Box Size Presets (L×W×H cm):'
                   : 'Quick Box Size Presets (L×W×H cm):'}
               </div>
               <div className="grid grid-cols-4 gap-1 text-[10px]">
                 {[
-                  { label: lang === 'ko' ? '소형 25×20×15' : 'S 25×20×15', l: 25, w: 20, h: 15, kg: 2 },
-                  { label: lang === 'ko' ? '중형 40×30×24' : 'M 40×30×24', l: 40, w: 30, h: 24, kg: 5 },
-                  { label: lang === 'ko' ? '대형 60×40×35' : 'L 60×40×35', l: 60, w: 40, h: 35, kg: 10 },
+                  { label: lang === 'ko' ? 'S 25×20×15' : 'S 25×20×15', l: 25, w: 20, h: 15, kg: 2 },
+                  { label: lang === 'ko' ? 'M 40×30×24' : 'M 40×30×24', l: 40, w: 30, h: 24, kg: 5 },
+                  { label: lang === 'ko' ? 'L 60×40×35' : 'L 60×40×35', l: 60, w: 40, h: 35, kg: 10 },
                   {
-                    label: lang === 'ko' ? '선반 1/2칸' : 'Half Bin',
+                    label: lang === 'ko' ? 'Half Bin' : 'Half Bin',
                     l: Math.max(12, Math.floor(maxL / 2)),
                     w: Math.max(12, maxW - 4),
                     h: Math.max(12, Math.floor(maxH * 0.75)),
@@ -808,18 +808,18 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             <input
               value={skuCode}
               onChange={(e) => setSkuCode(e.target.value)}
-              placeholder={lang === 'ko' ? '물품 코드/라벨' : 'SKU Code'}
+              placeholder={lang === 'ko' ? 'SKU Code' : 'SKU Code'}
               className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
             />
             <input
               value={skuName}
               onChange={(e) => setSkuName(e.target.value)}
-              placeholder={lang === 'ko' ? '물품 이름' : 'Cargo Name'}
+              placeholder={lang === 'ko' ? 'Cargo Name' : 'Cargo Name'}
               className="col-span-2 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
             />
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? '사용 빈도' : 'ABC'}
+                {lang === 'ko' ? 'ABC' : 'ABC'}
               </span>
               <select
                 value={abcClass}
@@ -827,19 +827,19 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
               >
                 <option value="A">
-                  {lang === 'ko' ? '자주 씀 (A)' : 'Class A'}
+                  {lang === 'ko' ? 'Class A' : 'Class A'}
                 </option>
                 <option value="B">
-                  {lang === 'ko' ? '보통 (B)' : 'Class B'}
+                  {lang === 'ko' ? 'Class B' : 'Class B'}
                 </option>
                 <option value="C">
-                  {lang === 'ko' ? '가끔·보관 (C)' : 'Class C'}
+                  {lang === 'ko' ? 'Class C' : 'Class C'}
                 </option>
               </select>
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? '하루 꺼내는 횟수' : 'Picks/d'}
+                {lang === 'ko' ? 'Picks/d' : 'Picks/d'}
               </span>
               <input
                 type="number"
@@ -852,7 +852,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? '무게 (kg)' : 'Weight (kg)'}
+                {lang === 'ko' ? 'Weight (kg)' : 'Weight (kg)'}
               </span>
               <input
                 type="number"
@@ -866,7 +866,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? `가로 L (≤${maxL})` : `L (≤${maxL})`}
+                {lang === 'ko' ? `L (≤${maxL})` : `L (≤${maxL})`}
               </span>
               <input
                 type="number"
@@ -880,7 +880,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? `세로 W (≤${maxW})` : `W (≤${maxW})`}
+                {lang === 'ko' ? `W (≤${maxW})` : `W (≤${maxW})`}
               </span>
               <input
                 type="number"
@@ -894,7 +894,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {lang === 'ko' ? `높이 H (≤${maxH}) / 수량` : `H (≤${maxH}) / Qty`}
+                {lang === 'ko' ? `H (≤${maxH}) / Qty` : `H (≤${maxH}) / Qty`}
               </span>
               <div className="flex gap-1">
                 <input
@@ -924,7 +924,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 className="accent-amber-400"
               />
               {lang === 'ko'
-                ? '파손주의 (세워서만 보관 · 상단 적재 금지)'
+                ? 'Fragile (upright only, block top stacking)'
                 : 'Fragile (upright only, block top stacking)'}
             </label>
             <button
@@ -934,10 +934,10 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               <Plus className="h-3.5 w-3.5" />
               {targetPlacementBinId
                 ? lang === 'ko'
-                  ? `선반 [${targetPlacementBinId}]에 ${lengthCm}×${widthCm}×${heightCm}cm 박스 ${quantity}개 바로 넣기`
+                  ? `Place ${quantity}× (${lengthCm}×${widthCm}×${heightCm}cm) Box in [${targetPlacementBinId}]`
                   : `Place ${quantity}× (${lengthCm}×${widthCm}×${heightCm}cm) Box in [${targetPlacementBinId}]`
                 : lang === 'ko'
-                  ? `새 수납 박스 추가 (${lengthCm}×${widthCm}×${heightCm}cm ×${quantity}개)`
+                  ? `Create Cargo Box (${lengthCm}×${widthCm}×${heightCm}cm ×${quantity})`
                   : `Create Cargo Box (${lengthCm}×${widthCm}×${heightCm}cm ×${quantity})`}
             </button>
           </form>
@@ -948,7 +948,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                 <span className="inline-flex items-center gap-1">
                   <Pin className="h-3 w-3" />
                   {lang === 'ko'
-                    ? `수동 고정된 물품 (${pinnedPlacements.length})`
+                    ? `Manual Bin Pins (${pinnedPlacements.length})`
                     : `Manual Bin Pins (${pinnedPlacements.length})`}
                 </span>
                 <button
@@ -956,7 +956,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   onClick={onClearAllPins}
                   className="text-[10px] text-slate-400 hover:text-white"
                 >
-                  {lang === 'ko' ? '전체 해제' : 'Clear All'}
+                  {lang === 'ko' ? 'Clear All' : 'Clear All'}
                 </button>
               </div>
               <div className="mt-1.5 space-y-1">
@@ -975,7 +975,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         onClick={() => onPinCargo(p.binId, p.skuId, -p.count)}
                         className="text-rose-400 hover:underline"
                       >
-                        {lang === 'ko' ? '해제' : 'Unpin'}
+                        {lang === 'ko' ? 'Unpin' : 'Unpin'}
                       </button>
                     </div>
                   );
@@ -1010,7 +1010,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         {sku.lengthCm}×{sku.widthCm}×{sku.heightCm}cm ·{' '}
                         {sku.weightKg}kg ·{' '}
                         {lang === 'ko'
-                          ? `수량 ${sku.quantity}개`
+                          ? `qty ${sku.quantity}`
                           : `qty ${sku.quantity}`}
                       </div>
                     </div>
@@ -1028,8 +1028,8 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                       >
                         {lang === 'ko'
                           ? isEditing
-                            ? '닫기'
-                            : '수정'
+                            ? 'Close'
+                            : 'Edit'
                           : isEditing
                             ? 'Close'
                             : 'Edit'}
@@ -1076,7 +1076,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                           className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
                           title={`Pin 1 unit into ${selectedBinId}`}
                         >
-                          {lang === 'ko' ? '+고정' : '+Pin'}
+                          {lang === 'ko' ? '+Pin' : '+Pin'}
                         </button>
                       )}
                       <button
@@ -1105,7 +1105,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                             )
                           )
                         }
-                        placeholder={lang === 'ko' ? '물품 이름' : 'Name'}
+                        placeholder={lang === 'ko' ? 'Name' : 'Name'}
                         className="col-span-2 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                       />
                       <select
@@ -1122,19 +1122,19 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         className="rounded border border-slate-700 bg-slate-900 px-1 py-1 text-slate-100"
                       >
                         <option value="A">
-                          {lang === 'ko' ? '자주 씀 (A)' : 'Class A'}
+                          {lang === 'ko' ? 'Class A' : 'Class A'}
                         </option>
                         <option value="B">
-                          {lang === 'ko' ? '보통 (B)' : 'Class B'}
+                          {lang === 'ko' ? 'Class B' : 'Class B'}
                         </option>
                         <option value="C">
-                          {lang === 'ko' ? '가끔 (C)' : 'Class C'}
+                          {lang === 'ko' ? 'Class C' : 'Class C'}
                         </option>
                       </select>
                       <div className="col-span-3 grid grid-cols-4 gap-1.5">
                         <div>
                           <span className="text-slate-500">
-                            {lang === 'ko' ? '가로 L(cm)' : 'L(cm)'}
+                            {lang === 'ko' ? 'L(cm)' : 'L(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1161,7 +1161,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-500">
-                            {lang === 'ko' ? '세로 W(cm)' : 'W(cm)'}
+                            {lang === 'ko' ? 'W(cm)' : 'W(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1188,7 +1188,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-500">
-                            {lang === 'ko' ? '높이 H(cm)' : 'H(cm)'}
+                            {lang === 'ko' ? 'H(cm)' : 'H(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1215,7 +1215,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-500">
-                            {lang === 'ko' ? '무게(kg)' : 'kg'}
+                            {lang === 'ko' ? 'kg' : 'kg'}
                           </span>
                           <input
                             type="number"

@@ -28,84 +28,84 @@ export const INTERIOR_PROP_CATALOG: InteriorCatalogEntry[] = [
   {
     type: 'desk_work',
     icon: '🖥️',
-    nameKo: '책상 & 모니터 작업대',
+    nameKo: 'Study & Packing Desk',
     nameEn: 'Study & Packing Desk',
     defaultColor: '#b45309',
   },
   {
     type: 'island_counter',
     icon: '🍽️',
-    nameKo: '주방 아일랜드·카운터',
+    nameKo: 'Kitchen / Cafe Counter',
     nameEn: 'Kitchen / Cafe Counter',
     defaultColor: '#d97706',
   },
   {
     type: 'fridge_unit',
     icon: '🧊',
-    nameKo: '양문형 냉장고',
+    nameKo: 'French-Door Refrigerator',
     nameEn: 'French-Door Refrigerator',
     defaultColor: '#38bdf8',
   },
   {
     type: 'washer_dryer',
     icon: '🫧',
-    nameKo: '드럼 세탁기·건조기',
+    nameKo: 'Front-Load Washer',
     nameEn: 'Front-Load Washer',
     defaultColor: '#f8fafc',
   },
   {
     type: 'wardrobe_mirror',
     icon: '🪞',
-    nameKo: '전신거울 스탠드',
+    nameKo: 'Full-Length Mirror',
     nameEn: 'Full-Length Mirror',
     defaultColor: '#fbbf24',
   },
   {
     type: 'sofa_lounge',
     icon: '🛋️',
-    nameKo: '패브릭 소파·휴식존',
+    nameKo: 'Cozy Lounge Sofa',
     nameEn: 'Cozy Lounge Sofa',
     defaultColor: '#6366f1',
   },
   {
     type: 'window_frame',
     icon: '🪟',
-    nameKo: '채광 창문 프레임',
+    nameKo: 'Daylight Window',
     nameEn: 'Daylight Window',
     defaultColor: '#fef08a',
   },
   {
     type: 'door_entry',
     icon: '🚪',
-    nameKo: '실내 출입문',
+    nameKo: 'Room Entrance Door',
     nameEn: 'Room Entrance Door',
     defaultColor: '#92400e',
   },
   {
     type: 'plant_pot',
     icon: '🪴',
-    nameKo: '대형 인테리어 화분',
+    nameKo: 'Indoor Monstera Plant',
     nameEn: 'Indoor Monstera Plant',
     defaultColor: '#10b981',
   },
   {
     type: 'rug_carpet',
     icon: '🧶',
-    nameKo: '바닥 인테리어 러그',
+    nameKo: 'Floor Carpet Runner',
     nameEn: 'Floor Carpet Runner',
     defaultColor: '#be185d',
   },
   {
     type: 'tool_cabinet',
     icon: '🧰',
-    nameKo: '5단 롤링 공구함',
+    nameKo: 'Rolling Tool Cabinet',
     nameEn: 'Rolling Tool Cabinet',
     defaultColor: '#dc2626',
   },
   {
     type: 'forklift_unit',
     icon: '🚜',
-    nameKo: '3D 리치트럭 지게차',
+    nameKo: '3D Reach-Truck Forklift',
     nameEn: '3D Reach-Truck Forklift',
     defaultColor: '#f59e0b',
   },
@@ -118,82 +118,82 @@ export const KEYBOARD_SHORTCUT_LIST: Array<{
 }> = [
   {
     keyLabel: '1 / 2 / 3',
-    descKo: '카메라 시점 전환 (1: 3D 입체뷰, 2: 2D 평면뷰, 3: Z축 정면뷰)',
+    descKo: 'Switch Camera Preset (1: 3D Iso, 2: 2D Top, 3: Z-Elevation)',
     descEn: 'Switch Camera Preset (1: 3D Iso, 2: 2D Top, 3: Z-Elevation)',
   },
   {
     keyLabel: 'R',
-    descKo: '3D 카메라 시점 및 중앙 정렬 초기화',
+    descKo: 'Reset 3D Camera Framing to Center',
     descEn: 'Reset 3D Camera Framing to Center',
   },
   {
     keyLabel: 'Space',
-    descKo: '2D 일반 배치 ↔ 3D 최적화 즉시 비교 전환',
+    descKo: 'Toggle Before (2D Baseline) ↔ After (3D Optimized)',
     descEn: 'Toggle Before (2D Baseline) ↔ After (3D Optimized)',
   },
   {
     keyLabel: 'M',
-    descKo: '3D 마우스 드래그 이동 모드 켜기 / 끄기 (선반·인테리어 가구)',
+    descKo: 'Toggle 3D Mouse Drag-Move Mode (Racks & Interior Furniture)',
     descEn: 'Toggle 3D Mouse Drag-Move Mode (Racks & Interior Furniture)',
   },
   {
     keyLabel: 'I',
-    descKo: '3D 공간 인테리어 & 가구 배치 스튜디오 열기',
+    descKo: 'Open 3D Space Interior & Furniture Studio',
     descEn: 'Open 3D Space Interior & Furniture Studio',
   },
   {
     keyLabel: 'B',
-    descKo: '3D 배경 화면 & 조명 밝기 스튜디오 열기',
+    descKo: 'Open 3D Background & Lighting Studio',
     descEn: 'Open 3D Background & Lighting Studio',
   },
   {
     keyLabel: 'E',
-    descKo: '2D 자유 캔버스 맵 에디터 열기',
+    descKo: 'Open 2D Free-Canvas Map Editor',
     descEn: 'Open 2D Free-Canvas Map Editor',
   },
   {
     keyLabel: 'T',
-    descKo: '24종 전체 공간 템플릿 라이브러리 열기',
+    descKo: 'Open 24-Template Library Gallery',
     descEn: 'Open 24-Template Library Gallery',
   },
   {
     keyLabel: 'C',
-    descKo: '2D CAD 설계 도면 (.DXF / .SVG) 미리보기 및 내보내기',
+    descKo: 'Open 2D CAD Blueprint (.DXF / .SVG) Exporter',
     descEn: 'Open 2D CAD Blueprint (.DXF / .SVG) Exporter',
   },
   {
     keyLabel: 'G / H',
-    descKo: 'G: 골든존 레이어 보기 · H: 피킹 빈도 히트맵 보기',
+    descKo: 'G: Golden Zone View · H: Pick Frequency Heatmap View',
     descEn: 'G: Golden Zone View · H: Pick Frequency Heatmap View',
   },
   {
     keyLabel: 'W / L',
-    descKo: 'W: 일상 홈 ↔ 3D 작업실 전환 · L: 한국어 ↔ 영어 전환',
+    descKo: 'W: Everyday Home ↔ 3D Studio · L: Toggle Korean ↔ English',
     descEn: 'W: Everyday Home ↔ 3D Studio · L: Toggle Korean ↔ English',
   },
   {
     keyLabel: '← ↑ ↓ →',
-    descKo: '선택된 3D 인테리어 가구 또는 선반 기둥을 0.25m 단위로 미세 이동',
+    descKo: 'Nudge Selected 3D Furniture Prop or Rack Column by 0.25m',
     descEn: 'Nudge Selected 3D Furniture Prop or Rack Column by 0.25m',
   },
   {
     keyLabel: '[ / ]',
-    descKo: '선택된 3D 인테리어 가구 45° 좌/우 회전',
+    descKo: 'Rotate Selected 3D Interior Furniture Prop by 45°',
     descEn: 'Rotate Selected 3D Interior Furniture Prop by 45°',
   },
   {
     keyLabel: '+ / Delete',
-    descKo: '+: 선택 선반 위로 1단 추가 · Delete: 선택 선반 또는 가구 삭제',
+    descKo: '+: Add +1 Z-Level Above Bin · Delete: Remove Selected Bin/Prop',
     descEn: '+: Add +1 Z-Level Above Bin · Delete: Remove Selected Bin/Prop',
   },
   {
     keyLabel: 'Ctrl+Z / Ctrl+Y',
-    descKo: '3D 작업실 편집 실행 취소 (Undo) · 다시 실행 (Redo)',
+    descKo: 'Undo / Redo 3D Workspace Edits',
     descEn: 'Undo / Redo 3D Workspace Edits',
   },
   {
-    keyLabel: '? (또는 K)',
-    descKo: '단축키 안내 & 인테리어 스튜디오 창 열기 / 닫기',
+    keyLabel: '? (or K)',
+    descKo: 'Toggle Keyboard Shortcuts & Interior Studio Modal',
     descEn: 'Toggle Keyboard Shortcuts & Interior Studio Modal',
   },
 ];
@@ -261,7 +261,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
             >
               <Home className="h-3.5 w-3.5" />
               {lang === 'ko'
-                ? `3D 공간 인테리어 & 가구 편집 (${interiorProps.length})`
+                ? `3D Space Interior & Props (${interiorProps.length})`
                 : `3D Space Interior & Props (${interiorProps.length})`}
             </button>
             <button
@@ -275,7 +275,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
             >
               <Keyboard className="h-3.5 w-3.5" />
               {lang === 'ko'
-                ? '단축키 전체 가이드'
+                ? 'Keyboard Shortcuts Guide'
                 : 'Keyboard Shortcuts Guide'}
             </button>
           </div>
@@ -295,7 +295,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-bold">
                   {lang === 'ko'
-                    ? '1. 3D 방 벽면 구조 & 인테리어 벽지 색상'
+                    ? '1. 3D Room Wall Enclosure & Wall Color'
                     : '1. 3D Room Wall Enclosure & Wall Color'}
                 </span>
                 <button
@@ -305,7 +305,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   {lang === 'ko'
-                    ? '현재 공간 맞춤 인테리어 자동 배치'
+                    ? 'Auto-Populate Matching Room Interior'
                     : 'Auto-Populate Matching Room Interior'}
                 </button>
               </div>
@@ -315,19 +315,19 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                   [
                     [
                       'cutaway_corner',
-                      lang === 'ko' ? 'ㄱ자 컷어웨이 룸' : 'L-Cutaway Room',
+                      lang === 'ko' ? 'L-Cutaway Room' : 'L-Cutaway Room',
                     ],
                     [
                       'three_walls',
-                      lang === 'ko' ? 'ㄷ자 3면 실내 룸' : '3-Wall Room',
+                      lang === 'ko' ? '3-Wall Room' : '3-Wall Room',
                     ],
                     [
                       'glass_room',
-                      lang === 'ko' ? '통유리 쇼룸 벽면' : 'Glass Showroom',
+                      lang === 'ko' ? 'Glass Showroom' : 'Glass Showroom',
                     ],
                     [
                       'open_floor',
-                      lang === 'ko' ? '벽 없음 (오픈형)' : 'Open Floor',
+                      lang === 'ko' ? 'Open Floor' : 'Open Floor',
                     ],
                   ] as const
                 ).map(([styleId, label]) => (
@@ -347,7 +347,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
 
                 <label className="flex items-center justify-between rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-1.5">
                   <span className="text-[10px] font-medium text-[var(--t-muted)]">
-                    {lang === 'ko' ? '벽면 색상' : 'Wall Color'}
+                    {lang === 'ko' ? 'Wall Color' : 'Wall Color'}
                   </span>
                   <input
                     type="color"
@@ -363,12 +363,12 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="font-bold">
                   {lang === 'ko'
-                    ? '2. 원클릭 3D 가구·가전·출입문·창문 추가 (클릭 즉시 3D 배치)'
+                    ? '2. 1-Click Add 3D Furniture, Appliances, Doors & Windows'
                     : '2. 1-Click Add 3D Furniture, Appliances, Doors & Windows'}
                 </span>
                 <span className="text-[11px] text-[var(--t-muted)]">
                   {lang === 'ko'
-                    ? '3D 화면에서 가구를 클릭·드래그하거나 방향키(←↑↓→)로 쉽게 이동하세요!'
+                    ? 'Click & drag props in 3D or nudge with Arrow keys!'
                     : 'Click & drag props in 3D or nudge with Arrow keys!'}
                 </span>
               </div>
@@ -408,7 +408,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                           className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-emerald-300 hover:bg-emerald-500/30"
                         >
                           <Plus className="h-3 w-3" />
-                          {lang === 'ko' ? '추가' : 'Add'}
+                          {lang === 'ko' ? 'Add' : 'Add'}
                         </button>
                         {count > 0 && (
                           <button
@@ -421,12 +421,12 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                             className="inline-flex items-center justify-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/15 px-2 py-1 text-[10px] font-bold text-rose-300 hover:bg-rose-500/25"
                             title={
                               lang === 'ko'
-                                ? '배치된 이 종류의 가구 1개 즉시 삭제'
+                                ? 'Remove 1 placed prop of this type'
                                 : 'Remove 1 placed prop of this type'
                             }
                           >
                             <Trash2 className="h-3 w-3" />
-                            {lang === 'ko' ? '삭제' : 'Del'}
+                            {lang === 'ko' ? 'Del' : 'Del'}
                           </button>
                         )}
                       </div>
@@ -440,7 +440,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="font-bold">
                   {lang === 'ko'
-                    ? `3. 현재 배치된 3D 인테리어 요소 (${interiorProps.length}개)`
+                    ? `3. Placed 3D Interior Props (${interiorProps.length})`
                     : `3. Placed 3D Interior Props (${interiorProps.length})`}
                 </span>
                 {interiorProps.length > 0 && (
@@ -449,7 +449,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
                     onClick={onClearProps}
                     className="text-[11px] text-rose-400 hover:underline"
                   >
-                    {lang === 'ko' ? '모두 지우기' : 'Clear All Props'}
+                    {lang === 'ko' ? 'Clear All Props' : 'Clear All Props'}
                   </button>
                 )}
               </div>
@@ -457,7 +457,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               {interiorProps.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-[var(--t-border)] p-4 text-center text-[var(--t-muted)]">
                   {lang === 'ko'
-                    ? '위 카탈로그에서 책상, 냉장고, 창문, 소파, 화분 등을 클릭하면 3D 공간에 바로 추가됩니다.'
+                    ? 'Click any furniture or appliance card above to place it in 3D space.'
                     : 'Click any furniture or appliance card above to place it in 3D space.'}
                 </div>
               ) : (
@@ -617,7 +617,7 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
           <div className="flex-1 space-y-3 overflow-y-auto p-5 text-xs">
             <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-3 text-[11px] text-cyan-200">
               {lang === 'ko'
-                ? '💡 입력창 바깥에서 아래 키보드 단축키를 누르면 3D 카메라, 레이아웃, 드래그 이동, 인테리어 가구 회전·이동을 즉시 제어할 수 있습니다.'
+                ? '💡 Press any shortcut key below (outside text inputs) to control the 3D camera, layout mode, drag-move, and interior furniture.'
                 : '💡 Press any shortcut key below (outside text inputs) to control the 3D camera, layout mode, drag-move, and interior furniture.'}
             </div>
 

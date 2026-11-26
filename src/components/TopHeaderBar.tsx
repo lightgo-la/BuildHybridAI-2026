@@ -146,10 +146,10 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           type="button"
           onClick={onToggleLanguage}
           className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-[11px] font-semibold text-amber-300 hover:border-amber-400/60"
-          title="Switch Language (한국어 / English)"
+          title="English Language Active"
         >
           <Languages className="h-3.5 w-3.5" />
-          {lang === 'ko' ? '한국어/EN' : 'EN/한국어'}
+          EN
         </button>
 
         <button

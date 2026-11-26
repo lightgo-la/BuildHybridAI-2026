@@ -149,7 +149,7 @@ export function useWarehouseShortcuts({
           e.preventDefault();
           handleWorkspaceUndo();
           showToast(
-            lang === 'ko' ? '3D 편집 실행 취소 (Undo)' : 'Undo 3D Edit'
+            lang === 'ko' ? 'Undo 3D Edit' : 'Undo 3D Edit'
           );
           return;
         }
@@ -157,7 +157,7 @@ export function useWarehouseShortcuts({
           e.preventDefault();
           handleWorkspaceRedo();
           showToast(
-            lang === 'ko' ? '3D 편집 다시 실행 (Redo)' : 'Redo 3D Edit'
+            lang === 'ko' ? 'Redo 3D Edit' : 'Redo 3D Edit'
           );
           return;
         }
@@ -170,26 +170,26 @@ export function useWarehouseShortcuts({
         setCameraPreset('iso');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[1] 3D 입체뷰 자동 맞춤 전환' : '[1] 3D Isometric Auto-Fit'
+          lang === 'ko' ? '[1] 3D Isometric Auto-Fit' : '[1] 3D Isometric Auto-Fit'
         );
       } else if (key === '2') {
         setCameraPreset('top');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[2] 2D 평면뷰 자동 맞춤 전환' : '[2] 2D Top-Down Auto-Fit'
+          lang === 'ko' ? '[2] 2D Top-Down Auto-Fit' : '[2] 2D Top-Down Auto-Fit'
         );
       } else if (key === '3') {
         setCameraPreset('elevation');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[3] Z축 정면뷰 자동 맞춤 전환' : '[3] Z-Elevation Auto-Fit'
+          lang === 'ko' ? '[3] Z-Elevation Auto-Fit' : '[3] Z-Elevation Auto-Fit'
         );
       } else if (key === '4') {
         setCameraPreset('closeup');
         setCameraResetTick((n) => n + 1);
         showToast(
           lang === 'ko'
-            ? '[4] 눈높이 골든존 근접뷰 전환'
+            ? '[4] Eye-Level Closeup View'
             : '[4] Eye-Level Closeup View'
         );
       } else if (key === 'a' || key === 'A') {
@@ -198,10 +198,10 @@ export function useWarehouseShortcuts({
           showToast(
             next
               ? lang === 'ko'
-                ? '[A] ✨ 스마트 카메라 자동줌: 켜짐 (클릭 시 자동 확대 · 빈공간 클릭 시 전체 복귀)'
+                ? '[A] ✨ Smart Camera Auto-Zoom: ON'
                 : '[A] ✨ Smart Camera Auto-Zoom: ON'
               : lang === 'ko'
-                ? '[A] 수동 카메라 줌 모드 전환 (자동줌 꺼짐)'
+                ? '[A] Smart Camera Auto-Zoom: OFF'
                 : '[A] Smart Camera Auto-Zoom: OFF'
           );
           return next;
@@ -217,7 +217,7 @@ export function useWarehouseShortcuts({
           onClearAllSelection?.();
           showToast(
             lang === 'ko'
-              ? '[Esc] 선택 해제 및 전체 화면 시점 복귀'
+              ? '[Esc] Cleared selection & restored overview'
               : '[Esc] Cleared selection & restored overview'
           );
         }
@@ -225,14 +225,14 @@ export function useWarehouseShortcuts({
         setCameraFocusTick?.((n) => n + 1);
         showToast(
           lang === 'ko'
-            ? '[F] 선택 물체 클로즈업 포커스 줌'
+            ? '[F] Focus & Zoom on Selected Object'
             : '[F] Focus & Zoom on Selected Object'
         );
       } else if (key === 'r' || key === 'R') {
         setCameraPreset('iso');
         setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[R] 3D 카메라 시점 초기화' : '[R] Reset 3D Camera'
+          lang === 'ko' ? '[R] Reset 3D Camera' : '[R] Reset 3D Camera'
         );
       } else if (key === ' ') {
         e.preventDefault();
@@ -240,7 +240,7 @@ export function useWarehouseShortcuts({
           setActiveLayout('optimized_3d');
           showToast(
             lang === 'ko'
-              ? '🔒 [항상 최적화 고정]이 켜져 있어 3D 최적화 화면을 유지합니다'
+              ? '🔒 Always-Optimized Lock is active'
               : '🔒 Always-Optimized Lock is active'
           );
           return;
@@ -250,10 +250,10 @@ export function useWarehouseShortcuts({
           showToast(
             next === 'optimized_3d'
               ? lang === 'ko'
-                ? '[Space] 3D 최적화 배치 적용'
+                ? '[Space] Switched to 3D Optimized'
                 : '[Space] Switched to 3D Optimized'
               : lang === 'ko'
-                ? '[Space] 2D 일반 배치 비교'
+                ? '[Space] Switched to 2D Baseline'
                 : '[Space] Switched to 2D Baseline'
           );
           return next;
@@ -264,10 +264,10 @@ export function useWarehouseShortcuts({
           showToast(
             next
               ? lang === 'ko'
-                ? '[M] 3D 마우스 드래그 이동 모드: 켜짐'
+                ? '[M] 3D Mouse Drag-Move: ON'
                 : '[M] 3D Mouse Drag-Move: ON'
               : lang === 'ko'
-                ? '[M] 3D 마우스 드래그 이동 모드: 꺼짐'
+                ? '[M] 3D Mouse Drag-Move: OFF'
                 : '[M] 3D Mouse Drag-Move: OFF'
           );
           return next;
@@ -289,14 +289,14 @@ export function useWarehouseShortcuts({
         );
         showToast(
           lang === 'ko'
-            ? '[G] 골든존 강조 뷰 전환'
+            ? '[G] Toggle Golden Zone View'
             : '[G] Toggle Golden Zone View'
         );
       } else if (key === 'h' || key === 'H') {
         setViewLayer((prev) => (prev === 'heatmap' ? 'slotting' : 'heatmap'));
         showToast(
           lang === 'ko'
-            ? '[H] 피킹 빈도 히트맵 전환'
+            ? '[H] Toggle 3D Heatmap'
             : '[H] Toggle 3D Heatmap'
         );
       } else if (key === 'w' || key === 'W') {
@@ -309,13 +309,13 @@ export function useWarehouseShortcuts({
       } else if (key === '0') {
         setLevelFilter('all');
         showToast(
-          lang === 'ko' ? '[0] 전체 Z층 모두 표시' : '[0] Show All Z-Levels'
+          lang === 'ko' ? '[0] Show All Z-Levels' : '[0] Show All Z-Levels'
         );
       } else if ((key === '+' || key === '=') && selectedBin) {
         handleAddBinAbove(selectedBin);
         showToast(
           lang === 'ko'
-            ? `[+] ${selectedBin.bin.id} 위 1단 추가`
+            ? `[+] Added level above ${selectedBin.bin.id}`
             : `[+] Added level above ${selectedBin.bin.id}`
         );
       } else if (key === 'Delete' || key === 'Backspace') {
@@ -324,7 +324,7 @@ export function useWarehouseShortcuts({
           setSelectedCargo(null);
           showToast(
             lang === 'ko'
-              ? `[Del] ${selectedCargo.name} 1개 제거됨`
+              ? `[Del] Removed 1 unit of ${selectedCargo.name}`
               : `[Del] Removed 1 unit of ${selectedCargo.name}`
           );
         } else if (selectedObstacle && handleDeleteObstacle) {
@@ -333,14 +333,14 @@ export function useWarehouseShortcuts({
           handleDeleteInteriorProp(selectedProp.id);
           showToast(
             lang === 'ko'
-              ? `[Del] 인테리어 가구 삭제됨`
+              ? `[Del] Deleted 3D Interior Prop`
               : `[Del] Deleted 3D Interior Prop`
           );
         } else if (selectedBin) {
           handleDeleteBin(selectedBin.bin.id);
           showToast(
             lang === 'ko'
-              ? `[Del] ${selectedBin.bin.id} 칸 삭제됨`
+              ? `[Del] Deleted Bin ${selectedBin.bin.id}`
               : `[Del] Deleted Bin ${selectedBin.bin.id}`
           );
         }

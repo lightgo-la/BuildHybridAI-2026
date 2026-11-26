@@ -206,7 +206,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   onEnableAnimateRoute,
   onChangeCameraPreset,
   animateRoute,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [hoveredBin, setHoveredBin] = useState<BinAllocation | null>(null);
@@ -1048,7 +1048,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         if (obsHits.length > 0) {
           const obs = obstacleHitMeshesRef.current.get(obsHits[0].object);
           if (obs) {
-            setHoveredOtherLabel(`기둥/장애물 (${obs.label})`);
+            setHoveredOtherLabel(`Pillar / Obstacle (${obs.label})`);
             setHoveredBin(null);
             setHoveredCargo(null);
             return;
@@ -1057,7 +1057,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
         const depotHits = raycaster.intersectObjects(cachedTargets.depot, false);
         if (depotHits.length > 0) {
-          setHoveredOtherLabel('★ 출입구 / 피킹 출발지 (I/O Depot)');
+          setHoveredOtherLabel('★ I/O Depot (Pick Start Point)');
           setHoveredBin(null);
           setHoveredCargo(null);
           return;
@@ -2953,9 +2953,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     const hazards = allocations.filter((a) => a.safetyViolation).length;
 
     ctx.fillStyle = '#cbd5e1';
-    ctx.font = '13px "Malgun Gothic", "Segoe UI", sans-serif';
+    ctx.font = '13px "Segoe UI", sans-serif';
     ctx.fillText(
-      `선반규격: ${config.binLengthCm ?? 120}×${config.binWidthCm ?? 90}×${config.binHeightCm ?? 70}cm  |  골든존: ${config.goldenZoneMinM}m~${config.goldenZoneMaxM}m  |  적재박스: ${totalBoxes}개 (${occupiedCount}/${allocations.length}칸 사용 · 평균채움 ${avgCubic}%)  |  안전위반: ${hazards}건  |  줌: ${zoomPercent}% (${autoZoomEnabled ? '자동줌 ON' : wheelZoomStyle})`,
+      `Bin Spec: ${config.binLengthCm ?? 120}×${config.binWidthCm ?? 90}×${config.binHeightCm ?? 70}cm  |  Golden Zone: ${config.goldenZoneMinM}m~${config.goldenZoneMaxM}m  |  Boxes: ${totalBoxes} (${occupiedCount}/${allocations.length} bins · Avg Fill ${avgCubic}%)  |  Hazards: ${hazards}  |  Zoom: ${zoomPercent}% (${autoZoomEnabled ? 'Auto-Zoom ON' : wheelZoomStyle})`,
       20,
       50
     );
@@ -2965,9 +2965,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     ctx.fillStyle = '#090d16';
     ctx.fillRect(0, outH - 52, outW, 52);
     ctx.fillStyle = '#34d399';
-    ctx.font = 'bold 13px "Malgun Gothic", "Segoe UI", sans-serif';
+    ctx.font = 'bold 13px "Segoe UI", sans-serif';
     ctx.fillText(
-      `장비모드: ${config.equipmentMode === 'asrs_crane' ? 'AS/RS 크레인 (Chebyshev)' : '전동 리치트럭'}  ·  최적화프리셋: ${config.optimizationPreset ?? 'balanced'}  ·  6축회전/합포장: ${config.allowRotationAndCoPack !== false ? 'ON' : 'OFF'}  ·  바닥색상: ${sceneBg.floorColor}  ·  피킹경유지: ${pickRoute.length}곳`,
+      `Equipment: ${config.equipmentMode === 'asrs_crane' ? 'AS/RS Crane (Chebyshev)' : 'Electric Reach-Truck'}  ·  Preset: ${config.optimizationPreset ?? 'balanced'}  ·  6-Axis Co-Pack: ${config.allowRotationAndCoPack !== false ? 'ON' : 'OFF'}  ·  Floor: ${sceneBg.floorColor}  ·  Waypoints: ${pickRoute.length}`,
       20,
       outH - 22
     );
@@ -2976,7 +2976,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     const a = document.createElement('a');
     const safeSlug = scenarioName
       .toLowerCase()
-      .replace(/[^a-z0-9가-힣]+/g, '-')
+      .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
     a.href = dataUrl;
     a.download = `${safeSlug || 'cubislot-3d'}-setting-snapshot.png`;
@@ -3007,10 +3007,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         title={
           dragMoveMode
             ? lang === 'ko'
-              ? '3D 드래그 이동 켜짐: 마우스로 선반 기둥을 끌어 위치를 옮기세요 · 우클릭 메뉴'
+              ? 'Drag Move Mode ON: Drag any 3D rack column across the floor · Right-click for menu'
               : 'Drag Move Mode ON: Drag any 3D rack column across the floor · Right-click for menu'
             : lang === 'ko'
-              ? '클릭: 해당 물체 스마트 자동줌 · 빈바닥 클릭(Esc): 전체 시점 자동복귀 · 더블클릭: 즉시 확대 · 휠: 커서 줌'
+              ? 'Click: Smart Auto-Zoom · Click empty floor (Esc): Auto-Pullback · Double-click: Instant Zoom · Wheel: Cursor Zoom'
               : 'Click: Smart Auto-Zoom · Click empty floor (Esc): Auto-Pullback · Double-click: Instant Zoom · Wheel: Cursor Zoom'
         }
       />
@@ -3020,19 +3020,19 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           {followPickerCam ? (
             <span className="font-bold text-amber-300">
               {lang === 'ko'
-                ? '🚀 피킹 동선 실시간 자동추적 중 (마우스 드래그·휠 조작 시 수동 시점으로 즉시 전환)'
+                ? '🚀 Following 3D Picker Live (Drag or scroll to resume manual control)'
                 : '🚀 Following 3D Picker Live (Drag or scroll to resume manual control)'}
             </span>
           ) : autoZoomEnabled ? (
             <span>
               {lang === 'ko'
-                ? '✨ 스마트 자동줌 ON: 선반·박스·가구 클릭 → 통로 정면 자동 확대 · 빈 바닥 클릭(Esc) → 전체 자동 복귀 · 휠: 커서 줌'
+                ? '✨ Smart Auto-Zoom ON: Click object → Auto-Zoom In · Click empty floor (Esc) → Auto-Pullback · Wheel: Zoom'
                 : '✨ Smart Auto-Zoom ON: Click object → Auto-Zoom In · Click empty floor (Esc) → Auto-Pullback · Wheel: Zoom'}
             </span>
           ) : (
             <span>
               {lang === 'ko'
-                ? '🖱️ 수동 줌 모드: 더블클릭 또는 [F]키로 확대 · [A]키로 스마트 자동줌 켜기 · 휠: 줌 · 우클릭: 메뉴'
+                ? '🖱️ Manual Zoom: Double-click or [F] to focus · Press [A] to enable Smart Auto-Zoom'
                 : '🖱️ Manual Zoom: Double-click or [F] to focus · Press [A] to enable Smart Auto-Zoom'}
             </span>
           )}
@@ -3050,16 +3050,16 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }`}
           title={
             lang === 'ko'
-              ? '스마트 자동줌 스위치 (단축키 A): 켜두면 물체 클릭 시 가림 없는 통로 각도로 자동 확대하고, 빈 바닥 클릭 시 전체 화면으로 자동 복귀하며, 창고 크기 변경 시 화면에 딱 맞게 자동 조절합니다'
+              ? 'Toggle Smart Auto-Zoom (Shortcut A): Auto-zooms to clicked objects, auto-pulls back on empty click, and auto-fits layout changes'
               : 'Toggle Smart Auto-Zoom (Shortcut A): Auto-zooms to clicked objects, auto-pulls back on empty click, and auto-fits layout changes'
           }
         >
           {autoZoomEnabled
             ? lang === 'ko'
-              ? '✨ 자동줌 ON'
+              ? '✨ Auto-Zoom ON'
               : '✨ Auto-Zoom ON'
             : lang === 'ko'
-              ? '자동줌 OFF'
+              ? 'Auto-Zoom OFF'
               : 'Auto-Zoom OFF'}
         </button>
 
@@ -3069,11 +3069,11 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           className="inline-flex items-center gap-1 rounded-md border border-emerald-500/45 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
           title={
             lang === 'ko'
-              ? '허리 높이 골든존 핵심 선반들을 클릭할 때마다 순서대로 자동 클로즈업합니다'
+              ? 'Click repeatedly to auto-zoom through active Golden Zone shelves'
               : 'Click repeatedly to auto-zoom through active Golden Zone shelves'
           }
         >
-          {lang === 'ko' ? '🎯 골든존 줌' : '🎯 Golden Zoom'}
+          {lang === 'ko' ? '🎯 Golden Zoom' : '🎯 Golden Zoom'}
         </button>
 
         {priorityBins.length > 0 && (
@@ -3087,18 +3087,16 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             }`}
             title={
               lang === 'ko'
-                ? hasWarningBins
-                  ? '안전위반 또는 과밀 선반을 순서대로 1클릭 자동 클로즈업 점검합니다'
-                  : '피킹 빈도가 가장 높은 핵심 선반들을 순서대로 1클릭 자동 클로즈업합니다'
+                ? 'Cycle & auto-zoom through priority / warning shelves'
                 : 'Cycle & auto-zoom through priority / warning shelves'
             }
           >
             {hasWarningBins
               ? lang === 'ko'
-                ? `⚠ 위험선반 줌 (${priorityBins.length})`
+                ? `⚠ Alerts (${priorityBins.length})`
                 : `⚠ Alerts (${priorityBins.length})`
               : lang === 'ko'
-                ? `🔥 핵심선반 줌`
+                ? `🔥 Top Bins`
                 : `🔥 Top Bins`}
           </button>
         )}
@@ -3114,16 +3112,16 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             }`}
             title={
               lang === 'ko'
-                ? '3D 피킹 동선을 따라 움직이는 작업자 시점을 실시간으로 자동 추적합니다'
+                ? 'Automatically follow the live 3D picker along the warehouse route'
                 : 'Automatically follow the live 3D picker along the warehouse route'
             }
           >
             {followPickerCam
               ? lang === 'ko'
-                ? '🚀 동선추적 중'
+                ? '🚀 Following'
                 : '🚀 Following'
               : lang === 'ko'
-                ? '🚀 동선 추적줌'
+                ? '🚀 Follow Tour'
                 : '🚀 Follow Tour'}
           </button>
         )}
@@ -3139,25 +3137,23 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5 font-semibold text-cyan-300 hover:border-cyan-400"
             title={
               lang === 'ko'
-                ? wheelZoomStyle === 'cursor'
-                  ? '현재 마우스 휠 기준: 포인터 위치로 확대 (클릭 시 화면 중앙 기준으로 전환)'
-                  : '현재 마우스 휠 기준: 화면 중앙 확대 (클릭 시 마우스 포인터 기준으로 전환)'
+                ? 'Switch mouse wheel zoom anchor (Cursor vs Orbit Center)'
                 : 'Switch mouse wheel zoom anchor (Cursor vs Orbit Center)'
             }
           >
             {wheelZoomStyle === 'cursor'
               ? lang === 'ko'
-                ? '🎯휠:커서'
+                ? '🎯Cursor'
                 : '🎯Cursor'
               : lang === 'ko'
-                ? '🧭휠:중앙'
+                ? '🧭Center'
                 : '🧭Center'}
           </button>
           <button
             type="button"
             onClick={() => applyZoomPercent(zoomPercent - 25)}
             className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.2 font-bold text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
-            title={lang === 'ko' ? '카메라 축소 (-25%)' : 'Zoom Out (-25%)'}
+            title={lang === 'ko' ? 'Zoom Out (-25%)' : 'Zoom Out (-25%)'}
           >
             −
           </button>
@@ -3171,7 +3167,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             className="h-1.5 w-16 cursor-pointer accent-cyan-400"
             title={
               lang === 'ko'
-                ? `현재 줌 배율: ${zoomPercent}% (드래그하여 25%~350% 조절)`
+                ? `Zoom: ${zoomPercent}% (Drag 25%–350%)`
                 : `Zoom: ${zoomPercent}% (Drag 25%–350%)`
             }
           />
@@ -3179,7 +3175,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             type="button"
             onClick={() => applyZoomPercent(zoomPercent + 25)}
             className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.2 font-bold text-slate-200 hover:border-cyan-400 hover:text-cyan-300"
-            title={lang === 'ko' ? '카메라 확대 (+25%)' : 'Zoom In (+25%)'}
+            title={lang === 'ko' ? 'Zoom In (+25%)' : 'Zoom In (+25%)'}
           >
             +
           </button>
@@ -3189,7 +3185,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             className="min-w-[38px] rounded bg-slate-800 px-1 py-0.5 text-center font-mono text-[10px] font-bold text-cyan-300 hover:bg-slate-700"
             title={
               lang === 'ko'
-                ? '클릭할 때마다 100%(기본) ↔ 180%(확대) 배율 즉시 전환'
+                ? 'Click to toggle 100% ↔ 180% quick zoom'
                 : 'Click to toggle 100% ↔ 180% quick zoom'
             }
           >
@@ -3203,11 +3199,11 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           className="inline-flex items-center gap-1 rounded-md border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/25"
           title={
             lang === 'ko'
-              ? '현재 선택된 박스·선반·가구·기둥 즉시 클로즈업 (단축키 F 또는 물체 더블클릭)'
+              ? 'Focus & Zoom in on Selected Object (Shortcut: F or Double-click)'
               : 'Focus & Zoom in on Selected Object (Shortcut: F or Double-click)'
           }
         >
-          {lang === 'ko' ? '🔍 선택줌 (F)' : '🔍 Focus (F)'}
+          {lang === 'ko' ? '🔍 Focus (F)' : '🔍 Focus (F)'}
         </button>
         <button
           type="button"
@@ -3215,11 +3211,11 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-semibold text-slate-200 hover:border-cyan-400 hover:text-cyan-200"
           title={
             lang === 'ko'
-              ? '창고 전체가 한눈에 들어오도록 자동 맞춤 초기화 (단축키 R)'
+              ? 'Auto-fit entire warehouse in view (Shortcut: R)'
               : 'Auto-fit entire warehouse in view (Shortcut: R)'
           }
         >
-          {lang === 'ko' ? '⛶ 전체맞춤 (R)' : '⛶ Fit All (R)'}
+          {lang === 'ko' ? '⛶ Fit All (R)' : '⛶ Fit All (R)'}
         </button>
         <button
           type="button"
@@ -3227,18 +3223,18 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           className="inline-flex items-center gap-1 rounded-md border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/25"
           title={
             lang === 'ko'
-              ? '현재 3D 화면과 상·하단 셋팅/KPI 요약 배너를 고해상도 PNG 이미지 파일로 즉시 저장합니다'
+              ? 'Save current 3D view + Setting/KPI summary banner as a high-res PNG image'
               : 'Save current 3D view + Setting/KPI summary banner as a high-res PNG image'
           }
         >
-          {lang === 'ko' ? '📸 PNG저장' : '📸 PNG'}
+          {lang === 'ko' ? '📸 PNG' : '📸 PNG'}
         </button>
 
         {animateRoute && pickRoute.length > 0 && (
           <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5">
             <span className="font-semibold text-amber-300">
               {lang === 'ko'
-                ? `⚡동선(${pickRoute
+                ? `⚡Wave(${pickRoute
                     .reduce((acc, w) => acc + w.stepTimeSec, 0)
                     .toFixed(1)}s):`
                 : `⚡Wave(${pickRoute
@@ -3278,7 +3274,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                 }`}
                 title={
                   lang === 'ko'
-                    ? `#${idx + 1}번 피킹 경유지: 선반 ${wp.binId} (${wp.skuCode} · ${wp.stepTimeSec}초) — 클릭하여 줌인`
+                    ? `Pick Stop #${idx + 1}: Bin ${wp.binId} (${wp.skuCode} · ${wp.stepTimeSec}s) — Click to zoom`
                     : `Pick Stop #${idx + 1}: Bin ${wp.binId} (${wp.skuCode} · ${wp.stepTimeSec}s) — Click to zoom`
                 }
               >
@@ -3293,7 +3289,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               className="rounded border border-amber-500/40 bg-amber-500/15 px-1.5 py-0.5 font-mono text-[9px] font-bold text-amber-300 hover:bg-amber-500/25"
               title={
                 lang === 'ko'
-                  ? '3D 피킹 동선 시뮬레이션 재생 속도 전환 (0.5x / 1x / 2x)'
+                  ? 'Cycle 3D Pick Wave Animation Speed (0.5x / 1x / 2x)'
                   : 'Cycle 3D Pick Wave Animation Speed (0.5x / 1x / 2x)'
               }
             >
@@ -3308,7 +3304,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           <div className="font-bold text-emerald-300">{hoveredOtherLabel}</div>
           <div className="mt-0.5 text-[10px] text-slate-300">
             {lang === 'ko'
-              ? '클릭: 선택 및 상단 편집바 열기 · 마우스 드래그: 원하는 위치로 이동'
+              ? 'Click: Select & Open Edit Bar · Drag with Mouse: Move Position'
               : 'Click: Select & Open Edit Bar · Drag with Mouse: Move Position'}
           </div>
         </div>
@@ -3318,26 +3314,26 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-xs rounded-xl border border-cyan-500/40 bg-slate-950/90 p-2.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
           <div className="flex items-center justify-between gap-2">
             <span className="font-bold text-cyan-300">
-              {lang === 'ko' ? `선반 ${hoveredBin.bin.id}` : `Bin ${hoveredBin.bin.id}`}
+              {lang === 'ko' ? `Bin ${hoveredBin.bin.id}` : `Bin ${hoveredBin.bin.id}`}
             </span>
             <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] text-slate-300">
               Z{hoveredBin.bin.level} ({hoveredBin.bin.zMeters}m)
             </span>
             {hoveredBin.bin.isGoldenZone && (
               <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
-                {lang === 'ko' ? '허리높이 골든존' : 'Golden Zone'}
+                {lang === 'ko' ? 'Golden Zone' : 'Golden Zone'}
               </span>
             )}
           </div>
           <div className="mt-1 flex items-center gap-3 text-[10px] text-slate-300">
             <span>
-              {lang === 'ko' ? '채움률' : 'Cubic'}{' '}
+              {lang === 'ko' ? 'Cubic' : 'Cubic'}{' '}
               <strong className="text-white">
                 {hoveredBin.cubicUtilizationPct.toFixed(1)}%
               </strong>
             </span>
             <span>
-              {lang === 'ko' ? '현재 무게' : 'Load'}{' '}
+              {lang === 'ko' ? 'Load' : 'Load'}{' '}
               <strong className="text-white">
                 {hoveredBin.currentWeightKg.toFixed(1)}/{hoveredBin.bin.maxWeightKg}kg
               </strong>
@@ -3355,14 +3351,14 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             >
               {dragFitStatus === 'fit'
                 ? lang === 'ko'
-                  ? '✓ 이 선반 칸에 안전하게 적재 가능'
+                  ? '✓ Safe & Fits in this Bin'
                   : '✓ Safe & Fits in this Bin'
                 : dragFitStatus === 'swap'
                   ? lang === 'ko'
-                    ? '⇄ 용량 근접: 놓으면 기존 물건과 1:1 자동 맞교환(Swap)'
+                    ? '⇄ Near Full: Drop to Auto-Swap with existing item'
                     : '⇄ Near Full: Drop to Auto-Swap with existing item'
                   : lang === 'ko'
-                    ? '⚠ 상층 중량물(>16kg) 안전 주의 구간'
+                    ? '⚠ Upper-Level Heavy Cargo Warning (>16kg)'
                     : '⚠ Upper-Level Heavy Cargo Warning (>16kg)'}
             </div>
           )}
@@ -3370,12 +3366,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             <div className="mt-1.5 rounded-md border border-amber-400/50 bg-amber-500/15 px-2 py-1 text-[10px] text-amber-200">
               <div className="font-bold text-amber-300">
                 {lang === 'ko'
-                  ? `가리킨 물건: ${hoveredCargo.name.split(' (')[0]} (${hoveredCargo.weightKg}kg)`
+                  ? `Hovered Item: ${hoveredCargo.name.split(' (')[0]} (${hoveredCargo.weightKg}kg)`
                   : `Hovered Item: ${hoveredCargo.name.split(' (')[0]} (${hoveredCargo.weightKg}kg)`}
               </div>
               <div className="text-[9px] text-amber-100/80">
                 {lang === 'ko'
-                  ? '클릭: 선택 · 드래그: 낱개 이동 · Shift+드래그: 묶음 이동'
+                  ? 'Click: Select · Drag: Move 1 · Shift+Drag: Move Batch'
                   : 'Click: Select · Drag: Move 1 · Shift+Drag: Move Batch'}
               </div>
             </div>
@@ -3412,7 +3408,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           ) : (
             <div className="mt-1 text-[10px] text-slate-400">
               {lang === 'ko'
-                ? '비어 있는 여유 칸 (클릭·우클릭하여 물품 배치)'
+                ? 'Empty reserve shelf (Click / Right-click to pin cargo)'
                 : 'Empty reserve shelf (Click / Right-click to pin cargo)'}
             </div>
           )}

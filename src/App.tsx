@@ -946,7 +946,7 @@ export function App() {
                 setActiveLayout('optimized_3d');
                 showToast(
                   lang === 'ko'
-                    ? '🔒 [항상 최적화 잠금]이 켜져 있어 3D 최적화 화면을 유지합니다. (해제 후 비교 가능)'
+                    ? '🔒 Always-Optimized Lock is ON. Keeping 3D Optimized layout.'
                     : '🔒 Always-Optimized Lock is ON. Keeping 3D Optimized layout.'
                 );
                 return;
@@ -958,9 +958,7 @@ export function App() {
               setActiveLayout(next);
               showToast(
                 lang === 'ko'
-                  ? next === 'optimized_3d'
-                    ? '3D 자동 최적 정리 적용됨'
-                    : '정리 전(2D 일반 배치) 화면으로 전환됨'
+                  ? `Switched to ${next}`
                   : `Switched to ${next}`
               );
             }}
@@ -969,7 +967,7 @@ export function App() {
               setLeftTab('inspector');
               showToast(
                 lang === 'ko'
-                  ? `선반 [${targetAlloc.bin.id}] 선택됨: 좌측 패널에서 물건을 바로 넣어보세요`
+                  ? `Selected [${targetAlloc.bin.id}] in Inspector`
                   : `Selected [${targetAlloc.bin.id}] in Inspector`
               );
             }}
@@ -1069,11 +1067,11 @@ export function App() {
               >
                 <span>
                   {lang === 'ko'
-                    ? '📦 선반 크기 변경 / 박스 사이즈 설정해서 넣기'
+                    ? '📦 Resize Shelf / Set Box Size & Place'
                     : '📦 Resize Shelf / Set Box Size & Place'}
                 </span>
                 <span className="rounded bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-slate-950">
-                  {lang === 'ko' ? '열기 →' : 'Open →'}
+                  {lang === 'ko' ? 'Open →' : 'Open →'}
                 </span>
               </button>
             </div>
@@ -1201,7 +1199,7 @@ export function App() {
                     mode: 'prefer_on_device',
                     prompt:
                       lang === 'ko'
-                        ? `선반 ${alloc.bin.id} (Z${alloc.bin.level}층, 높이 ${alloc.bin.zMeters}m, 채움률=${alloc.cubicUtilizationPct.toFixed(1)}%, 현재무게=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg)의 3D 적재 상태를 진단하고 더 안전하고 편하게 수납할 수 있는 개선안을 한국어로 알려줘.`
+                        ? `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Give concise 3D slotting advice.`
                         : `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Give concise 3D slotting advice.`,
                   });
                 }}
@@ -1262,10 +1260,10 @@ export function App() {
                   showToast(
                     next
                       ? lang === 'ko'
-                        ? '🔒 항상 최적화 창 고정 ON: 모든 변경 시 항상 최적 배치 창으로 유지됩니다.'
+                        ? '🔒 Always-Optimized Lock ON'
                         : '🔒 Always-Optimized Lock ON'
                       : lang === 'ko'
-                        ? '🔓 항상 최적화 잠금 해제됨'
+                        ? '🔓 Always-Optimized Lock OFF'
                         : '🔓 Always-Optimized Lock OFF'
                   );
                 }}
@@ -1276,7 +1274,7 @@ export function App() {
                 }`}
                 title={
                   lang === 'ko'
-                    ? '화면이 항상 3D 최적화 상태로 유지되도록 고정합니다'
+                    ? 'Keep viewport locked to 3D Optimized layout at all times'
                     : 'Keep viewport locked to 3D Optimized layout at all times'
                 }
               >
@@ -1286,16 +1284,16 @@ export function App() {
                   <Unlock className="h-3 w-3" />
                 )}
                 {lang === 'ko'
-                  ? `항상 최적화 고정 ${alwaysOptimizedLock ? 'ON' : 'OFF'}`
+                  ? `Always Optimized ${alwaysOptimizedLock ? 'ON' : 'OFF'}`
                   : `Always Optimized ${alwaysOptimizedLock ? 'ON' : 'OFF'}`}
               </button>
 
               <div className="flex overflow-hidden rounded-lg border border-cyan-500/40 bg-slate-950 text-[10px]">
                 {(
                   [
-                    ['off', lang === 'ko' ? '3D 단독' : '3D Only'],
-                    ['split', lang === 'ko' ? '3D + 2D 배치도' : '3D + 2D Plan'],
-                    ['full_2d', lang === 'ko' ? '2D 배치도 전체' : '2D Plan Full'],
+                    ['off', lang === 'ko' ? '3D Only' : '3D Only'],
+                    ['split', lang === 'ko' ? '3D + 2D Plan' : '3D + 2D Plan'],
+                    ['full_2d', lang === 'ko' ? '2D Plan Full' : '2D Plan Full'],
                   ] as const
                 ).map(([m, label]) => (
                   <button
@@ -1309,7 +1307,7 @@ export function App() {
                     }`}
                     title={
                       lang === 'ko'
-                        ? '메인 바탕화면에서 2D 배치도와 동선을 실시간으로 함께 봅니다'
+                        ? 'View 2D Layout & Pick Route directly on the main screen'
                         : 'View 2D Layout & Pick Route directly on the main screen'
                     }
                   >
@@ -1337,7 +1335,7 @@ export function App() {
                 }`}
                 title={
                   lang === 'ko'
-                    ? '현재 최적화 화면 창을 모니터 전체 화면에 맞게 최대화합니다'
+                    ? 'Maximize Optimization Viewport to Full Window'
                     : 'Maximize Optimization Viewport to Full Window'
                 }
               >
@@ -1348,8 +1346,8 @@ export function App() {
                 )}
                 {lang === 'ko'
                   ? windowMaximized
-                    ? '최적화 창 축소'
-                    : '최적화 창 최대화'
+                    ? 'Restore Window'
+                    : 'Maximize Window'
                   : windowMaximized
                     ? 'Restore Window'
                     : 'Maximize Window'}
@@ -1433,12 +1431,12 @@ export function App() {
                 className="inline-flex items-center gap-1 rounded-md border border-emerald-400/50 bg-emerald-500/20 px-2.5 py-1 font-semibold text-emerald-200 hover:bg-emerald-500/30"
                 title={
                   lang === 'ko'
-                    ? '3D 공간 인테리어·가구·창문·출입문 배치 스튜디오 열기 (단축키 I)'
+                    ? 'Open 3D Space Interior & Furniture Studio (Shortcut: I)'
                     : 'Open 3D Space Interior & Furniture Studio (Shortcut: I)'
                 }
               >
                 <Home className="h-3.5 w-3.5 text-emerald-300" />
-                {lang === 'ko' ? '3D 인테리어' : '3D Interior'}
+                {lang === 'ko' ? '3D Interior' : '3D Interior'}
               </button>
 
               <button
@@ -1447,12 +1445,12 @@ export function App() {
                 className="inline-flex items-center gap-1 rounded-md border border-amber-400/50 bg-amber-500/20 px-2.5 py-1 font-semibold text-amber-200 hover:bg-amber-500/30"
                 title={
                   lang === 'ko'
-                    ? '3D 배경 색상·밝기·조명·바닥 재질 에디터 열기 (단축키 B)'
+                    ? 'Open 3D Background & Lighting Studio Editor (Shortcut: B)'
                     : 'Open 3D Background & Lighting Studio Editor (Shortcut: B)'
                 }
               >
                 <Sun className="h-3.5 w-3.5 text-amber-300" />
-                {lang === 'ko' ? '3D 배경·조명' : '3D Background'}
+                {lang === 'ko' ? '3D Background' : '3D Background'}
               </button>
 
               <button
@@ -1464,12 +1462,12 @@ export function App() {
                 className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-2 py-1 font-semibold text-cyan-300 hover:border-cyan-400"
                 title={
                   lang === 'ko'
-                    ? '키보드 단축키 안내 열기 (단축키 ? 또는 K)'
+                    ? 'Open Keyboard Shortcuts Guide (Shortcut: ? or K)'
                     : 'Open Keyboard Shortcuts Guide (Shortcut: ? or K)'
                 }
               >
                 <Keyboard className="h-3.5 w-3.5" />
-                {lang === 'ko' ? '단축키' : 'Keys'}
+                {lang === 'ko' ? 'Keys' : 'Keys'}
               </button>
             </div>
           </div>
@@ -1490,7 +1488,7 @@ export function App() {
                       setLeftTab('inspector');
                       showToast(
                         lang === 'ko'
-                          ? `선반 [${target.bin.id}] 박스·선반 사이즈 설정 패널을 열었습니다.`
+                          ? `Opened Box & Shelf Size Configurator for [${target.bin.id}].`
                           : `Opened Box & Shelf Size Configurator for [${target.bin.id}].`
                       );
                     }
@@ -1498,15 +1496,13 @@ export function App() {
                   className="inline-flex items-center gap-1 rounded-md border border-emerald-400/60 bg-emerald-500/20 px-2.5 py-1 font-bold text-emerald-200 hover:bg-emerald-500/30"
                   title={
                     lang === 'ko'
-                      ? '선택한 선반의 크기를 바꾸거나 가로·세로·높이 박스 사이즈를 직접 설정해서 바로 넣습니다'
+                      ? 'Resize shelf or configure custom box dimensions (L×W×H cm) and place into shelf'
                       : 'Resize shelf or configure custom box dimensions (L×W×H cm) and place into shelf'
                   }
                 >
                   <Plus className="h-3.5 w-3.5 text-emerald-300" />
                   {lang === 'ko'
-                    ? selectedBin
-                      ? `선반(${selectedBin.bin.id}) 크기·맞춤 박스 넣기`
-                      : '선반 크기·맞춤 박스 넣기'
+                    ? 'Shelf & Custom Box Size'
                     : 'Shelf & Custom Box Size'}
                 </button>
 
@@ -1545,13 +1541,13 @@ export function App() {
                       ).length;
                       showToast(
                         lang === 'ko'
-                          ? `🔍 [${box?.name.split(' (')[0]}] 위치 발견: 선반 ${foundAlloc.bin.id} (Z${foundAlloc.bin.level}층, ${totalInBin}개 적재) — 3D 줌인!`
+                          ? `🔍 Located [${box?.name.split(' (')[0]}] in Bin ${foundAlloc.bin.id} (Z${foundAlloc.bin.level}, ${totalInBin} pcs) — Zoomed in!`
                           : `🔍 Located [${box?.name.split(' (')[0]}] in Bin ${foundAlloc.bin.id} (Z${foundAlloc.bin.level}, ${totalInBin} pcs) — Zoomed in!`
                       );
                     } else {
                       showToast(
                         lang === 'ko'
-                          ? '해당 품목은 현재 선반에 적재되어 있지 않습니다.'
+                          ? 'This SKU is currently unplaced.'
                           : 'This SKU is currently unplaced.'
                       );
                     }
@@ -1559,12 +1555,12 @@ export function App() {
                   className="max-w-[175px] cursor-pointer rounded-md border border-cyan-500/45 bg-slate-900 px-2 py-1 font-semibold text-cyan-200 hover:border-cyan-400"
                   title={
                     lang === 'ko'
-                      ? '찾고 싶은 물건을 선택하면 해당 물건이 들어있는 3D 선반과 박스를 찾아 자동으로 확대합니다'
+                      ? 'Select any item to automatically locate and zoom to its 3D shelf and box'
                       : 'Select any item to automatically locate and zoom to its 3D shelf and box'
                   }
                 >
                   <option value="">
-                    {lang === 'ko' ? '🔍 3D 물건 위치 찾기...' : '🔍 Find Item in 3D...'}
+                    {lang === 'ko' ? '🔍 Find Item in 3D...' : '🔍 Find Item in 3D...'}
                   </option>
                   {skus.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -1583,13 +1579,13 @@ export function App() {
                   }`}
                   title={
                     lang === 'ko'
-                      ? '모달을 열지 않고 3D 화면에서 바로 가구·가전·출입문·창문을 원클릭 추가하거나 삭제합니다'
+                      ? 'Quickly add or delete 3D interior furniture, appliances, doors & windows inline'
                       : 'Quickly add or delete 3D interior furniture, appliances, doors & windows inline'
                   }
                 >
                   <Home className="h-3.5 w-3.5 text-emerald-300" />
                   {lang === 'ko'
-                    ? `🛋️ 인테리어 간편추가·삭제 (${effectiveInteriorProps.length}) ${
+                    ? `🛋️ Quick Interior (${effectiveInteriorProps.length}) ${
                         showQuickInteriorBar ? '▴' : '▾'
                       }`
                     : `🛋️ Quick Interior (${effectiveInteriorProps.length}) ${
@@ -1626,7 +1622,7 @@ export function App() {
                       handleWorkspaceUndo();
                       showToast(
                         lang === 'ko'
-                          ? '3D 편집 실행 취소 (Undo)'
+                          ? 'Undo 3D Edit'
                           : 'Undo 3D Edit'
                       );
                     }}
@@ -1634,7 +1630,7 @@ export function App() {
                     title="Undo 3D Workspace Edit (Ctrl+Z)"
                   >
                     <Undo2 className="h-3 w-3 text-cyan-400" />
-                    {lang === 'ko' ? '실행취소' : 'Undo'}
+                    {lang === 'ko' ? 'Undo' : 'Undo'}
                   </button>
                   <button
                     type="button"
@@ -1643,7 +1639,7 @@ export function App() {
                       handleWorkspaceRedo();
                       showToast(
                         lang === 'ko'
-                          ? '3D 편집 다시 실행 (Redo)'
+                          ? 'Redo 3D Edit'
                           : 'Redo 3D Edit'
                       );
                     }}
@@ -1651,7 +1647,7 @@ export function App() {
                     title="Redo 3D Workspace Edit (Ctrl+Y / Ctrl+Shift+Z)"
                   >
                     <Redo2 className="h-3 w-3 text-cyan-400" />
-                    {lang === 'ko' ? '다시실행' : 'Redo'}
+                    {lang === 'ko' ? 'Redo' : 'Redo'}
                   </button>
                 </div>
 
@@ -1689,15 +1685,15 @@ export function App() {
               <div className="flex flex-wrap items-center gap-1.5">
                 <div className="flex items-center gap-1 rounded-md border border-cyan-500/35 bg-slate-900 px-1.5 py-0.5">
                   <span className="font-semibold text-cyan-300">
-                    {lang === 'ko' ? '바닥색상:' : 'Floor:'}
+                    {lang === 'ko' ? 'Floor:' : 'Floor:'}
                   </span>
                   {[
-                    ['#e2e8f0', lang === 'ko' ? '라이트타일' : 'Light Tile'],
-                    ['#e7d5b8', lang === 'ko' ? '우드마루' : 'Warm Wood'],
-                    ['#cbd5e1', lang === 'ko' ? '콘크리트' : 'Concrete'],
-                    ['#bbf7d0', lang === 'ko' ? '에폭시그린' : 'Epoxy Green'],
-                    ['#172554', lang === 'ko' ? '블루도면' : 'Blueprint'],
-                    ['#1e293b', lang === 'ko' ? '다크슬레이트' : 'Dark Slate'],
+                    ['#e2e8f0', lang === 'ko' ? 'Light Tile' : 'Light Tile'],
+                    ['#e7d5b8', lang === 'ko' ? 'Warm Wood' : 'Warm Wood'],
+                    ['#cbd5e1', lang === 'ko' ? 'Concrete' : 'Concrete'],
+                    ['#bbf7d0', lang === 'ko' ? 'Epoxy Green' : 'Epoxy Green'],
+                    ['#172554', lang === 'ko' ? 'Blueprint' : 'Blueprint'],
+                    ['#1e293b', lang === 'ko' ? 'Dark Slate' : 'Dark Slate'],
                   ].map(([col, title]) => (
                     <button
                       key={col}
@@ -1724,7 +1720,7 @@ export function App() {
                     className="h-4 w-5 cursor-pointer border-0 bg-transparent"
                     title={
                       lang === 'ko'
-                        ? '맵 바닥 색상 직접 선택'
+                        ? 'Pick Custom Map Floor Color'
                         : 'Pick Custom Map Floor Color'
                     }
                   />
@@ -1733,10 +1729,10 @@ export function App() {
                 <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900 px-1.5 py-0.5">
                   <Sun className="h-3 w-3 text-amber-400" />
                   {[
-                    ['daylight-studio', lang === 'ko' ? '밝은스튜디오' : 'Daylight'],
-                    ['warm-home', lang === 'ko' ? '따뜻한홈' : 'Warm Home'],
-                    ['pure-white', lang === 'ko' ? '화이트쇼룸' : 'White'],
-                    ['cyber-night', lang === 'ko' ? '다크트윈' : 'Dark'],
+                    ['daylight-studio', lang === 'ko' ? 'Daylight' : 'Daylight'],
+                    ['warm-home', lang === 'ko' ? 'Warm Home' : 'Warm Home'],
+                    ['pure-white', lang === 'ko' ? 'White' : 'White'],
+                    ['cyber-night', lang === 'ko' ? 'Dark' : 'Dark'],
                   ].map(([pid, label]) => (
                     <button
                       key={pid}
@@ -1774,8 +1770,8 @@ export function App() {
                   >
                     {lang === 'ko'
                       ? showAdvanced3DTools
-                        ? '고급 이동·전체변환 접기 ▴'
-                        : '고급 이동·전체변환 ▾'
+                        ? 'Hide Advanced ▴'
+                        : 'Advanced Tools ▾'
                       : showAdvanced3DTools
                         ? 'Hide Advanced ▴'
                         : 'Advanced Tools ▾'}
@@ -1789,7 +1785,7 @@ export function App() {
                 <div className="flex flex-wrap items-center justify-between gap-1.5">
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="font-bold text-emerald-300">
-                      {lang === 'ko' ? '+ 원클릭 가구 추가:' : '+ Quick Add:'}
+                      {lang === 'ko' ? '+ Quick Add:' : '+ Quick Add:'}
                     </span>
                     {INTERIOR_PROP_CATALOG.map((item) => (
                       <button
@@ -1799,7 +1795,7 @@ export function App() {
                         className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-medium text-slate-200 hover:border-emerald-400 hover:bg-emerald-500/15 hover:text-white"
                         title={
                           lang === 'ko'
-                            ? `클릭하여 [${item.nameKo}] 3D 공간에 즉시 추가`
+                            ? `Click to add [${item.nameEn}] to 3D space`
                             : `Click to add [${item.nameEn}] to 3D space`
                         }
                       >
@@ -1816,10 +1812,10 @@ export function App() {
                   <div className="flex flex-wrap items-center gap-1">
                     {(
                       [
-                        ['cutaway_corner', lang === 'ko' ? 'ㄱ자벽' : 'L-Wall'],
-                        ['three_walls', lang === 'ko' ? 'ㄷ자벽' : '3-Wall'],
-                        ['glass_room', lang === 'ko' ? '유리벽' : 'Glass'],
-                        ['open_floor', lang === 'ko' ? '벽없음' : 'Open'],
+                        ['cutaway_corner', lang === 'ko' ? 'L-Wall' : 'L-Wall'],
+                        ['three_walls', lang === 'ko' ? '3-Wall' : '3-Wall'],
+                        ['glass_room', lang === 'ko' ? 'Glass' : 'Glass'],
+                        ['open_floor', lang === 'ko' ? 'Open' : 'Open'],
                       ] as const
                     ).map(([st, label]) => (
                       <button
@@ -1850,25 +1846,25 @@ export function App() {
                         }))
                       }
                       className="h-4 w-5 cursor-pointer border-0 bg-transparent"
-                      title={lang === 'ko' ? '벽면 색상 변경' : 'Wall Color'}
+                      title={lang === 'ko' ? 'Wall Color' : 'Wall Color'}
                     />
                     <button
                       type="button"
                       onClick={handleAutoPopulateInterior}
                       className="rounded border border-emerald-500/40 bg-emerald-500/20 px-2 py-0.5 font-bold text-emerald-300 hover:bg-emerald-500/30"
                     >
-                      {lang === 'ko' ? '✨ 자동세트 배치' : '✨ Auto Set'}
+                      {lang === 'ko' ? '✨ Auto Set' : '✨ Auto Set'}
                     </button>
 
                     <label
                       className="cursor-pointer rounded border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-bold text-cyan-200 hover:bg-cyan-500/25"
                       title={
                         lang === 'ko'
-                          ? 'test1 폴더의 100개 샘플 JSON(인테리어·기둥·선반·품목·맞춤박스) 또는 전체 셋팅 JSON 파일을 즉시 불러옵니다'
+                          ? 'Import 100-item sample JSON (Interior, Obstacles, Bins, SKUs, Custom Boxes) or Full Workspace JSON'
                           : 'Import 100-item sample JSON (Interior, Obstacles, Bins, SKUs, Custom Boxes) or Full Workspace JSON'
                       }
                     >
-                      {lang === 'ko' ? '📂 JSON 샘플/셋팅 열기' : '📂 Load JSON'}
+                      {lang === 'ko' ? '📂 Load JSON' : '📂 Load JSON'}
                       <input
                         type="file"
                         accept=".json,application/json"
@@ -1890,7 +1886,7 @@ export function App() {
                                   }));
                                   showToast(
                                     lang === 'ko'
-                                      ? `3D 인테리어 가구 ${data.length}개 JSON 불러오기 완료!`
+                                      ? `Loaded ${data.length} 3D interior props from JSON!`
                                       : `Loaded ${data.length} 3D interior props from JSON!`
                                   );
                                 } else if (first.binLengthCm !== undefined && first.zMeters !== undefined) {
@@ -1899,14 +1895,14 @@ export function App() {
                                   setRemovedBinIds([]);
                                   showToast(
                                     lang === 'ko'
-                                      ? `3D 선반/랙 빈 ${data.length}개 JSON 불러오기 완료!`
+                                      ? `Loaded ${data.length} 3D shelf bins from JSON!`
                                       : `Loaded ${data.length} 3D shelf bins from JSON!`
                                   );
                                 } else if (first.dailyPicks !== undefined && first.skuCode) {
                                   setSkus(data as SKUItem[]);
                                   showToast(
                                     lang === 'ko'
-                                      ? `SKU 품목 마스터 ${data.length}개 JSON 불러오기 완료!`
+                                      ? `Loaded ${data.length} SKUs from JSON!`
                                       : `Loaded ${data.length} SKUs from JSON!`
                                   );
                                 } else if (first.sampleId !== undefined && first.binId && first.lengthCm) {
@@ -1928,7 +1924,7 @@ export function App() {
                                   setSkus(convertedSkus);
                                   showToast(
                                     lang === 'ko'
-                                      ? `맞춤 박스 규격 샘플 ${data.length}개 JSON 불러오기 완료!`
+                                      ? `Loaded ${data.length} custom box samples from JSON!`
                                       : `Loaded ${data.length} custom box samples from JSON!`
                                   );
                                 } else if (first.aisle !== undefined && first.bay !== undefined && first.xMeters !== undefined) {
@@ -1938,7 +1934,7 @@ export function App() {
                                   }));
                                   showToast(
                                     lang === 'ko'
-                                      ? `기둥/장애물 ${data.length}개 JSON 불러오기 완료!`
+                                      ? `Loaded ${data.length} obstacles from JSON!`
                                       : `Loaded ${data.length} obstacles from JSON!`
                                   );
                                 }
@@ -1956,14 +1952,14 @@ export function App() {
                                 }
                                 showToast(
                                   lang === 'ko'
-                                    ? '전체 워크스페이스 셋팅 JSON 불러오기 완료!'
+                                    ? 'Loaded full workspace settings JSON!'
                                     : 'Loaded full workspace settings JSON!'
                                 );
                               }
                             } catch {
                               showToast(
                                 lang === 'ko'
-                                  ? 'JSON 파일 형식을 확인해 주세요.'
+                                  ? 'Invalid JSON file format.'
                                   : 'Invalid JSON file format.'
                               );
                             }
@@ -2000,18 +1996,18 @@ export function App() {
                         URL.revokeObjectURL(url);
                         showToast(
                           lang === 'ko'
-                            ? '현재 3D 인테리어·공간 전체 셋팅을 JSON으로 저장했습니다.'
+                            ? 'Saved current 3D interior & workspace settings to JSON.'
                             : 'Saved current 3D interior & workspace settings to JSON.'
                         );
                       }}
                       className="rounded border border-slate-700 bg-slate-950 px-2 py-0.5 font-semibold text-slate-300 hover:border-cyan-400 hover:text-cyan-200"
                       title={
                         lang === 'ko'
-                          ? '현재 인테리어·선반·품목 전체 셋팅을 JSON 파일로 저장합니다'
+                          ? 'Export current interior, shelf & SKU settings to JSON'
                           : 'Export current interior, shelf & SKU settings to JSON'
                       }
                     >
-                      {lang === 'ko' ? '⬇ 셋팅 JSON 저장' : '⬇ Save JSON'}
+                      {lang === 'ko' ? '⬇ Save JSON' : '⬇ Save JSON'}
                     </button>
                     {effectiveInteriorProps.length > 0 && (
                       <button
@@ -2025,13 +2021,13 @@ export function App() {
                           setSelectedPropId(null);
                           showToast(
                             lang === 'ko'
-                              ? '모든 3D 인테리어 가구를 삭제했습니다.'
+                              ? 'Cleared all 3D interior props.'
                               : 'Cleared all 3D interior props.'
                           );
                         }}
                         className="rounded border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 font-bold text-rose-300 hover:bg-rose-500/25"
                       >
-                        {lang === 'ko' ? '🗑️ 가구 전체삭제' : '🗑️ Clear All'}
+                        {lang === 'ko' ? '🗑️ Clear All' : '🗑️ Clear All'}
                       </button>
                     )}
                   </div>
@@ -2040,13 +2036,13 @@ export function App() {
                 <div className="flex max-h-20 flex-wrap items-center gap-1 overflow-y-auto border-t border-slate-800 pt-1">
                   <span className="font-semibold text-slate-400">
                     {lang === 'ko'
-                      ? `배치된 가구 (${effectiveInteriorProps.length}개 · 클릭:선택/이동 · ×:즉시삭제):`
+                      ? `Placed (${effectiveInteriorProps.length} · Click:Select · ×:Delete):`
                       : `Placed (${effectiveInteriorProps.length} · Click:Select · ×:Delete):`}
                   </span>
                   {effectiveInteriorProps.length === 0 ? (
                     <span className="text-slate-500">
                       {lang === 'ko'
-                        ? '배치된 가구가 없습니다. 위 아이콘을 눌러 바로 추가하세요.'
+                        ? 'No props placed. Click any icon above to add.'
                         : 'No props placed. Click any icon above to add.'}
                     </span>
                   ) : (
@@ -2075,7 +2071,7 @@ export function App() {
                             className="inline-flex items-center gap-1 hover:text-cyan-300"
                             title={
                               lang === 'ko'
-                                ? '클릭하여 이 가구로 카메라 포커스 및 편집'
+                                ? 'Click to focus & edit this prop'
                                 : 'Click to focus & edit this prop'
                             }
                           >
@@ -2086,7 +2082,7 @@ export function App() {
                             type="button"
                             onClick={() => handleDeleteInteriorProp(p.id)}
                             className="ml-0.5 rounded px-1 text-rose-400 hover:bg-rose-500/25 hover:text-rose-200"
-                            title={lang === 'ko' ? '이 가구 즉시 삭제' : 'Delete prop'}
+                            title={lang === 'ko' ? 'Delete prop' : 'Delete prop'}
                           >
                             ×
                           </button>
@@ -2102,7 +2098,7 @@ export function App() {
               <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-800/80 pt-1.5">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="font-semibold text-cyan-300">
-                    {lang === 'ko' ? '드래그 범위:' : 'Drag Scope:'}
+                    {lang === 'ko' ? 'Drag Scope:' : 'Drag Scope:'}
                   </span>
                   <div className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900">
                     <button
@@ -2122,7 +2118,7 @@ export function App() {
                       }`}
                     >
                       <Move className="h-3 w-3" />
-                      {lang === 'ko' ? '낱개 물건 이동' : 'Single Item'}
+                      {lang === 'ko' ? 'Single Item' : 'Single Item'}
                     </button>
                     <button
                       type="button"
@@ -2140,7 +2136,7 @@ export function App() {
                           : 'text-sky-300 hover:bg-slate-800'
                       }`}
                     >
-                      {lang === 'ko' ? '낱개 선반 칸 이동' : 'Single Bin'}
+                      {lang === 'ko' ? 'Single Bin' : 'Single Bin'}
                     </button>
                     <button
                       type="button"
@@ -2158,7 +2154,7 @@ export function App() {
                           : 'text-slate-300 hover:bg-slate-800'
                       }`}
                     >
-                      {lang === 'ko' ? '선반 기둥 이동' : 'Rack Column'}
+                      {lang === 'ko' ? 'Rack Column' : 'Rack Column'}
                     </button>
                     <button
                       type="button"
@@ -2176,20 +2172,20 @@ export function App() {
                           : 'text-emerald-300 hover:bg-slate-800'
                       }`}
                     >
-                      {lang === 'ko' ? '전체 템플릿 이동' : 'Whole Template'}
+                      {lang === 'ko' ? 'Whole Template' : 'Whole Template'}
                     </button>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/30 px-1.5 py-0.5">
                   <span className="font-semibold text-emerald-300">
-                    {lang === 'ko' ? '전체 공간 변환:' : 'Whole Space:'}
+                    {lang === 'ko' ? 'Whole Space:' : 'Whole Space:'}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleTranslateWholeTemplate(-0.5, 0)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                    title={lang === 'ko' ? '전체 좌측 0.5m 이동' : 'Move All Left 0.5m'}
+                    title={lang === 'ko' ? 'Move All Left 0.5m' : 'Move All Left 0.5m'}
                   >
                     ←
                   </button>
@@ -2197,7 +2193,7 @@ export function App() {
                     type="button"
                     onClick={() => handleTranslateWholeTemplate(0.5, 0)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                    title={lang === 'ko' ? '전체 우측 0.5m 이동' : 'Move All Right 0.5m'}
+                    title={lang === 'ko' ? 'Move All Right 0.5m' : 'Move All Right 0.5m'}
                   >
                     →
                   </button>
@@ -2205,7 +2201,7 @@ export function App() {
                     type="button"
                     onClick={() => handleTranslateWholeTemplate(0, -0.5)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                    title={lang === 'ko' ? '전체 전면 0.5m 이동' : 'Move All Front 0.5m'}
+                    title={lang === 'ko' ? 'Move All Front 0.5m' : 'Move All Front 0.5m'}
                   >
                     ↑
                   </button>
@@ -2213,7 +2209,7 @@ export function App() {
                     type="button"
                     onClick={() => handleTranslateWholeTemplate(0, 0.5)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
-                    title={lang === 'ko' ? '전체 후면 0.5m 이동' : 'Move All Back 0.5m'}
+                    title={lang === 'ko' ? 'Move All Back 0.5m' : 'Move All Back 0.5m'}
                   >
                     ↓
                   </button>
@@ -2223,7 +2219,7 @@ export function App() {
                       handleRotateWholeTemplate90();
                       showToast(
                         lang === 'ko'
-                          ? '전체 템플릿 90° 회전 완료'
+                          ? 'Rotated Whole Template 90°'
                           : 'Rotated Whole Template 90°'
                       );
                     }}
@@ -2237,21 +2233,21 @@ export function App() {
                     onClick={() => handleScaleWholeTemplateSpacing(1.12)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
                   >
-                    {lang === 'ko' ? '간격+' : 'Span+'}
+                    {lang === 'ko' ? 'Span+' : 'Span+'}
                   </button>
                   <button
                     type="button"
                     onClick={() => handleScaleWholeTemplateSpacing(0.88)}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 hover:border-emerald-400"
                   >
-                    {lang === 'ko' ? '간격-' : 'Span-'}
+                    {lang === 'ko' ? 'Span-' : 'Span-'}
                   </button>
                   <button
                     type="button"
                     onClick={handleCenterWholeTemplate}
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.2 text-cyan-300 hover:border-cyan-400"
                   >
-                    {lang === 'ko' ? '중앙정렬' : 'Center'}
+                    {lang === 'ko' ? 'Center' : 'Center'}
                   </button>
                 </div>
               </div>
@@ -2280,7 +2276,7 @@ export function App() {
 
                 <div className="flex items-center gap-1 rounded-md border border-emerald-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
                   <span className="font-semibold text-emerald-300">
-                    {lang === 'ko' ? '박스치수:' : 'Size:'}
+                    {lang === 'ko' ? 'Size:' : 'Size:'}
                   </span>
                   <input
                     type="number"
@@ -2300,7 +2296,7 @@ export function App() {
                       )
                     }
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                    title={lang === 'ko' ? '가로 L (cm)' : 'Length L (cm)'}
+                    title={lang === 'ko' ? 'Length L (cm)' : 'Length L (cm)'}
                   />
                   <span className="text-slate-500">×</span>
                   <input
@@ -2321,7 +2317,7 @@ export function App() {
                       )
                     }
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                    title={lang === 'ko' ? '세로 W (cm)' : 'Width W (cm)'}
+                    title={lang === 'ko' ? 'Width W (cm)' : 'Width W (cm)'}
                   />
                   <span className="text-slate-500">×</span>
                   <input
@@ -2342,13 +2338,13 @@ export function App() {
                       )
                     }
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                    title={lang === 'ko' ? '높이 H (cm)' : 'Height H (cm)'}
+                    title={lang === 'ko' ? 'Height H (cm)' : 'Height H (cm)'}
                   />
                   <span className="text-slate-400">cm</span>
                 </div>
 
                 <span className="text-[10px] text-slate-400">
-                  {lang === 'ko' ? '낱개 이동:' : 'Move Item:'}
+                  {lang === 'ko' ? 'Move Item:' : 'Move Item:'}
                 </span>
                 <button
                   type="button"
@@ -2361,7 +2357,7 @@ export function App() {
                     )
                   }
                   className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
-                  title={lang === 'ko' ? '좌측 인접 선반으로 이동 (←)' : 'Move to Left Bin (←)'}
+                  title={lang === 'ko' ? 'Move to Left Bin (←)' : 'Move to Left Bin (←)'}
                 >
                   ←
                 </button>
@@ -2376,7 +2372,7 @@ export function App() {
                     )
                   }
                   className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
-                  title={lang === 'ko' ? '우측 인접 선반으로 이동 (→)' : 'Move to Right Bin (→)'}
+                  title={lang === 'ko' ? 'Move to Right Bin (→)' : 'Move to Right Bin (→)'}
                 >
                   →
                 </button>
@@ -2391,7 +2387,7 @@ export function App() {
                     )
                   }
                   className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
-                  title={lang === 'ko' ? '전면 인접 선반으로 이동 (↑)' : 'Move to Front Bin (↑)'}
+                  title={lang === 'ko' ? 'Move to Front Bin (↑)' : 'Move to Front Bin (↑)'}
                 >
                   ↑
                 </button>
@@ -2406,7 +2402,7 @@ export function App() {
                     )
                   }
                   className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-amber-400"
-                  title={lang === 'ko' ? '후면 인접 선반으로 이동 (↓)' : 'Move to Back Bin (↓)'}
+                  title={lang === 'ko' ? 'Move to Back Bin (↓)' : 'Move to Back Bin (↓)'}
                 >
                   ↓
                 </button>
@@ -2428,7 +2424,7 @@ export function App() {
                       className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300 hover:border-emerald-400"
                       title={
                         lang === 'ko'
-                          ? `이 물건 1개를 Z${lv}층으로 이동`
+                          ? `Move this item to Z${lv}`
                           : `Move this item to Z${lv}`
                       }
                     >
@@ -2442,7 +2438,7 @@ export function App() {
                     handlePinCargo(selectedCargo.binId, selectedCargo.skuId, 1)
                   }
                   className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
-                  title={lang === 'ko' ? '이 칸에 동일 물건 +1 추가' : 'Add +1 here'}
+                  title={lang === 'ko' ? 'Add +1 here' : 'Add +1 here'}
                 >
                   +1
                 </button>
@@ -2471,11 +2467,11 @@ export function App() {
                   className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
                   title={
                     lang === 'ko'
-                      ? '이 칸에 있는 같은 품목 묶음 전체를 추천 골든존 선반으로 일괄 이동'
+                      ? 'Move entire SKU batch in this bin to Golden Zone'
                       : 'Move entire SKU batch in this bin to Golden Zone'
                   }
                 >
-                  {lang === 'ko' ? '묶음 전체이동' : 'Move Batch'}
+                  {lang === 'ko' ? 'Move Batch' : 'Move Batch'}
                 </button>
                 <button
                   type="button"
@@ -2484,7 +2480,7 @@ export function App() {
                     setSelectedCargo(null);
                   }}
                   className="rounded border border-rose-500/40 bg-rose-500/20 p-1 text-rose-300 hover:bg-rose-500/30"
-                  title={lang === 'ko' ? '이 낱개 물건 1개 빼기 (Del)' : 'Remove 1 unit (Del)'}
+                  title={lang === 'ko' ? 'Remove 1 unit (Del)' : 'Remove 1 unit (Del)'}
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
@@ -2506,13 +2502,13 @@ export function App() {
                 <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-sky-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                   <span className="font-bold text-sky-300">
                     {lang === 'ko'
-                      ? `선반 [${selectedBin.bin.id}]`
+                      ? `Shelf [${selectedBin.bin.id}]`
                       : `Shelf [${selectedBin.bin.id}]`}
                   </span>
 
                   <div className="flex items-center gap-1 rounded-md border border-emerald-500/45 bg-slate-900/95 px-1.5 py-0.5 text-[10px]">
                     <span className="font-semibold text-emerald-300">
-                      {lang === 'ko' ? '박스개수:' : 'Boxes:'}
+                      {lang === 'ko' ? 'Boxes:' : 'Boxes:'}
                     </span>
                     {[0, 1, 2, 4, 6].map((q) => (
                       <button
@@ -2552,7 +2548,7 @@ export function App() {
                       className="w-10 rounded border border-emerald-500/50 bg-slate-950 px-1 py-0.2 text-center font-mono font-bold text-amber-300"
                       title={
                         lang === 'ko'
-                          ? '이 선반 칸의 총 박스 개수를 숫자로 직접 입력'
+                          ? 'Enter exact total box count for this shelf bin'
                           : 'Enter exact total box count for this shelf bin'
                       }
                     />
@@ -2560,7 +2556,7 @@ export function App() {
 
                   <div className="flex items-center gap-1 rounded-md border border-cyan-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
                     <span className="font-semibold text-cyan-300">
-                      {lang === 'ko' ? '선반치수:' : 'Shelf Size:'}
+                      {lang === 'ko' ? 'Shelf Size:' : 'Shelf Size:'}
                     </span>
                     <input
                       type="number"
@@ -2584,7 +2580,7 @@ export function App() {
                         )
                       }
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                      title={lang === 'ko' ? '선반 가로 L (cm)' : 'Shelf Length L (cm)'}
+                      title={lang === 'ko' ? 'Shelf Length L (cm)' : 'Shelf Length L (cm)'}
                     />
                     <span className="text-slate-500">×</span>
                     <input
@@ -2609,7 +2605,7 @@ export function App() {
                         )
                       }
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                      title={lang === 'ko' ? '선반 깊이 W (cm)' : 'Shelf Width W (cm)'}
+                      title={lang === 'ko' ? 'Shelf Width W (cm)' : 'Shelf Width W (cm)'}
                     />
                     <span className="text-slate-500">×</span>
                     <input
@@ -2634,7 +2630,7 @@ export function App() {
                         )
                       }
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
-                      title={lang === 'ko' ? '선반 높이 H (cm)' : 'Shelf Height H (cm)'}
+                      title={lang === 'ko' ? 'Shelf Height H (cm)' : 'Shelf Height H (cm)'}
                     />
                     <span className="text-slate-400">cm</span>
                     <button
@@ -2657,7 +2653,7 @@ export function App() {
                         )
                       }
                       className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[9px] text-slate-300 hover:border-cyan-400"
-                      title={lang === 'ko' ? '이 선반 칸 -10% 축소' : 'Scale this bin -10%'}
+                      title={lang === 'ko' ? 'Scale this bin -10%' : 'Scale this bin -10%'}
                     >
                       -10%
                     </button>
@@ -2681,7 +2677,7 @@ export function App() {
                         )
                       }
                       className="rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[9px] text-slate-300 hover:border-cyan-400"
-                      title={lang === 'ko' ? '이 선반 칸 +10% 확대' : 'Scale this bin +10%'}
+                      title={lang === 'ko' ? 'Scale this bin +10%' : 'Scale this bin +10%'}
                     >
                       +10%
                     </button>
@@ -2697,7 +2693,7 @@ export function App() {
                       )
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
-                    title={lang === 'ko' ? '좌측 0.25m 이동' : 'Move Left'}
+                    title={lang === 'ko' ? 'Move Left' : 'Move Left'}
                   >
                     ←
                   </button>
@@ -2711,7 +2707,7 @@ export function App() {
                       )
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
-                    title={lang === 'ko' ? '우측 0.25m 이동' : 'Move Right'}
+                    title={lang === 'ko' ? 'Move Right' : 'Move Right'}
                   >
                     →
                   </button>
@@ -2725,7 +2721,7 @@ export function App() {
                       )
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
-                    title={lang === 'ko' ? '전면 0.25m 이동' : 'Move Front'}
+                    title={lang === 'ko' ? 'Move Front' : 'Move Front'}
                   >
                     ↑
                   </button>
@@ -2739,7 +2735,7 @@ export function App() {
                       )
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 hover:border-sky-400"
-                    title={lang === 'ko' ? '후면 0.25m 이동' : 'Move Back'}
+                    title={lang === 'ko' ? 'Move Back' : 'Move Back'}
                   >
                     ↓
                   </button>
@@ -2755,7 +2751,7 @@ export function App() {
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:border-sky-400"
                   >
-                    {lang === 'ko' ? '층↓' : 'Z-'}
+                    {lang === 'ko' ? 'Z-' : 'Z-'}
                   </button>
                   <button
                     type="button"
@@ -2769,7 +2765,7 @@ export function App() {
                     }
                     className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:border-sky-400"
                   >
-                    {lang === 'ko' ? '층↑' : 'Z+'}
+                    {lang === 'ko' ? 'Z+' : 'Z+'}
                   </button>
                   <button
                     type="button"
@@ -2785,7 +2781,7 @@ export function App() {
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-yellow-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span className="font-bold text-yellow-300">
                   {lang === 'ko'
-                    ? `기둥/장애물: ${selectedObstacle.label}`
+                    ? `Obstacle: ${selectedObstacle.label}`
                     : `Obstacle: ${selectedObstacle.label}`}
                 </span>
                 <span className="font-mono text-[10px] text-slate-400">
@@ -2860,7 +2856,7 @@ export function App() {
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-sky-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span className="font-bold text-sky-300">
                   {lang === 'ko'
-                    ? '★ 출입구 / 피킹 출발지 (I/O Depot)'
+                    ? '★ I/O Depot / Entry Point'
                     : '★ I/O Depot / Entry Point'}
                 </span>
                 <span className="font-mono text-[10px] text-slate-400">
@@ -2914,7 +2910,7 @@ export function App() {
                   }
                   className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[10px] text-cyan-300 hover:bg-cyan-500/25"
                 >
-                  {lang === 'ko' ? '정면 중앙 복원' : 'Reset Center'}
+                  {lang === 'ko' ? 'Reset Center' : 'Reset Center'}
                 </button>
                 <button
                   type="button"
@@ -3090,10 +3086,10 @@ export function App() {
                       showToast(
                         next
                           ? lang === 'ko'
-                            ? '✨ 스마트 카메라 자동줌 켜짐: 물체 클릭 시 자동 확대 · 빈 바닥 클릭 시 전체 복귀'
+                            ? '✨ Smart Auto-Zoom ON'
                             : '✨ Smart Auto-Zoom ON'
                           : lang === 'ko'
-                            ? '수동 카메라 줌 모드로 전환되었습니다'
+                            ? 'Smart Auto-Zoom OFF'
                             : 'Smart Auto-Zoom OFF'
                       );
                       return next;
@@ -3119,12 +3115,12 @@ export function App() {
                     }`}
                     title={
                       lang === 'ko'
-                        ? '전체 창고 3D 입체뷰 자동 맞춤 (단축키 1)'
+                        ? '3D Isometric Auto-Fit (Shortcut: 1)'
                         : '3D Isometric Auto-Fit (Shortcut: 1)'
                     }
                   >
                     <Compass className="h-3 w-3" />
-                    {lang === 'ko' ? '3D 입체뷰' : '3D Iso'}
+                    {lang === 'ko' ? '3D Iso' : '3D Iso'}
                   </button>
                   <button
                     type="button"
@@ -3139,12 +3135,12 @@ export function App() {
                     }`}
                     title={
                       lang === 'ko'
-                        ? '위에서 내려다보는 2D 평면뷰 자동 맞춤 (단축키 2)'
+                        ? '2D Top-Down Auto-Fit (Shortcut: 2)'
                         : '2D Top-Down Auto-Fit (Shortcut: 2)'
                     }
                   >
                     <Camera className="h-3 w-3" />
-                    {lang === 'ko' ? '2D 평면뷰' : '2D Top'}
+                    {lang === 'ko' ? '2D Top' : '2D Top'}
                   </button>
                   <button
                     type="button"
@@ -3159,12 +3155,12 @@ export function App() {
                     }`}
                     title={
                       lang === 'ko'
-                        ? '선반 층별 높이를 한눈에 보는 Z축 정면뷰 자동 맞춤 (단축키 3)'
+                        ? 'Z-Elevation Auto-Fit (Shortcut: 3)'
                         : 'Z-Elevation Auto-Fit (Shortcut: 3)'
                     }
                   >
                     <RotateCcw className="h-3 w-3" />
-                    {lang === 'ko' ? 'Z축 정면뷰' : 'Z-Elevation'}
+                    {lang === 'ko' ? 'Z-Elevation' : 'Z-Elevation'}
                   </button>
                   <button
                     type="button"
@@ -3179,12 +3175,12 @@ export function App() {
                     }`}
                     title={
                       lang === 'ko'
-                        ? '골든존 눈높이 근접 시점 전환 (단축키 4)'
+                        ? 'Eye-Level Golden Zone Closeup View (Shortcut: 4)'
                         : 'Eye-Level Golden Zone Closeup View (Shortcut: 4)'
                     }
                   >
                     <Sparkles className="h-3 w-3" />
-                    {lang === 'ko' ? '눈높이 근접뷰' : 'Closeup'}
+                    {lang === 'ko' ? 'Closeup' : 'Closeup'}
                   </button>
                   <button
                     type="button"
@@ -3198,10 +3194,10 @@ export function App() {
                     <Play className="h-3 w-3" />
                     {animateRoute
                       ? lang === 'ko'
-                        ? '동선 표시: 켜짐'
+                        ? 'Route On'
                         : 'Route On'
                       : lang === 'ko'
-                        ? '동선 표시: 꺼짐'
+                        ? 'Route Off'
                         : 'Route Off'}
                   </button>
                   <button
@@ -3217,10 +3213,10 @@ export function App() {
                     <Move className="h-3 w-3" />
                     {dragMoveMode
                       ? lang === 'ko'
-                        ? '3D 이동: 켜짐'
+                        ? '3D Drag: ON'
                         : '3D Drag: ON'
                       : lang === 'ko'
-                        ? '3D 위치 이동'
+                        ? 'Move 3D'
                         : 'Move 3D'}
                   </button>
 
@@ -3234,7 +3230,7 @@ export function App() {
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      {lang === 'ko' ? '전층' : 'All'}
+                      {lang === 'ko' ? 'All' : 'All'}
                     </button>
                     {zBreakdown.map((z) => (
                       <button
@@ -3267,7 +3263,7 @@ export function App() {
                       style={{ backgroundColor: activeTheme.scene.golden }}
                     />
                     {lang === 'ko'
-                      ? `골든존 허리높이 (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`
+                      ? `Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`
                       : `Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`}
                   </div>
                   <div className="mt-1 flex items-center gap-1.5">
@@ -3276,13 +3272,13 @@ export function App() {
                       style={{ backgroundColor: activeTheme.scene.route }}
                     />
                     {lang === 'ko'
-                      ? '최적 피킹 이동 동선'
+                      ? 'Active Pick Wave Path'
                       : 'Active Pick Wave Path'}
                   </div>
                   <div className="mt-1 flex items-center gap-1.5">
                     <span className="h-2 w-2 rounded-full bg-rose-500" />
                     {lang === 'ko'
-                      ? '상층 중량물 안전 위험'
+                      ? 'Heavy-on-Upper Violation'
                       : 'Heavy-on-Upper Violation'}
                   </div>
                 </div>
@@ -3308,12 +3304,12 @@ export function App() {
                     <MapIcon className="h-3.5 w-3.5 text-cyan-400" />
                     <span className="font-bold text-cyan-200">
                       {lang === 'ko'
-                        ? `메인 바탕화면 2D 실시간 배치도 & 피킹 동선 (${activeScenario.name})`
+                        ? `Main Screen Live 2D Floor Plan & Pick Route (${activeScenario.name})`
                         : `Main Screen Live 2D Floor Plan & Pick Route (${activeScenario.name})`}
                     </span>
                     <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
                       {lang === 'ko'
-                        ? `선반 클릭 시 박스 투입 · 우클릭 시 동선 경유지 지정`
+                        ? `Left-click bin to inspect · Right-click to toggle route stop`
                         : `Left-click bin to inspect · Right-click to toggle route stop`}
                     </span>
                   </div>
@@ -3324,22 +3320,22 @@ export function App() {
                           [
                             {
                               id: 'collapsed',
-                              ko: '접기',
+                              ko: 'Fold',
                               en: 'Fold',
                             },
                             {
                               id: 'compact',
-                              ko: '소형',
+                              ko: 'Small',
                               en: 'Small',
                             },
                             {
                               id: 'normal',
-                              ko: '기본',
+                              ko: 'Medium',
                               en: 'Medium',
                             },
                             {
                               id: 'large',
-                              ko: '크게',
+                              ko: 'Large',
                               en: 'Large',
                             },
                           ] as const
@@ -3365,7 +3361,7 @@ export function App() {
                       className="inline-flex items-center gap-1 rounded border border-cyan-500/50 bg-cyan-500/20 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/30"
                     >
                       <Route className="h-3 w-3" />
-                      {lang === 'ko' ? '2D 자유맵 & 동선 에디터 열기' : 'Open 2D & Route Editor'}
+                      {lang === 'ko' ? 'Open 2D & Route Editor' : 'Open 2D & Route Editor'}
                     </button>
                     <button
                       type="button"
@@ -3385,7 +3381,7 @@ export function App() {
                         const win = window.open('', '_blank', 'width=1280,height=860');
                         if (win) {
                           win.document.write(
-                            `<!doctype html><html><head><meta charset="utf-8"/><title>2D 배치도 - ${activeScenario.name}</title><style>body{margin:0;background:#071326;color:#e2e8f0;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}header{padding:10px 16px;background:#0f172a;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center}main{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px}svg{max-width:100%;height:auto}</style></head><body><header><strong>${activeScenario.name} — 2D 배치도 & 피킹 동선 (바탕화면 독립 창)</strong><button onclick="window.print()" style="background:#22d3ee;color:#082f49;border:0;padding:6px 12px;border-radius:6px;font-weight:bold;cursor:pointer">인쇄 / PDF 저장</button></header><main>${svgMarkup}</main></body></html>`
+                            `<!doctype html><html><head><meta charset="utf-8"/><title>2D Floor Plan - ${activeScenario.name}</title><style>body{margin:0;background:#071326;color:#e2e8f0;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}header{padding:10px 16px;background:#0f172a;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center}main{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px}svg{max-width:100%;height:auto}</style></head><body><header><strong>${activeScenario.name} — 2D Floor Plan & Pick Route (Standalone Window)</strong><button onclick="window.print()" style="background:#22d3ee;color:#082f49;border:0;padding:6px 12px;border-radius:6px;font-weight:bold;cursor:pointer">Print / Save PDF</button></header><main>${svgMarkup}</main></body></html>`
                           );
                           win.document.close();
                         }
@@ -3393,12 +3389,12 @@ export function App() {
                       className="inline-flex items-center gap-1 rounded border border-amber-500/50 bg-amber-500/20 px-2 py-0.5 font-semibold text-amber-200 hover:bg-amber-500/30"
                       title={
                         lang === 'ko'
-                          ? '바탕화면에 별도 독립 창으로 2D 배치도를 띄워 항상 보거나 인쇄합니다'
+                          ? 'Pop out 2D layout blueprint in a standalone desktop window'
                           : 'Pop out 2D layout blueprint in a standalone desktop window'
                       }
                     >
                       <ExternalLink className="h-3 w-3" />
-                      {lang === 'ko' ? '바탕화면 독립 창으로 띄우기' : 'Pop-out Desktop Window'}
+                      {lang === 'ko' ? 'Pop-out Desktop Window' : 'Pop-out Desktop Window'}
                     </button>
                     <button
                       type="button"
@@ -3421,14 +3417,14 @@ export function App() {
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `${activeScenario.name.replace(/[^a-zA-Z0-9가-힣_-]+/g, '_')}_2D_배치도.svg`;
+                        a.download = `${activeScenario.name.replace(/[^a-zA-Z0-9_-]+/g, '_')}_2D_layout.svg`;
                         a.click();
                         URL.revokeObjectURL(url);
                       }}
                       className="inline-flex items-center gap-1 rounded border border-emerald-500/50 bg-emerald-500/20 px-2 py-0.5 font-semibold text-emerald-200 hover:bg-emerald-500/30"
                     >
                       <Download className="h-3 w-3" />
-                      {lang === 'ko' ? '2D 배치도 파일 저장(.SVG)' : 'Save 2D Layout (.SVG)'}
+                      {lang === 'ko' ? 'Save 2D Layout (.SVG)' : 'Save 2D Layout (.SVG)'}
                     </button>
                   </div>
                 </div>
@@ -3613,10 +3609,10 @@ export function App() {
                                 showToast(
                                   existingIdx !== -1
                                     ? lang === 'ko'
-                                      ? `선반 [${targetAlloc.bin.id}] 동선 경유지에서 제외됨`
+                                      ? `Removed [${targetAlloc.bin.id}] from Pick Route`
                                       : `Removed [${targetAlloc.bin.id}] from Pick Route`
                                     : lang === 'ko'
-                                      ? `선반 [${targetAlloc.bin.id}] 피킹 동선 경유지 #${nextRoute.length}번으로 추가됨`
+                                      ? `Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`
                                       : `Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`
                                 );
                               }}
@@ -3749,7 +3745,7 @@ export function App() {
               setLeftTab('inspector');
               showToast(
                 lang === 'ko'
-                  ? `추천 선반 [${binId}] 포커스 줌 이동됨`
+                  ? `Focused & Zoomed to Recommended Bin [${binId}]`
                   : `Focused & Zoomed to Recommended Bin [${binId}]`
               );
             }}
@@ -3777,7 +3773,7 @@ export function App() {
               }
               showToast(
                 lang === 'ko'
-                  ? `권장 최적화 실행됨: ${action.labelKo}`
+                  ? `Applied Action: ${action.labelEn}`
                   : `Applied Action: ${action.labelEn}`
               );
             }}
@@ -3877,7 +3873,7 @@ export function App() {
             mode: 'prefer_on_device',
             prompt:
               lang === 'ko'
-                ? `선반 ${alloc.bin.id} (Z${alloc.bin.level}층, 높이 ${alloc.bin.zMeters}m, 채움률=${alloc.cubicUtilizationPct.toFixed(1)}%, 현재무게=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg)의 3D 적재 상태를 정밀 진단하고 개선안을 한국어로 추천해줘.`
+                ? `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Recommend exact 3D slotting improvements.`
                 : `Audit bin ${alloc.bin.id} (Z${alloc.bin.level}, ${alloc.bin.zMeters}m, cubic=${alloc.cubicUtilizationPct.toFixed(1)}%, load=${alloc.currentWeightKg.toFixed(1)}/${alloc.bin.maxWeightKg}kg). Recommend exact 3D slotting improvements.`,
           });
         }}
@@ -3886,15 +3882,15 @@ export function App() {
           const promptMap = {
             efficiency:
               lang === 'ko'
-                ? `골든존(${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) 적중률과 3D 공간 활용률을 분석하고, 더 많은 물건을 안전하고 빠르게 수납할 수 있는 핵심 개선안 3가지를 한국어로 추천해줘.`
+                ? `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage.`
                 : `Audit the Golden Zone (${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m) hit rate and space usage.`,
             safety:
               lang === 'ko'
-                ? '높은 층에 놓인 무거운 물건이나 통로 병목, 빈틈 낭비 구간을 점검하고 어떤 선반 칸(Bin ID)을 조정해야 하는지 한국어로 알려줘.'
+                ? 'Check for heavy items placed too high or aisle congestion.'
                 : 'Check for heavy items placed too high or aisle congestion.',
             offline:
               lang === 'ko'
-                ? '현재 선택된 선반 칸(또는 최상위 피킹 칸)의 허용 하중, 3D 적재 상태, Z1 바닥층 이동 필요 여부를 로컬 온디바이스 AI로 점검해줘.'
+                ? 'Run a local-only check on the currently focused bin.'
                 : 'Run a local-only check on the currently focused bin.',
           };
           setExternalAiPrompt({
@@ -3937,7 +3933,7 @@ export function App() {
             setActiveLayout('baseline_2d');
             showToast(
               lang === 'ko'
-                ? '항상 최적화 고정 잠금을 해제하고 2D 기존 배치 비교 화면으로 전환했습니다.'
+                ? 'Unlocked Always-Optimized lock and switched to 2D Baseline comparison.'
                 : 'Unlocked Always-Optimized lock and switched to 2D Baseline comparison.'
             );
             return;

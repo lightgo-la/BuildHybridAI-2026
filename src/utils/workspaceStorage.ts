@@ -30,9 +30,9 @@ export interface SavedWorkspaceSession extends WorkspaceHistorySnapshot {
 
 export const DESIGN_STORAGE_KEY = 'cubislot_design_layout_v1';
 export const CUSTOM_MAPS_KEY = 'cubislot_custom_maps_v1';
-export const LANG_STORAGE_KEY = 'cubislot_lang_v1';
+export const LANG_STORAGE_KEY = 'cubislot_lang_v2_en';
 export const SCENE_3D_BG_KEY = 'cubislot_scene_3d_bg_v1';
-export const WORKSPACE_SESSION_KEY = 'cubislot_active_workspace_v1';
+export const WORKSPACE_SESSION_KEY = 'cubislot_active_workspace_v2_en';
 
 export function loadSavedWorkspaceSession(): SavedWorkspaceSession | null {
   try {
@@ -98,12 +98,7 @@ export function saveScene3DBg(sceneBg: Scene3DBackgroundSettings): void {
 }
 
 export function loadLang(): LangCode {
-  try {
-    const saved = localStorage.getItem(LANG_STORAGE_KEY);
-    if (saved === 'ko' || saved === 'en') return saved;
-  } catch {
-  }
-  return 'ko';
+  return 'en';
 }
 
 export function saveLang(lang: LangCode): void {

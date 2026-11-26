@@ -58,7 +58,7 @@ export interface Scene3DPreset {
 export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   {
     id: 'daylight-studio',
-    nameKo: '밝은 데이라이트 스튜디오 (기본)',
+    nameKo: 'Bright Daylight Studio (Default)',
     nameEn: 'Bright Daylight Studio (Default)',
     badge: 'Bright',
     settings: {
@@ -78,7 +78,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'warm-home',
-    nameKo: '따뜻한 홈·우드 인테리어',
+    nameKo: 'Warm Home & Wood Interior',
     nameEn: 'Warm Home & Wood Interior',
     badge: 'Home',
     settings: {
@@ -98,7 +98,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'pure-white',
-    nameKo: '모던 화이트 갤러리 쇼룸',
+    nameKo: 'Pure White Gallery Showroom',
     nameEn: 'Pure White Gallery Showroom',
     badge: 'Clean',
     settings: {
@@ -118,7 +118,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'ice-clean',
-    nameKo: '아이스 클린룸 & 냉장 쇼케이스',
+    nameKo: 'Crisp Ice Cleanroom & Fridge',
     nameEn: 'Crisp Ice Cleanroom & Fridge',
     badge: 'Cool',
     settings: {
@@ -138,7 +138,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'sky-atrium',
-    nameKo: '스카이 블루 아트리움',
+    nameKo: 'Sky Blue Daylight Atrium',
     nameEn: 'Sky Blue Daylight Atrium',
     badge: 'Sky',
     settings: {
@@ -158,7 +158,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'natural-sage',
-    nameKo: '내추럴 가든 & 자작나무',
+    nameKo: 'Natural Sage & Birch Wood',
     nameEn: 'Natural Sage & Birch Wood',
     badge: 'Nature',
     settings: {
@@ -178,7 +178,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'sunset-lounge',
-    nameKo: '선셋 골든 라운지',
+    nameKo: 'Sunset Golden Lounge',
     nameEn: 'Sunset Golden Lounge',
     badge: 'Warm',
     settings: {
@@ -198,7 +198,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'bright-factory',
-    nameKo: '밝은 스마트 팩토리 & 물류센터',
+    nameKo: 'Bright Smart Logistics Center',
     nameEn: 'Bright Smart Logistics Center',
     badge: 'Pro',
     settings: {
@@ -218,7 +218,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'studio-lavender',
-    nameKo: '소프트 라벤더 크리에이티브 룸',
+    nameKo: 'Soft Lavender Creative Studio',
     nameEn: 'Soft Lavender Creative Studio',
     badge: 'Studio',
     settings: {
@@ -238,7 +238,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'bright-blueprint',
-    nameKo: '브라이트 엔지니어링 블루프린트',
+    nameKo: 'Bright Engineering Blueprint',
     nameEn: 'Bright Engineering Blueprint',
     badge: 'CAD',
     settings: {
@@ -258,7 +258,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'cyber-night',
-    nameKo: '다크 네온 디지털 트윈',
+    nameKo: 'Dark Neon Digital Twin',
     nameEn: 'Dark Neon Digital Twin',
     badge: 'Dark',
     settings: {
@@ -278,7 +278,7 @@ export const SCENE_3D_PRESETS: Scene3DPreset[] = [
   },
   {
     id: 'sync-theme',
-    nameKo: 'UI 디자인 테마 색상과 동기화',
+    nameKo: 'Sync with Active UI Design Theme',
     nameEn: 'Sync with Active UI Design Theme',
     badge: 'Auto',
     settings: {
@@ -322,7 +322,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
   onClose,
   settings,
   onChange,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   if (!open) return null;
 
@@ -343,12 +343,12 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             <div>
               <h3 className="text-sm font-bold">
                 {lang === 'ko'
-                  ? '3D 배경 화면 & 조명 스튜디오 에디터'
+                  ? '3D Background & Lighting Studio Editor'
                   : '3D Background & Lighting Studio Editor'}
               </h3>
               <p className="text-[11px] text-[var(--t-muted)]">
                 {lang === 'ko'
-                  ? '3D 작업창의 하늘·바닥 색상, 바닥 재질, 조명 밝기, 안개, 소품 및 박스 윤곽선을 자유롭게 편집합니다'
+                  ? 'Customize 3D sky & floor colors, floor material, lighting exposure, fog, room props & carton outlines'
                   : 'Customize 3D sky & floor colors, floor material, lighting exposure, fog, room props & carton outlines'}
               </p>
             </div>
@@ -361,7 +361,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
               className="inline-flex items-center gap-1 rounded-lg border border-[var(--t-border)] px-2.5 py-1 text-xs text-[var(--t-muted)] hover:text-[var(--t-text)]"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              {lang === 'ko' ? '밝은 기본값 복원' : 'Reset Bright Default'}
+              {lang === 'ko' ? 'Reset Bright Default' : 'Reset Bright Default'}
             </button>
             <button
               type="button"
@@ -379,12 +379,12 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
               <span className="inline-flex items-center gap-1.5 font-bold">
                 <Sparkles className="h-3.5 w-3.5 text-amber-400" />
                 {lang === 'ko'
-                  ? '1. 원클릭 3D 배경·조명 프리셋 (12종)'
+                  ? '1. 1-Click 3D Background & Lighting Presets (12)'
                   : '1. 1-Click 3D Background & Lighting Presets (12)'}
               </span>
               <span className="text-[11px] text-[var(--t-muted)]">
                 {lang === 'ko'
-                  ? '클릭 즉시 3D 작업창에 실시간 반영됩니다'
+                  ? 'Applies to 3D viewport in real time'
                   : 'Applies to 3D viewport in real time'}
               </span>
             </div>
@@ -442,7 +442,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
               <span className="inline-flex items-center gap-1.5 font-bold">
                 <Palette className="h-3.5 w-3.5 text-cyan-400" />
                 {lang === 'ko'
-                  ? '2. 3D 배경·바닥·선반 색상 및 바닥 재질 커스텀'
+                  ? '2. Custom 3D Colors & Floor Surface Material'
                   : '2. Custom 3D Colors & Floor Surface Material'}
               </span>
             </div>
@@ -452,23 +452,23 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                 [
                   [
                     'skyTopColor',
-                    lang === 'ko' ? '하늘 상단 색' : 'Sky Top',
+                    lang === 'ko' ? 'Sky Top' : 'Sky Top',
                   ],
                   [
                     'skyHorizonColor',
-                    lang === 'ko' ? '지평선 배경색' : 'Horizon',
+                    lang === 'ko' ? 'Horizon' : 'Horizon',
                   ],
                   [
                     'floorColor',
-                    lang === 'ko' ? '3D 바닥 색상' : '3D Floor',
+                    lang === 'ko' ? '3D Floor' : '3D Floor',
                   ],
                   [
                     'gridMajorColor',
-                    lang === 'ko' ? '그리드 눈금색' : 'Grid Line',
+                    lang === 'ko' ? 'Grid Line' : 'Grid Line',
                   ],
                   [
                     'rackFrameColor',
-                    lang === 'ko' ? '선반 기둥 색' : 'Rack Frame',
+                    lang === 'ko' ? 'Rack Frame' : 'Rack Frame',
                   ],
                 ] as const
               ).map(([field, label]) => (
@@ -503,7 +503,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
 
             <div>
               <span className="mb-1.5 block text-[11px] font-medium text-[var(--t-muted)]">
-                {lang === 'ko' ? '3D 바닥 표면 스타일' : '3D Floor Surface Style'}
+                {lang === 'ko' ? '3D Floor Surface Style' : '3D Floor Surface Style'}
               </span>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {(
@@ -511,22 +511,22 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                     [
                       'glossy_tile',
                       lang === 'ko'
-                        ? '밝은 쇼룸 타일'
+                        ? 'Glossy Showroom Tile'
                         : 'Glossy Showroom Tile',
                     ],
                     [
                       'warm_wood',
-                      lang === 'ko' ? '따뜻한 원목 마루' : 'Warm Wood Floor',
+                      lang === 'ko' ? 'Warm Wood Floor' : 'Warm Wood Floor',
                     ],
                     [
                       'clean_concrete',
                       lang === 'ko'
-                        ? '클린 매트 콘크리트'
+                        ? 'Clean Matte Concrete'
                         : 'Clean Matte Concrete',
                     ],
                     [
                       'blueprint_grid',
-                      lang === 'ko' ? 'CAD 블루프린트' : 'CAD Blueprint',
+                      lang === 'ko' ? 'CAD Blueprint' : 'CAD Blueprint',
                     ],
                   ] as const
                 ).map(([styleId, label]) => (
@@ -556,7 +556,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             <div className="flex items-center gap-1.5 font-bold">
               <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
               {lang === 'ko'
-                ? '3. 3D 조명 밝기·노출·안개 정밀 조절'
+                ? '3. 3D Lighting Exposure, Brightness & Fog'
                 : '3. 3D Lighting Exposure, Brightness & Fog'}
             </div>
 
@@ -565,7 +565,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[var(--t-muted)]">
                     {lang === 'ko'
-                      ? '전체 화면 밝기 (Tone Exposure)'
+                      ? 'Overall Brightness (Exposure)'
                       : 'Overall Brightness (Exposure)'}
                   </span>
                   <span className="font-bold text-amber-400">
@@ -589,7 +589,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[var(--t-muted)]">
                     {lang === 'ko'
-                      ? '환경 자연광 세기 (Ambient Light)'
+                      ? 'Ambient & Sky Fill Light'
                       : 'Ambient & Sky Fill Light'}
                   </span>
                   <span className="font-bold text-cyan-400">
@@ -616,7 +616,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[var(--t-muted)]">
                     {lang === 'ko'
-                      ? '주조명 직사광 세기 (Sun Key Light)'
+                      ? 'Directional Sun Key Light'
                       : 'Directional Sun Key Light'}
                   </span>
                   <span className="font-bold text-emerald-400">
@@ -643,7 +643,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                 <div className="flex justify-between text-[11px]">
                   <span className="text-[var(--t-muted)]">
                     {lang === 'ko'
-                      ? '원거리 안개 농도 (0% = 선명함)'
+                      ? 'Distance Fog Density (0% = Crisp)'
                       : 'Distance Fog Density (0% = Crisp)'}
                   </span>
                   <span className="font-bold">
@@ -672,7 +672,7 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             <div className="flex items-center gap-1.5 font-bold">
               <Eye className="h-3.5 w-3.5 text-emerald-400" />
               {lang === 'ko'
-                ? '4. 3D 작업창 구성요소 & 선명도 옵션'
+                ? '4. 3D Studio Elements & Visual Clarity Options'
                 : '4. 3D Studio Elements & Visual Clarity Options'}
             </div>
 
@@ -682,37 +682,37 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
                   [
                     'showBoxOutlines',
                     lang === 'ko'
-                      ? '적재 박스 윤곽선 강조'
+                      ? 'Crisp Carton Outlines'
                       : 'Crisp Carton Outlines',
                   ],
                   [
                     'showRoomProps',
                     lang === 'ko'
-                      ? '공간별 3D 인테리어 소품'
+                      ? '3D Room & Facility Props'
                       : '3D Room & Facility Props',
                   ],
                   [
                     'showHeaderSign',
                     lang === 'ko'
-                      ? '3D 공간 상단 타이틀 보드'
+                      ? '3D Space Header Sign'
                       : '3D Space Header Sign',
                   ],
                   [
                     'showGrid',
                     lang === 'ko'
-                      ? '바닥 1m 눈금 그리드'
+                      ? '1m Floor Grid Lines'
                       : '1m Floor Grid Lines',
                   ],
                   [
                     'enableShadows',
                     lang === 'ko'
-                      ? '입체 그림자 렌더링'
+                      ? 'Soft 3D Shadows'
                       : 'Soft 3D Shadows',
                   ],
                   [
                     'xrayBins',
                     lang === 'ko'
-                      ? '선반 X-Ray 반투명 투시'
+                      ? 'X-Ray Translucent Racks'
                       : 'X-Ray Translucent Racks',
                   ],
                 ] as const

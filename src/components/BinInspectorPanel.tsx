@@ -116,7 +116,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
   onAddBinAbove,
   onAuditWithAi,
   onDeleteBin,
-  lang = 'ko',
+  lang = 'en',
 }) => {
   const isKo = lang === 'ko' || simpleMode;
 
@@ -125,7 +125,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
   const binH = selectedBin?.bin.binHeightCm ?? 70;
 
   const [boxName, setBoxName] = useState(
-    isKo ? '맞춤 수납 박스' : 'Custom Storage Box'
+    isKo ? 'Custom Storage Box' : 'Custom Storage Box'
   );
   const [boxL, setBoxL] = useState(Math.min(40, Math.max(10, binL - 4)));
   const [boxW, setBoxW] = useState(Math.min(30, Math.max(10, binW - 4)));
@@ -176,13 +176,13 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <Box className="h-4 w-4" />
             <span>
               {isKo
-                ? '박스를 넣을 선반 칸을 먼저 선택하세요'
+                ? 'Select a Shelf Bin to Configure & Place Boxes'
                 : 'Select a Shelf Bin to Configure & Place Boxes'}
             </span>
           </div>
           <p className="mt-1 text-[11px] leading-relaxed text-slate-300">
             {isKo
-              ? '3D 화면에서 원하는 선반 칸을 클릭하거나, 아래 선반 버튼을 누르면 가로·세로·높이 박스 사이즈를 직접 설정해서 바로 넣을 수 있습니다.'
+              ? 'Click any shelf bin in the 3D scene or choose a shelf below to configure custom box dimensions (L×W×H cm) and place them directly.'
               : 'Click any shelf bin in the 3D scene or choose a shelf below to configure custom box dimensions (L×W×H cm) and place them directly.'}
           </p>
 
@@ -200,13 +200,13 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
               >
                 <option value="">
                   {isKo
-                    ? `선반 칸 선택하기 (전체 ${allAllocations.length}개 선반)...`
+                    ? `Choose a shelf bin (${allAllocations.length} bins)...`
                     : `Choose a shelf bin (${allAllocations.length} bins)...`}
                 </option>
                 {allAllocations.map((a) => (
                   <option key={a.bin.id} value={a.bin.id}>
-                    {a.bin.id} · Z{a.bin.level}층 ({a.bin.binLengthCm}×
-                    {a.bin.binWidthCm}×{a.bin.binHeightCm}cm · 채움{' '}
+                    {a.bin.id} · Level Z{a.bin.level} ({a.bin.binLengthCm}×
+                    {a.bin.binWidthCm}×{a.bin.binHeightCm}cm · Fill{' '}
                     {a.cubicUtilizationPct.toFixed(0)}%)
                   </option>
                 ))}
@@ -282,7 +282,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
     if (!onPlaceCustomBoxInBin) return;
     onPlaceCustomBoxInBin({
       binId: selectedBin.bin.id,
-      name: boxName.trim() || (isKo ? '맞춤 수납 박스' : 'Custom Box'),
+      name: boxName.trim() || (isKo ? 'Custom Box' : 'Custom Box'),
       skuCode: `BOX-${boxL}x${boxW}x${boxH}`,
       lengthCm: boxL,
       widthCm: boxW,
@@ -307,17 +307,17 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <div className="text-sm font-bold text-white">
-              {isKo ? `선반 ${selectedBin.bin.id}` : `Bin ${selectedBin.bin.id}`}
+              {isKo ? `Bin ${selectedBin.bin.id}` : `Bin ${selectedBin.bin.id}`}
             </div>
             {selectedBin.bin.isGoldenZone && (
               <span className="rounded-full border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                {isKo ? '허리높이 골든존' : 'Golden Zone'}
+                {isKo ? 'Golden Zone' : 'Golden Zone'}
               </span>
             )}
           </div>
           <div className="text-[11px] text-slate-400">
             {isKo
-              ? `${selectedBin.bin.aisle}열 · ${selectedBin.bin.bay}번 칸 · Z${selectedBin.bin.level}층 (${selectedBin.bin.zMeters}m)`
+              ? `Aisle ${selectedBin.bin.aisle} · Bay ${selectedBin.bin.bay} · Level Z${selectedBin.bin.level} (${selectedBin.bin.zMeters}m)`
               : `Aisle ${selectedBin.bin.aisle} · Bay ${selectedBin.bin.bay} · Level Z${selectedBin.bin.level} (${selectedBin.bin.zMeters}m)`}
           </div>
         </div>
@@ -332,11 +332,11 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
               if (found) onSelectBin(found);
             }}
             className="max-w-[125px] rounded-lg border border-slate-700 bg-slate-900 px-1.5 py-1 text-[10px] font-semibold text-cyan-300"
-            title={isKo ? '다른 선반 칸으로 전환' : 'Switch shelf bin'}
+            title={isKo ? 'Switch shelf bin' : 'Switch shelf bin'}
           >
             {allAllocations.map((a) => (
               <option key={a.bin.id} value={a.bin.id}>
-                {a.bin.id} ({a.boxes.length}개)
+                {a.bin.id} ({a.boxes.length} boxes)
               </option>
             ))}
           </select>
@@ -347,7 +347,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
         <div className="flex items-center gap-2 rounded-lg border border-rose-500/40 bg-rose-950/50 p-2 text-[11px] text-rose-200">
           <ShieldAlert className="h-4 w-4 shrink-0 text-rose-400" />
           {isKo
-            ? `무거운 물건이 높은 Z${selectedBin.bin.level}층에 있습니다. 안전을 위해 아래층(Z1~Z2)으로 옮기세요.`
+            ? `NIOSH / Rack Hazard: Heavy SKU placed on upper rack Z${selectedBin.bin.level}.`
             : `NIOSH / Rack Hazard: Heavy SKU placed on upper rack Z${selectedBin.bin.level}.`}
         </div>
       )}
@@ -355,7 +355,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
       <div className="space-y-2 rounded-lg bg-slate-950 p-2.5 text-[11px]">
         <div>
           <div className="flex justify-between text-slate-400">
-            <span>{isKo ? '공간 채움률' : '3D Cubic Fill'}</span>
+            <span>{isKo ? '3D Cubic Fill' : '3D Cubic Fill'}</span>
             <span className="font-bold text-cyan-300">
               {selectedBin.cubicUtilizationPct.toFixed(1)}%
             </span>
@@ -371,11 +371,11 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
           </div>
           <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">
             <span>
-              {isKo ? '선반 규격:' : 'Shelf:'}{' '}
+              {isKo ? 'Shelf:' : 'Shelf:'}{' '}
               <strong className="text-slate-200">
                 {binL}×{binW}×{binH} cm
               </strong>{' '}
-              · {isKo ? '여유' : 'Void'}{' '}
+              · {isKo ? 'Void' : 'Void'}{' '}
               {(100 - selectedBin.cubicUtilizationPct).toFixed(1)}%
             </span>
             {onResizeSingleBin && (
@@ -387,8 +387,8 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                 <Sliders className="h-2.5 w-2.5" />
                 {isKo
                   ? showBinResize
-                    ? '선반 규격 닫기'
-                    : '선반 크기 변경'
+                    ? 'Close'
+                    : 'Resize Shelf'
                   : showBinResize
                     ? 'Close'
                     : 'Resize Shelf'}
@@ -402,15 +402,15 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-1">
               <span className="font-bold text-cyan-300">
                 {isKo
-                  ? `선반 사이즈 변경 (${binL}×${binW}×${binH}cm)`
+                  ? `Shelf Size (${binL}×${binW}×${binH}cm)`
                   : `Shelf Size (${binL}×${binW}×${binH}cm)`}
               </span>
               <div className="flex overflow-hidden rounded border border-slate-700 bg-slate-950 text-[9px]">
                 {(
                   [
-                    ['single', isKo ? '이 칸만' : 'This Bin'],
-                    ['column', isKo ? '이 기둥 전체' : 'This Column'],
-                    ['all', isKo ? '전체 선반' : 'All Shelves'],
+                    ['single', isKo ? 'This Bin' : 'This Bin'],
+                    ['column', isKo ? 'This Column' : 'This Column'],
+                    ['all', isKo ? 'All Shelves' : 'All Shelves'],
                   ] as const
                 ).map(([sc, label]) => (
                   <button
@@ -431,18 +431,18 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
 
             <div className="grid grid-cols-3 gap-1 text-[9px]">
               {[
-                { label: isKo ? '슬림 (80×45×40)' : 'Slim 80×45×40', l: 80, w: 45, h: 40 },
-                { label: isKo ? '표준 (100×60×55)' : 'Std 100×60×55', l: 100, w: 60, h: 55 },
-                { label: isKo ? '파렛트 (120×90×70)' : 'Pallet 120×90×70', l: 120, w: 90, h: 70 },
-                { label: isKo ? '대형 (150×110×85)' : 'XL 150×110×85', l: 150, w: 110, h: 85 },
+                { label: isKo ? 'Slim 80×45×40' : 'Slim 80×45×40', l: 80, w: 45, h: 40 },
+                { label: isKo ? 'Std 100×60×55' : 'Std 100×60×55', l: 100, w: 60, h: 55 },
+                { label: isKo ? 'Pallet 120×90×70' : 'Pallet 120×90×70', l: 120, w: 90, h: 70 },
+                { label: isKo ? 'XL 150×110×85' : 'XL 150×110×85', l: 150, w: 110, h: 85 },
                 {
-                  label: isKo ? '크기 -10% 축소' : 'Scale -10%',
+                  label: isKo ? 'Scale -10%' : 'Scale -10%',
                   l: Math.max(30, Math.round(binL * 0.9)),
                   w: Math.max(25, Math.round(binW * 0.9)),
                   h: Math.max(20, Math.round(binH * 0.9)),
                 },
                 {
-                  label: isKo ? '크기 +10% 확대' : 'Scale +10%',
+                  label: isKo ? 'Scale +10%' : 'Scale +10%',
                   l: Math.min(280, Math.round(binL * 1.1)),
                   w: Math.min(260, Math.round(binW * 1.1)),
                   h: Math.min(220, Math.round(binH * 1.1)),
@@ -472,7 +472,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <div className="grid grid-cols-4 gap-1.5">
               <div>
                 <span className="text-slate-400">
-                  {isKo ? '가로 L(cm)' : 'L(cm)'}
+                  {isKo ? 'L(cm)' : 'L(cm)'}
                 </span>
                 <input
                   type="number"
@@ -493,7 +493,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
               </div>
               <div>
                 <span className="text-slate-400">
-                  {isKo ? '깊이 W(cm)' : 'W(cm)'}
+                  {isKo ? 'W(cm)' : 'W(cm)'}
                 </span>
                 <input
                   type="number"
@@ -514,7 +514,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
               </div>
               <div>
                 <span className="text-slate-400">
-                  {isKo ? '높이 H(cm)' : 'H(cm)'}
+                  {isKo ? 'H(cm)' : 'H(cm)'}
                 </span>
                 <input
                   type="number"
@@ -535,7 +535,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
               </div>
               <div>
                 <span className="text-slate-400">
-                  {isKo ? '하중(kg)' : 'Max kg'}
+                  {isKo ? 'Max kg' : 'Max kg'}
                 </span>
                 <input
                   type="number"
@@ -565,7 +565,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
 
         <div>
           <div className="flex justify-between text-slate-400">
-            <span>{isKo ? '현재 무게 / 허용 무게' : 'Rack Load'}</span>
+            <span>{isKo ? 'Rack Load' : 'Rack Load'}</span>
             <span className="font-bold text-white">
               {selectedBin.currentWeightKg.toFixed(1)} /{' '}
               {selectedBin.bin.maxWeightKg} kg
@@ -599,7 +599,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <span className="inline-flex items-center gap-1.5 font-bold text-emerald-300">
               <Ruler className="h-3.5 w-3.5" />
               {isKo
-                ? `박스 사이즈 설정해서 이 선반(${selectedBin.bin.id})에 넣기`
+                ? `Set Box Size & Place in [${selectedBin.bin.id}]`
                 : `Set Box Size & Place in [${selectedBin.bin.id}]`}
             </span>
             <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
@@ -610,58 +610,58 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
           <div>
             <div className="mb-1 text-[10px] text-slate-400">
               {isKo
-                ? '빠른 박스 규격 프리셋 (클릭 시 치수 자동 입력):'
+                ? 'Quick Box Size Presets:'
                 : 'Quick Box Size Presets:'}
             </div>
             <div className="grid grid-cols-3 gap-1 text-[10px]">
               {[
                 {
-                  label: isKo ? '소형 (25×20×15)' : 'Small (25×20×15)',
+                  label: isKo ? 'Small (25×20×15)' : 'Small (25×20×15)',
                   l: 25,
                   w: 20,
                   h: 15,
                   kg: 2,
-                  name: isKo ? '소형 택배박스' : 'Small Carton',
+                  name: isKo ? 'Small Carton' : 'Small Carton',
                 },
                 {
-                  label: isKo ? '중형 (40×30×24)' : 'Medium (40×30×24)',
+                  label: isKo ? 'Medium (40×30×24)' : 'Medium (40×30×24)',
                   l: 40,
                   w: 30,
                   h: 24,
                   kg: 5,
-                  name: isKo ? '중형 수납박스' : 'Medium Box',
+                  name: isKo ? 'Medium Box' : 'Medium Box',
                 },
                 {
-                  label: isKo ? '대형 (60×40×35)' : 'Large (60×40×35)',
+                  label: isKo ? 'Large (60×40×35)' : 'Large (60×40×35)',
                   l: 60,
                   w: 40,
                   h: 35,
                   kg: 10,
-                  name: isKo ? '대형 물류박스' : 'Large Crate',
+                  name: isKo ? 'Large Crate' : 'Large Crate',
                 },
                 {
-                  label: isKo ? '리빙 (50×35×28)' : 'Tote (50×35×28)',
+                  label: isKo ? 'Tote (50×35×28)' : 'Tote (50×35×28)',
                   l: 50,
                   w: 35,
                   h: 28,
                   kg: 6.5,
-                  name: isKo ? '리빙 폴딩박스' : 'Storage Tote',
+                  name: isKo ? 'Storage Tote' : 'Storage Tote',
                 },
                 {
-                  label: isKo ? '선반 1/2칸 맞춤' : 'Half Shelf Fit',
+                  label: isKo ? 'Half Shelf Fit' : 'Half Shelf Fit',
                   l: Math.max(12, Math.floor((binL - 4) / 2)),
                   w: Math.max(12, Math.floor(binW - 6)),
                   h: Math.max(12, Math.floor(binH * 0.75)),
                   kg: 7,
-                  name: isKo ? '반칸 맞춤 박스' : 'Half-Shelf Box',
+                  name: isKo ? 'Half-Shelf Box' : 'Half-Shelf Box',
                 },
                 {
-                  label: isKo ? '선반 1칸 가득' : 'Full Shelf Fit',
+                  label: isKo ? 'Full Shelf Fit' : 'Full Shelf Fit',
                   l: Math.max(15, binL - 4),
                   w: Math.max(15, binW - 4),
                   h: Math.max(15, binH - 4),
                   kg: 12,
-                  name: isKo ? '전면 맞춤 대형박스' : 'Full-Shelf Box',
+                  name: isKo ? 'Full-Shelf Box' : 'Full-Shelf Box',
                 },
               ].map((preset) => (
                 <button
@@ -686,7 +686,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-semibold text-cyan-300">
-                  {isKo ? '가로 L' : 'Length L'}
+                  {isKo ? 'Length L' : 'Length L'}
                 </span>
                 <span className="text-[9px] text-slate-500">
                   /{binL}cm
@@ -718,7 +718,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-semibold text-emerald-300">
-                  {isKo ? '세로 W' : 'Width W'}
+                  {isKo ? 'Width W' : 'Width W'}
                 </span>
                 <span className="text-[9px] text-slate-500">
                   /{binW}cm
@@ -750,7 +750,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
               <div className="flex items-center justify-between text-[10px]">
                 <span className="font-semibold text-amber-300">
-                  {isKo ? '높이 H' : 'Height H'}
+                  {isKo ? 'Height H' : 'Height H'}
                 </span>
                 <span className="text-[9px] text-slate-500">
                   /{binH}cm
@@ -783,19 +783,19 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
           <div className="grid grid-cols-12 gap-1.5">
             <div className="col-span-5">
               <span className="text-[10px] text-slate-400">
-                {isKo ? '박스 이름/라벨' : 'Box Label'}
+                {isKo ? 'Box Label' : 'Box Label'}
               </span>
               <input
                 type="text"
                 value={boxName}
                 onChange={(e) => setBoxName(e.target.value)}
-                placeholder={isKo ? '맞춤 수납 박스' : 'Custom Box'}
+                placeholder={isKo ? 'Custom Box' : 'Custom Box'}
                 className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-[11px] text-white"
               />
             </div>
             <div className="col-span-3">
               <span className="text-[10px] text-slate-400">
-                {isKo ? '무게(kg)' : 'Weight(kg)'}
+                {isKo ? 'Weight(kg)' : 'Weight(kg)'}
               </span>
               <input
                 type="number"
@@ -811,7 +811,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             </div>
             <div className="col-span-2">
               <span className="text-[10px] text-slate-400">
-                {isKo ? '수량(개)' : 'Qty'}
+                {isKo ? 'Qty' : 'Qty'}
               </span>
               <input
                 type="number"
@@ -826,7 +826,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             </div>
             <div className="col-span-2">
               <span className="text-[10px] text-slate-400">
-                {isKo ? '빈도' : 'ABC'}
+                {isKo ? 'ABC' : 'ABC'}
               </span>
               <select
                 value={boxAbc}
@@ -842,7 +842,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
 
           <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[10px]">
             <div className="flex items-center gap-1">
-              <span className="text-slate-400">{isKo ? '색상:' : 'Color:'}</span>
+              <span className="text-slate-400">{isKo ? 'Color:' : 'Color:'}</span>
               {BOX_COLORS.map((c) => (
                 <button
                   key={c}
@@ -870,25 +870,25 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                 onChange={(e) => setBoxFragile(e.target.checked)}
                 className="accent-amber-400"
               />
-              {isKo ? '파손주의 (회전금지)' : 'Fragile'}
+              {isKo ? 'Fragile' : 'Fragile'}
             </label>
           </div>
 
           <div className="rounded-lg border border-slate-800 bg-slate-950/90 px-2.5 py-1.5 text-[10px]">
             <div className="flex items-center justify-between text-slate-300">
               <span>
-                {isKo ? '1개당 선반 부피 점유:' : '1 Box Volume Share:'}{' '}
+                {isKo ? '1 Box Volume Share:' : '1 Box Volume Share:'}{' '}
                 <strong className="text-cyan-300">
                   {singleBoxVolPct.toFixed(1)}%
                 </strong>
               </span>
               <span>
-                {isKo ? '빈 선반 최대 수납:' : 'Max in Empty Bin:'}{' '}
+                {isKo ? 'Max in Empty Bin:' : 'Max in Empty Bin:'}{' '}
                 <strong className="text-emerald-300">
                   {maxBoxesPerEmptyBin > 0
-                    ? `${maxBoxesPerEmptyBin}${isKo ? '개' : ' pcs'}`
+                    ? `${maxBoxesPerEmptyBin}${isKo ? ' pcs' : ' pcs'}`
                     : isKo
-                      ? '선반 자동확장 필요'
+                      ? 'Needs Bin Expand'
                       : 'Needs Bin Expand'}
                 </strong>
               </span>
@@ -896,7 +896,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <div className="mt-0.5 flex items-center justify-between text-slate-400">
               <span>
                 {isKo
-                  ? `선반 대비 치수: 가로 ${Math.round((boxL / binL) * 100)}% · 세로 ${Math.round((boxW / binW) * 100)}% · 높이 ${Math.round((boxH / binH) * 100)}%`
+                  ? `Ratio: L ${Math.round((boxL / binL) * 100)}% · W ${Math.round((boxW / binW) * 100)}% · H ${Math.round((boxH / binH) * 100)}%`
                   : `Ratio: L ${Math.round((boxL / binL) * 100)}% · W ${Math.round((boxW / binW) * 100)}% · H ${Math.round((boxH / binH) * 100)}%`}
               </span>
               <span
@@ -905,7 +905,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                 }
               >
                 {isKo
-                  ? `투입 후 예상 채움: ${Math.min(100, projectedFillPct).toFixed(1)}%`
+                  ? `Est. Fill: ${Math.min(100, projectedFillPct).toFixed(1)}%`
                   : `Est. Fill: ${Math.min(100, projectedFillPct).toFixed(1)}%`}
               </span>
             </div>
@@ -920,7 +920,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                 />
                 <span>
                   {isKo
-                    ? `박스가 현재 선반(${binL}×${binW}×${binH}cm)보다 큽니다. 선반 크기를 박스에 맞춰 자동 확장하기`
+                    ? `Box exceeds shelf (${binL}×${binW}×${binH}cm). Auto-expand shelf to fit`
                     : `Box exceeds shelf (${binL}×${binW}×${binH}cm). Auto-expand shelf to fit`}
                 </span>
               </label>
@@ -939,14 +939,14 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
               <>
                 <Check className="h-4 w-4" />
                 {isKo
-                  ? `선반 [${selectedBin.bin.id}]에 박스 투입 완료!`
+                  ? `Placed into [${selectedBin.bin.id}]!`
                   : `Placed into [${selectedBin.bin.id}]!`}
               </>
             ) : (
               <>
                 <PackagePlus className="h-4 w-4" />
                 {isKo
-                  ? `이 선반(${selectedBin.bin.id})에 ${boxL}×${boxW}×${boxH}cm 박스 ${boxQty}개 넣기`
+                  ? `Place ${boxQty}× (${boxL}×${boxW}×${boxH}cm) Box in [${selectedBin.bin.id}]`
                   : `Place ${boxQty}× (${boxL}×${boxW}×${boxH}cm) Box in [${selectedBin.bin.id}]`}
               </>
             )}
@@ -968,10 +968,10 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             type="button"
             onClick={() => onAddBinAbove(selectedBin)}
             className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
-            title={isKo ? '이 칸 위에 1단 선반 추가' : 'Add level above'}
+            title={isKo ? 'Add level above' : 'Add level above'}
           >
             <Plus className="h-3.5 w-3.5" />
-            {isKo ? '+1단 추가' : '+1 Level'}
+            {isKo ? '+1 Level' : '+1 Level'}
           </button>
         )}
         <button
@@ -991,7 +991,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             <span className="inline-flex items-center gap-1 font-bold text-cyan-300">
               <Pin className="h-3.5 w-3.5" />
               {isKo
-                ? `선반(${selectedBin.bin.id}) 박스 개수 & 품목별 수량 직접 입력`
+                ? `Set Exact Box Count & SKU Qty in [${selectedBin.bin.id}]`
                 : `Set Exact Box Count & SKU Qty in [${selectedBin.bin.id}]`}
             </span>
             <div className="flex items-center gap-2">
@@ -1003,10 +1003,10 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                 >
                   {showAllExistingSkus
                     ? isKo
-                      ? '간략히'
+                      ? 'Less'
                       : 'Less'
                     : isKo
-                      ? `전체 품목(${skus.length})`
+                      ? `All(${skus.length})`
                       : `All(${skus.length})`}
                 </button>
               )}
@@ -1017,7 +1017,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                   className="inline-flex items-center gap-0.5 text-[10px] text-slate-400 hover:text-white"
                 >
                   <RotateCcw className="h-2.5 w-2.5" />
-                  {isKo ? '고정 초기화' : 'Clear Pins'}
+                  {isKo ? 'Clear Pins' : 'Clear Pins'}
                 </button>
               )}
             </div>
@@ -1026,7 +1026,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
           {onSetBinTotalBoxQuota && (
             <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-lg border border-slate-800 bg-slate-900/90 px-2 py-1.5 text-[10px]">
               <span className="font-semibold text-slate-200">
-                {isKo ? '이 선반 총 박스 개수:' : 'Shelf Total Box Count:'}
+                {isKo ? 'Shelf Total Box Count:' : 'Shelf Total Box Count:'}
               </span>
               <div className="flex items-center gap-1">
                 {[0, 1, 2, 4, 6, 8, 12].map((q) => (
@@ -1064,11 +1064,11 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                   className="w-12 rounded border border-cyan-500/50 bg-slate-950 px-1 py-0.5 text-center font-mono text-xs font-bold text-amber-300"
                   title={
                     isKo
-                      ? '이 선반 칸의 총 박스 개수를 숫자로 직접 입력합니다'
+                      ? 'Enter exact total box count for this shelf bin'
                       : 'Enter exact total box count for this shelf bin'
                   }
                 />
-                <span className="text-slate-400">{isKo ? '개' : 'pcs'}</span>
+                <span className="text-slate-400">{isKo ? 'pcs' : 'pcs'}</span>
               </div>
             </div>
           )}
@@ -1119,7 +1119,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                       }
                       disabled={countInBin <= 0}
                       className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-bold text-rose-300 hover:border-rose-400 disabled:opacity-35"
-                      title={isKo ? '1개 빼기' : 'Remove 1'}
+                      title={isKo ? 'Remove 1' : 'Remove 1'}
                     >
                       -
                     </button>
@@ -1152,7 +1152,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-[11px] font-bold text-amber-300 focus:border-cyan-400 focus:outline-none"
                       title={
                         isKo
-                          ? '이 품목을 이 선반에 몇 개 넣을지 숫자로 직접 입력'
+                          ? 'Enter exact quantity of this SKU in this shelf bin'
                           : 'Enter exact quantity of this SKU in this shelf bin'
                       }
                     />
@@ -1168,7 +1168,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                           : onPinCargo(selectedBin.bin.id, sku.id, 1)
                       }
                       className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-bold text-emerald-300 hover:border-emerald-400"
-                      title={isKo ? '1개 추가' : 'Add 1'}
+                      title={isKo ? 'Add 1' : 'Add 1'}
                     >
                       +
                     </button>
@@ -1183,19 +1183,19 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
       <div>
         <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-slate-300">
           <span>
-            {isKo ? '현재 선반에 들어있는 박스' : '3D Packed Boxes'} (
+            {isKo ? '3D Packed Boxes' : '3D Packed Boxes'} (
             {selectedBin.boxes.length})
           </span>
           <span className="text-[10px] font-normal text-amber-300">
             {isKo
-              ? '치수 변경 및 3D 이동 가능'
+              ? 'Click to move or resize in 3D'
               : 'Click to move or resize in 3D'}
           </span>
         </div>
         {selectedBin.boxes.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-800 p-3 text-center text-slate-500">
             {isKo
-              ? '비어 있는 선반 칸입니다. 위에서 박스 사이즈를 설정해 넣어보세요!'
+              ? 'Empty shelf bin. Configure a box size above to place it here!'
               : 'Empty shelf bin. Configure a box size above to place it here!'}
           </div>
         ) : (
@@ -1260,15 +1260,15 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                           }`}
                           title={
                             isKo
-                              ? '이 박스의 가로·세로·높이 치수를 즉시 변경합니다'
+                              ? 'Resize this box (L×W×H cm)'
                               : 'Resize this box (L×W×H cm)'
                           }
                         >
                           <Maximize2 className="h-2.5 w-2.5" />
                           {isKo
                             ? isResizing
-                              ? '치수닫기'
-                              : '치수변경'
+                              ? 'Done'
+                              : 'Resize'
                             : isResizing
                               ? 'Done'
                               : 'Resize'}
@@ -1276,12 +1276,12 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                       )}
                       {box.fragile && (
                         <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-[9px] text-amber-300">
-                          {isKo ? '파손주의' : 'Fragile'}
+                          {isKo ? 'Fragile' : 'Fragile'}
                         </span>
                       )}
                       {box.rotated && (
                         <span className="rounded bg-cyan-500/15 px-1.5 py-0.5 text-[9px] text-cyan-300">
-                          {isKo ? '90° 회전' : 'Rotated'}
+                          {isKo ? 'Rotated' : 'Rotated'}
                         </span>
                       )}
                     </div>
@@ -1304,10 +1304,10 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                           }
                           className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300 hover:bg-emerald-500/25"
                           title={
-                            isKo ? '1단 바닥(Z1)으로 이동' : 'Move to Z1 floor'
+                            isKo ? 'Move to Z1 floor' : 'Move to Z1 floor'
                           }
                         >
-                          {isKo ? '→1단(Z1)' : '→Z1'}
+                          {isKo ? '→Z1' : '→Z1'}
                         </button>
                       )}
                       {onMoveSkuToLevel && selectedBin.bin.level !== 2 && (
@@ -1319,11 +1319,11 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                           className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
                           title={
                             isKo
-                              ? '허리높이 골든존(Z2)으로 이동'
+                              ? 'Move to Golden Zone Z2'
                               : 'Move to Golden Zone Z2'
                           }
                         >
-                          {isKo ? '→골든존(Z2)' : '→Z2'}
+                          {isKo ? '→Z2' : '→Z2'}
                         </button>
                       )}
                       {onPinCargo && (
@@ -1333,7 +1333,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                             onPinCargo(selectedBin.bin.id, box.skuId, 1)
                           }
                           className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
-                          title={isKo ? '이 박스 1개 더 추가' : 'Add 1 more'}
+                          title={isKo ? 'Add 1 more' : 'Add 1 more'}
                         >
                           +1
                         </button>
@@ -1345,7 +1345,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                             onPinCargo(selectedBin.bin.id, box.skuId, -1)
                           }
                           className="rounded border border-rose-500/40 bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-rose-300 hover:bg-rose-500/25"
-                          title={isKo ? '이 물건 1개 빼기' : 'Remove 1 unit'}
+                          title={isKo ? 'Remove 1 unit' : 'Remove 1 unit'}
                         >
                           -1
                         </button>
@@ -1361,7 +1361,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                       <div className="flex items-center justify-between font-semibold text-emerald-300">
                         <span>
                           {isKo
-                            ? '박스 가로·세로·높이(cm) 실시간 조절'
+                            ? 'Live Box Size Adjustment (cm)'
                             : 'Live Box Size Adjustment (cm)'}
                         </span>
                         <span className="font-mono text-white">
@@ -1373,7 +1373,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                       <div className="grid grid-cols-4 gap-1.5">
                         <div>
                           <span className="text-slate-400">
-                            {isKo ? '가로 L(cm)' : 'L(cm)'}
+                            {isKo ? 'L(cm)' : 'L(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1399,7 +1399,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-400">
-                            {isKo ? '세로 W(cm)' : 'W(cm)'}
+                            {isKo ? 'W(cm)' : 'W(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1425,7 +1425,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-400">
-                            {isKo ? '높이 H(cm)' : 'H(cm)'}
+                            {isKo ? 'H(cm)' : 'H(cm)'}
                           </span>
                           <input
                             type="number"
@@ -1451,7 +1451,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                         </div>
                         <div>
                           <span className="text-slate-400">
-                            {isKo ? '무게(kg)' : 'kg'}
+                            {isKo ? 'kg' : 'kg'}
                           </span>
                           <input
                             type="number"

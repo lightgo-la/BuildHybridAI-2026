@@ -274,7 +274,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   skus = [],
   floorColor = '#071326',
   onChangeFloorColor,
-  lang = 'ko',
+  lang = 'en',
   allocations = [],
   onPinCargo,
   onSetCargoCountInBin,
@@ -330,7 +330,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   const [boxTab, setBoxTab] = useState<'existing' | 'custom'>('existing');
   const [showAllSkus, setShowAllSkus] = useState<boolean>(false);
   const [customBoxName, setCustomBoxName] = useState<string>(
-    isKo ? '맞춤 수납 박스' : 'Custom Storage Box'
+    isKo ? 'Custom Storage Box' : 'Custom Storage Box'
   );
   const [customBoxL, setCustomBoxL] = useState<number>(40);
   const [customBoxW, setCustomBoxW] = useState<number>(30);
@@ -901,7 +901,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
       binId,
       name:
         customBoxName.trim() ||
-        (isKo ? '맞춤 수납 박스' : 'Custom Storage Box'),
+        (isKo ? 'Custom Storage Box' : 'Custom Storage Box'),
       skuCode: `BOX-${customBoxL}x${customBoxW}x${customBoxH}`,
       lengthCm: customBoxL,
       widthCm: customBoxW,
@@ -1348,12 +1348,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             <div>
               <h3 className="text-sm font-bold">
                 {isKo
-                  ? '2D 공간 & 평면도 자유 에디터 (전문 물류 · 일상 공간)'
+                  ? 'Free-Canvas 2D Space & Map Editor (Pro & Everyday)'
                   : 'Free-Canvas 2D Space & Map Editor (Pro & Everyday)'}
               </h3>
               <p className="text-[11px] text-[var(--t-muted)]">
                 {isKo
-                  ? '선반·기둥·출입구를 마우스로 드래그 이동 · 파란 테두리 핸들로 방 크기 조절 · 빈 바닥 드래그로 다중 선택 · 우클릭 메뉴 지원'
+                  ? 'Drag racks/obstacles/depot anywhere · Drag floor handles to resize space · Marquee drag to move groups · Right-click to edit'
                   : 'Drag racks/obstacles/depot anywhere · Drag floor handles to resize space · Marquee drag to move groups · Right-click to edit'}
               </p>
             </div>
@@ -1371,7 +1371,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 }`}
               >
                 <Briefcase className="h-3 w-3" />
-                {isKo ? '전문 물류' : 'Pro'}
+                {isKo ? 'Pro' : 'Pro'}
               </button>
               <button
                 type="button"
@@ -1383,7 +1383,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 }`}
               >
                 <Home className="h-3 w-3" />
-                {isKo ? '일상·가정' : 'Everyday'}
+                {isKo ? 'Everyday' : 'Everyday'}
               </button>
             </div>
 
@@ -1395,7 +1395,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               title="Undo (Ctrl+Z)"
             >
               <Undo2 className="h-3.5 w-3.5" />
-              {isKo ? '실행취소' : 'Undo'}
+              {isKo ? 'Undo' : 'Undo'}
             </button>
             <button
               type="button"
@@ -1407,7 +1407,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             </button>
             <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 py-1.5">
               <Upload className="h-3.5 w-3.5" />
-              {isKo ? '불러오기' : 'Import'}
+              {isKo ? 'Import' : 'Import'}
               <input
                 type="file"
                 accept=".json"
@@ -1429,7 +1429,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
           <div className="space-y-3 overflow-y-auto pr-1 text-xs lg:col-span-4">
             <div>
               <label className="mb-1 block text-[11px] text-[var(--t-muted)]">
-                {isKo ? '공간 맵 이름' : 'Map Name'}
+                {isKo ? 'Map Name' : 'Map Name'}
               </label>
               <input
                 value={mapName}
@@ -1442,7 +1442,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="flex items-center justify-between font-semibold">
                 <span className="inline-flex items-center gap-1.5">
                   <Maximize2 className="h-3.5 w-3.5 text-[var(--t-accent)]" />
-                  {isKo ? '공간·선반 크기 간편 조절' : 'Easy Space Size Controls'}
+                  {isKo ? 'Easy Space Size Controls' : 'Easy Space Size Controls'}
                 </span>
                 <span className="text-[10px] text-[var(--t-accent)]">
                   {floorWidthM}m × {floorDepthM}m
@@ -1468,7 +1468,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               <div>
                 <div className="flex justify-between text-[10px] text-[var(--t-muted)]">
-                  <span>{isKo ? '바닥 가로 폭 (Width)' : 'Floor Width'}</span>
+                  <span>{isKo ? 'Floor Width' : 'Floor Width'}</span>
                   <span>{floorWidthM} m</span>
                 </div>
                 <input
@@ -1484,7 +1484,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               <div>
                 <div className="flex justify-between text-[10px] text-[var(--t-muted)]">
-                  <span>{isKo ? '바닥 세로 깊이 (Depth)' : 'Floor Depth'}</span>
+                  <span>{isKo ? 'Floor Depth' : 'Floor Depth'}</span>
                   <span>{floorDepthM} m</span>
                 </div>
                 <input
@@ -1501,16 +1501,16 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               {onChangeFloorColor && (
                 <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 text-[10px]">
                   <span className="font-semibold text-[var(--t-text)]">
-                    {isKo ? '맵 바닥 색상 (2D·3D 연동):' : 'Map Floor Color:'}
+                    {isKo ? 'Map Floor Color:' : 'Map Floor Color:'}
                   </span>
                   <div className="flex items-center gap-1">
                     {[
-                      ['#e2e8f0', isKo ? '라이트타일' : 'Light Tile'],
-                      ['#e7d5b8', isKo ? '우드마루' : 'Warm Wood'],
-                      ['#cbd5e1', isKo ? '콘크리트' : 'Concrete'],
-                      ['#bbf7d0', isKo ? '에폭시그린' : 'Epoxy Green'],
-                      ['#172554', isKo ? '블루도면' : 'Blueprint'],
-                      ['#1e293b', isKo ? '다크슬레이트' : 'Dark Slate'],
+                      ['#e2e8f0', isKo ? 'Light Tile' : 'Light Tile'],
+                      ['#e7d5b8', isKo ? 'Warm Wood' : 'Warm Wood'],
+                      ['#cbd5e1', isKo ? 'Concrete' : 'Concrete'],
+                      ['#bbf7d0', isKo ? 'Epoxy Green' : 'Epoxy Green'],
+                      ['#172554', isKo ? 'Blueprint' : 'Blueprint'],
+                      ['#1e293b', isKo ? 'Dark Slate' : 'Dark Slate'],
                     ].map(([col, title]) => (
                       <button
                         key={col}
@@ -1530,7 +1530,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                       value={floorColor}
                       onChange={(e) => onChangeFloorColor(e.target.value)}
                       className="h-5 w-6 cursor-pointer border-0 bg-transparent"
-                      title={isKo ? '바닥 색상 직접 선택' : 'Pick Floor Color'}
+                      title={isKo ? 'Pick Floor Color' : 'Pick Floor Color'}
                     />
                   </div>
                 </div>
@@ -1538,7 +1538,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
               <div className="flex items-center justify-between gap-1.5 pt-0.5 text-[10px]">
                 <span className="text-[var(--t-muted)]">
-                  {isKo ? '전체 선반 크기 일괄 조절:' : 'Scale All Shelves:'}
+                  {isKo ? 'Scale All Shelves:' : 'Scale All Shelves:'}
                 </span>
                 <div className="flex gap-1">
                   <button
@@ -1561,7 +1561,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="grid grid-cols-3 gap-2 pt-1">
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? '선반 열 수' : 'Aisles'}
+                    {isKo ? 'Aisles' : 'Aisles'}
                   </span>
                   <input
                     type="number"
@@ -1576,7 +1576,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? '가로 칸 수' : 'Bays'}
+                    {isKo ? 'Bays' : 'Bays'}
                   </span>
                   <input
                     type="number"
@@ -1593,7 +1593,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? '최대 층수(Z)' : 'Max Z'}
+                    {isKo ? 'Max Z' : 'Max Z'}
                   </span>
                   <input
                     type="number"
@@ -1615,7 +1615,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? '칸 가로 L(cm)' : 'Bin L (cm)'}
+                    {isKo ? 'Bin L (cm)' : 'Bin L (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1634,7 +1634,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? '칸 깊이 W(cm)' : 'Bin W (cm)'}
+                    {isKo ? 'Bin W (cm)' : 'Bin W (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1653,7 +1653,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
                 <div>
                   <span className="text-[10px] text-[var(--t-muted)]">
-                    {isKo ? '칸 높이 H(cm)' : 'Bin H (cm)'}
+                    {isKo ? 'Bin H (cm)' : 'Bin H (cm)'}
                   </span>
                   <input
                     type="number"
@@ -1706,28 +1706,28 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   onClick={() => regenerateGrid('full')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  {isKo ? '전체 격자 재배치' : 'Rebuild Full Grid'}
+                  {isKo ? 'Rebuild Full Grid' : 'Rebuild Full Grid'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('cross_aisle')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  {isKo ? '중앙 교차 통로형' : 'Cross-Aisle Grid'}
+                  {isKo ? 'Cross-Aisle Grid' : 'Cross-Aisle Grid'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('u_shape')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  {isKo ? 'ㄷ자형 공간 배치' : 'U-Shape Floor'}
+                  {isKo ? 'U-Shape Floor' : 'U-Shape Floor'}
                 </button>
                 <button
                   type="button"
                   onClick={() => regenerateGrid('mezzanine')}
                   className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] py-1.5 font-medium hover:border-[var(--t-accent)]"
                 >
-                  {isKo ? '전면 저층·후면 고층' : 'Mezzanine Step'}
+                  {isKo ? 'Mezzanine Step' : 'Mezzanine Step'}
                 </button>
               </div>
             </div>
@@ -1974,12 +1974,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   <span className="inline-flex items-center gap-1">
                     <PackagePlus className="h-3.5 w-3.5" />
                     {isKo
-                      ? `선반에 박스 집어넣기 (A${primarySelectedRack.aisle}-B${primarySelectedRack.bay})`
+                      ? `Place Boxes in Rack (A${primarySelectedRack.aisle}-B${primarySelectedRack.bay})`
                       : `Place Boxes in Rack (A${primarySelectedRack.aisle}-B${primarySelectedRack.bay})`}
                   </span>
                   <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold">
                     {isKo
-                      ? `총 ${selectedRackTotalQty}개`
+                      ? `${selectedRackTotalQty} pcs`
                       : `${selectedRackTotalQty} pcs`}
                   </span>
                 </div>
@@ -1987,7 +1987,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 <div>
                   <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--t-muted)]">
                     <span>
-                      {isKo ? '1. 박스를 넣을 선반 층(Z) 선택:' : '1. Choose Target Shelf Level (Z):'}
+                      {isKo ? '1. Choose Target Shelf Level (Z):' : '1. Choose Target Shelf Level (Z):'}
                     </span>
                     <span className="font-mono font-bold text-cyan-300">
                       A{primarySelectedRack.aisle}-B{primarySelectedRack.bay}-Z{targetLevel}
@@ -2014,9 +2014,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                               : 'border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] hover:border-cyan-400'
                           }`}
                         >
-                          <span>Z{lv}층</span>
+                          <span>Level Z{lv}</span>
                           <span className="font-mono text-[9px] font-normal text-amber-300">
-                            {lvCount}개
+                            {lvCount} pcs
                           </span>
                         </button>
                       );
@@ -2037,7 +2037,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                               : 'text-[var(--t-muted)] hover:text-white'
                           }`}
                         >
-                          {isKo ? '등록 품목 클릭 투입 (+1)' : 'Quick SKU (+1)'}
+                          {isKo ? 'Quick SKU (+1)' : 'Quick SKU (+1)'}
                         </button>
                         {onPlaceCustomBoxInBin && (
                           <button
@@ -2050,14 +2050,14 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             }`}
                           >
                             <Ruler className="h-2.5 w-2.5" />
-                            {isKo ? '맞춤 사이즈 박스 넣기' : 'Custom Box Size'}
+                            {isKo ? 'Custom Box Size' : 'Custom Box Size'}
                           </button>
                         )}
                       </div>
                       {placedFlashBinId && (
                         <span className="inline-flex items-center gap-0.5 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
                           <Check className="h-3 w-3" />
-                          {isKo ? `${placedFlashBinId} 투입!` : `Added!`}
+                          {isKo ? `Added!` : `Added!`}
                         </span>
                       )}
                     </div>
@@ -2076,7 +2076,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                 <div className="flex flex-wrap items-center justify-between gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2 py-1 text-[10px]">
                                   <span className="font-semibold text-white">
                                     {isKo
-                                      ? `Z${targetLevel}층 선반 총 박스 개수:`
+                                      ? `Z${targetLevel} Total Box Count:`
                                       : `Z${targetLevel} Total Box Count:`}
                                   </span>
                                   <div className="flex items-center gap-1">
@@ -2122,12 +2122,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                       className="w-11 rounded border border-cyan-500/50 bg-[var(--t-surface)] px-1 py-0.5 text-center font-mono text-[11px] font-bold text-amber-300"
                                       title={
                                         isKo
-                                          ? '이 선반 층의 총 박스 개수를 숫자로 직접 입력'
+                                          ? 'Enter exact total box count for this level'
                                           : 'Enter exact total box count for this level'
                                       }
                                     />
                                     <span className="text-[var(--t-muted)]">
-                                      {isKo ? '개' : 'pcs'}
+                                      {isKo ? 'pcs' : 'pcs'}
                                     </span>
                                   </div>
                                 </div>
@@ -2136,7 +2136,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                               <div className="flex items-center justify-between text-[10px] text-[var(--t-muted)]">
                                 <span>
                                   {isKo
-                                    ? `[Z${targetLevel}층] 품목별 박스 수량 직접 입력 (+/- 또는 숫자 입력):`
+                                    ? `[Z${targetLevel}] Enter exact box quantity per SKU:`
                                     : `[Z${targetLevel}] Enter exact box quantity per SKU:`}
                                 </span>
                                 {skus.length > 6 && (
@@ -2147,10 +2147,10 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                   >
                                     {showAllSkus
                                       ? isKo
-                                        ? '간략히'
+                                        ? 'Show Less'
                                         : 'Show Less'
                                       : isKo
-                                        ? `전체 품목(${skus.length})`
+                                        ? `All (${skus.length})`
                                         : `All (${skus.length})`}
                                   </button>
                                 )}
@@ -2240,7 +2240,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                             className="w-11 rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-1 py-0.5 text-center font-mono text-[11px] font-bold text-amber-300 focus:border-cyan-400 focus:outline-none"
                                             title={
                                               isKo
-                                                ? '이 선반 층에 넣을 박스 수량을 숫자로 직접 입력'
+                                                ? 'Enter exact box quantity for this SKU in this level'
                                                 : 'Enter exact box quantity for this SKU in this level'
                                             }
                                           />
@@ -2275,28 +2275,28 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         <div className="grid grid-cols-3 gap-1">
                           {[
                             {
-                              label: isKo ? '소형 (25×20×15)' : 'Small 25×20×15',
+                              label: isKo ? 'Small 25×20×15' : 'Small 25×20×15',
                               l: 25,
                               w: 20,
                               h: 15,
                               kg: 2,
-                              name: isKo ? '소형 택배박스' : 'Small Carton',
+                              name: isKo ? 'Small Carton' : 'Small Carton',
                             },
                             {
-                              label: isKo ? '중형 (40×30×24)' : 'Med 40×30×24',
+                              label: isKo ? 'Med 40×30×24' : 'Med 40×30×24',
                               l: 40,
                               w: 30,
                               h: 24,
                               kg: 5,
-                              name: isKo ? '중형 수납박스' : 'Medium Box',
+                              name: isKo ? 'Medium Box' : 'Medium Box',
                             },
                             {
-                              label: isKo ? '대형 (60×40×35)' : 'Large 60×40×35',
+                              label: isKo ? 'Large 60×40×35' : 'Large 60×40×35',
                               l: 60,
                               w: 40,
                               h: 35,
                               kg: 10,
-                              name: isKo ? '대형 물류박스' : 'Large Crate',
+                              name: isKo ? 'Large Crate' : 'Large Crate',
                             },
                           ].map((preset) => (
                             <button
@@ -2319,7 +2319,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         <div className="grid grid-cols-3 gap-1.5">
                           <div>
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? '가로 L(cm)' : 'L (cm)'}
+                              {isKo ? 'L (cm)' : 'L (cm)'}
                             </span>
                             <input
                               type="number"
@@ -2338,7 +2338,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           </div>
                           <div>
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? '세로 W(cm)' : 'W (cm)'}
+                              {isKo ? 'W (cm)' : 'W (cm)'}
                             </span>
                             <input
                               type="number"
@@ -2357,7 +2357,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           </div>
                           <div>
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? '높이 H(cm)' : 'H (cm)'}
+                              {isKo ? 'H (cm)' : 'H (cm)'}
                             </span>
                             <input
                               type="number"
@@ -2379,7 +2379,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         <div className="grid grid-cols-12 gap-1.5">
                           <div className="col-span-5">
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? '박스 이름' : 'Box Name'}
+                              {isKo ? 'Box Name' : 'Box Name'}
                             </span>
                             <input
                               type="text"
@@ -2390,7 +2390,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           </div>
                           <div className="col-span-3">
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? '무게(kg)' : 'Weight'}
+                              {isKo ? 'Weight' : 'Weight'}
                             </span>
                             <input
                               type="number"
@@ -2408,7 +2408,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           </div>
                           <div className="col-span-2">
                             <span className="text-[var(--t-muted)]">
-                              {isKo ? '수량' : 'Qty'}
+                              {isKo ? 'Qty' : 'Qty'}
                             </span>
                             <input
                               type="number"
@@ -2471,7 +2471,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                 setCustomBoxFragile(e.target.checked)
                               }
                             />
-                            {isKo ? '파손주의' : 'Fragile'}
+                            {isKo ? 'Fragile' : 'Fragile'}
                           </label>
                         </div>
 
@@ -2487,7 +2487,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                         >
                           <PackagePlus className="h-3.5 w-3.5" />
                           {isKo
-                            ? `Z${targetLevel}층 선반에 ${customBoxL}×${customBoxW}×${customBoxH}cm 박스 ${customBoxQty}개 넣기`
+                            ? `Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box in Z${targetLevel}`
                             : `Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box in Z${targetLevel}`}
                         </button>
                       </div>
@@ -2498,7 +2498,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 {selectedRackLevels.length === 0 ? (
                   <p className="text-[10px] leading-relaxed text-[var(--t-muted)]">
                     {isKo
-                      ? '새로 추가한 선반입니다. 위에서 품목이나 맞춤 박스를 클릭하면 선반이 즉시 생성되고 박스가 들어갑니다!'
+                      ? 'New rack. Click any SKU or custom box above to immediately create the shelf bins and insert boxes!'
                       : 'New rack. Click any SKU or custom box above to immediately create the shelf bins and insert boxes!'}
                   </p>
                 ) : (
@@ -2531,13 +2531,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                 </span>
                                 {alloc.bin.isGoldenZone && (
                                   <span className="ml-1 text-[9px] text-emerald-300">
-                                    {isKo ? '골든존' : 'Golden'}
+                                    {isKo ? 'Golden' : 'Golden'}
                                   </span>
                                 )}
                               </span>
                               <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">
                                 {isKo
-                                  ? `${alloc.boxes.length}개`
+                                  ? `${alloc.boxes.length} pcs`
                                   : `${alloc.boxes.length} pcs`}
                               </span>
                             </div>
@@ -2552,7 +2552,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             </div>
                             <div className="mt-0.5 flex justify-between text-[9px] text-[var(--t-muted)]">
                               <span>
-                                {isKo ? '채움' : 'Fill'} {pct.toFixed(0)}%
+                                {isKo ? 'Fill' : 'Fill'} {pct.toFixed(0)}%
                               </span>
                               <span>
                                 {alloc.currentWeightKg.toFixed(1)}/
@@ -2563,7 +2563,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             {groups.length === 0 ? (
                               <div className="mt-1 text-[10px] text-[var(--t-muted)]">
                                 {isKo
-                                  ? '비어 있는 칸 (위에서 품목을 클릭해 넣으세요)'
+                                  ? 'Empty (Click a SKU above to insert)'
                                   : 'Empty (Click a SKU above to insert)'}
                               </div>
                             ) : (
@@ -2603,7 +2603,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                             : onPinCargo(alloc.bin.id, g.skuId, -1)
                                         }
                                         className="rounded border border-[var(--t-border)] p-0.5 text-rose-300 hover:border-rose-400"
-                                        title={isKo ? '1개 빼기' : 'Remove 1'}
+                                        title={isKo ? 'Remove 1' : 'Remove 1'}
                                       >
                                         <Minus className="h-2.5 w-2.5" />
                                       </button>
@@ -2635,7 +2635,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                       className="w-10 rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1 py-0.5 text-center font-mono text-[10px] font-bold text-amber-300 focus:border-cyan-400 focus:outline-none"
                                       title={
                                         isKo
-                                          ? '이 품목의 적재 수량을 숫자로 직접 변경'
+                                          ? 'Edit exact SKU quantity in this shelf bin'
                                           : 'Edit exact SKU quantity in this shelf bin'
                                       }
                                     />
@@ -2653,7 +2653,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                                             : onPinCargo(alloc.bin.id, g.skuId, 1)
                                         }
                                         className="rounded border border-[var(--t-border)] p-0.5 text-emerald-300 hover:border-emerald-400"
-                                        title={isKo ? '1개 추가' : 'Add 1'}
+                                        title={isKo ? 'Add 1' : 'Add 1'}
                                       >
                                         <Plus className="h-2.5 w-2.5" />
                                       </button>
@@ -2666,7 +2666,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             {alloc.safetyViolation && (
                               <div className="mt-1 text-[9px] font-semibold text-rose-300">
                                 {isKo
-                                  ? '⚠ 상층 중량물: 아래층으로 이동 권장'
+                                  ? '⚠ Heavy item on upper level'
                                   : '⚠ Heavy item on upper level'}
                               </div>
                             )}
@@ -2683,7 +2683,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 <span className="inline-flex items-center gap-1.5">
                   <Route className="h-3.5 w-3.5" />
                   {isKo
-                    ? '피킹 동선 에디터 (출입구 → 경유 선반)'
+                    ? 'Pick Route Editor (Depot → Waypoints)'
                     : 'Pick Route Editor (Depot → Waypoints)'}
                 </span>
                 <div className="flex items-center gap-1">
@@ -2692,12 +2692,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                       className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[9.5px] font-bold text-emerald-300"
                       title={
                         isKo
-                          ? '단순 빈도순 방문 대비 현재 동선의 이동거리 및 시간 절감량'
+                          ? 'Distance and time saved vs naive frequency-ordered visiting'
                           : 'Distance and time saved vs naive frequency-ordered visiting'
                       }
                     >
                       {isKo
-                        ? `-${unoptimizedRouteComparison.savedDistM}m / -${unoptimizedRouteComparison.savedSec}s 단축`
+                        ? `-${unoptimizedRouteComparison.savedDistM}m / -${unoptimizedRouteComparison.savedSec}s saved`
                         : `-${unoptimizedRouteComparison.savedDistM}m / -${unoptimizedRouteComparison.savedSec}s saved`}
                     </span>
                   )}
@@ -2713,28 +2713,28 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   onClick={() => handleApplyRoutePattern('tsp_shortest')}
                   className="rounded border border-emerald-500/40 bg-emerald-500/15 px-2 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/25"
                 >
-                  {isKo ? '✨ 최단거리 TSP 동선' : '✨ Shortest TSP Route'}
+                  {isKo ? '✨ Shortest TSP Route' : '✨ Shortest TSP Route'}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyRoutePattern('s_shape_aisle')}
                   className="rounded border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 font-semibold text-cyan-300 hover:bg-cyan-500/25"
                 >
-                  {isKo ? '〰 S자 통로 순회 동선' : '〰 S-Shape Aisle Tour'}
+                  {isKo ? '〰 S-Shape Aisle Tour' : '〰 S-Shape Aisle Tour'}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyRoutePattern('golden_first')}
                   className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-1 font-semibold text-amber-300 hover:bg-amber-500/25"
                 >
-                  {isKo ? '🎯 골든존 우선 동선' : '🎯 Golden Zone First'}
+                  {isKo ? '🎯 Golden Zone First' : '🎯 Golden Zone First'}
                 </button>
                 <button
                   type="button"
                   onClick={() => handleApplyRoutePattern('all_occupied')}
                   className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1 font-semibold text-[var(--t-text)] hover:border-cyan-400"
                 >
-                  {isKo ? '📦 적재 선반 전체 연결' : '📦 Connect All Loaded'}
+                  {isKo ? '📦 Connect All Loaded' : '📦 Connect All Loaded'}
                 </button>
               </div>
 
@@ -2756,12 +2756,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 >
                   <option value="">
                     {isKo
-                      ? '+ 동선 경유 선반 목록에서 선택 추가...'
+                      ? '+ Add shelf bin to route...'
                       : '+ Add shelf bin to route...'}
                   </option>
                   {allocations.map((a) => (
                     <option key={a.bin.id} value={a.bin.id}>
-                      {a.bin.id} · Z{a.bin.level}층 ({a.boxes.length}개 적재)
+                      {a.bin.id} · Level Z{a.bin.level} ({a.boxes.length} boxes)
                     </option>
                   ))}
                 </select>
@@ -2779,7 +2779,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     }
                     className="accent-emerald-400"
                   />
-                  {isKo ? '출입구 복귀' : 'Return Depot'}
+                  {isKo ? 'Return Depot' : 'Return Depot'}
                 </label>
               </div>
 
@@ -2800,8 +2800,8 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   <Route className="h-3 w-3" />
                   {isKo
                     ? tool === 'route_edit'
-                      ? '동선 클릭 편집 중 (클릭해 종료)'
-                      : '선반 클릭으로 동선 그리기'
+                      ? 'Editing Route (Click to Exit)'
+                      : 'Click Racks to Draw Route'
                     : tool === 'route_edit'
                       ? 'Editing Route (Click to Exit)'
                       : 'Click Racks to Draw Route'}
@@ -2812,7 +2812,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/25"
                 >
                   <Sparkles className="h-3 w-3" />
-                  {isKo ? '최단 동선 자동 정렬' : 'Auto Shortest Order'}
+                  {isKo ? 'Auto Shortest Order' : 'Auto Shortest Order'}
                 </button>
                 {routeBinIds.length > 0 && (
                   <button
@@ -2821,7 +2821,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     className="inline-flex items-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/15 px-2 py-1 font-semibold text-rose-300 hover:bg-rose-500/25"
                   >
                     <RotateCcw className="h-3 w-3" />
-                    {isKo ? '자동 추천 동선으로 초기화' : 'Reset to Auto'}
+                    {isKo ? 'Reset to Auto' : 'Reset to Auto'}
                   </button>
                 )}
               </div>
@@ -2830,7 +2830,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 {activeRouteStops.length === 0 ? (
                   <div className="rounded border border-dashed border-[var(--t-border)] p-2 text-center text-[10px] text-[var(--t-muted)]">
                     {isKo
-                      ? '경유 선반이 없습니다. 선반을 우클릭하거나 [동선 편집] 모드로 클릭해 추가하세요.'
+                      ? 'No waypoints yet. Click racks in Route Editor mode to add.'
                       : 'No waypoints yet. Click racks in Route Editor mode to add.'}
                   </div>
                 ) : (
@@ -2847,7 +2847,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           {stop.bin.id}
                         </span>
                         <span className="truncate text-[var(--t-muted)]">
-                          ({stop.boxes[0]?.name.split(' (')[0] ?? (isKo ? '빈 선반' : 'Empty')})
+                          ({stop.boxes[0]?.name.split(' (')[0] ?? (isKo ? 'Empty' : 'Empty')})
                         </span>
                       </div>
                       <div className="flex shrink-0 items-center gap-0.5">
@@ -2866,7 +2866,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             commitCustomRoute(next);
                           }}
                           className="rounded border border-[var(--t-border)] p-0.5 text-[var(--t-muted)] hover:border-cyan-400 hover:text-white disabled:opacity-30"
-                          title={isKo ? '순서 위로' : 'Move Up'}
+                          title={isKo ? 'Move Up' : 'Move Up'}
                         >
                           <ArrowUp className="h-2.5 w-2.5" />
                         </button>
@@ -2885,7 +2885,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             commitCustomRoute(next);
                           }}
                           className="rounded border border-[var(--t-border)] p-0.5 text-[var(--t-muted)] hover:border-cyan-400 hover:text-white disabled:opacity-30"
-                          title={isKo ? '순서 아래로' : 'Move Down'}
+                          title={isKo ? 'Move Down' : 'Move Down'}
                         >
                           <ArrowDown className="h-2.5 w-2.5" />
                         </button>
@@ -2900,7 +2900,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                             );
                           }}
                           className="rounded border border-[var(--t-border)] p-0.5 text-rose-300 hover:border-rose-400"
-                          title={isKo ? '경유지에서 제거' : 'Remove Stop'}
+                          title={isKo ? 'Remove Stop' : 'Remove Stop'}
                         >
                           <X className="h-2.5 w-2.5" />
                         </button>
@@ -2917,13 +2917,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="flex flex-wrap gap-1">
                 {(
                   [
-                    ['select', isKo ? '선택 / 드래그' : 'Drag / Select', MousePointer2],
-                    ['route_edit', isKo ? '동선 에디터' : 'Route Editor', Route],
-                    ['add_rack', isKo ? `+선반 (Z${levels})` : `+Rack (Z${levels})`, PlusSquare],
-                    ['add_low', isKo ? '+낮은 선반' : '+Low Shelf', PlusSquare],
-                    ['add_obstacle', isKo ? '+기둥 / 벽' : '+Pillar / Wall', Ban],
-                    ['move_depot', isKo ? '출입구 이동' : 'Move Depot', Navigation],
-                    ['erase', isKo ? '지우개' : 'Erase', Eraser],
+                    ['select', isKo ? 'Drag / Select' : 'Drag / Select', MousePointer2],
+                    ['route_edit', isKo ? 'Route Editor' : 'Route Editor', Route],
+                    ['add_rack', isKo ? `+Rack (Z${levels})` : `+Rack (Z${levels})`, PlusSquare],
+                    ['add_low', isKo ? '+Low Shelf' : '+Low Shelf', PlusSquare],
+                    ['add_obstacle', isKo ? '+Pillar / Wall' : '+Pillar / Wall', Ban],
+                    ['move_depot', isKo ? 'Move Depot' : 'Move Depot', Navigation],
+                    ['erase', isKo ? 'Erase' : 'Erase', Eraser],
                   ] as const
                 ).map(([id, label, Icon]) => (
                   <button
@@ -2953,13 +2953,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   }`}
                   title={
                     isKo
-                      ? '2D 캔버스에서 피킹 이동 동선 라인 및 경유 순서 번호 켜기/끄기'
+                      ? 'Toggle pick route path & stop numbers on 2D canvas'
                       : 'Toggle pick route path & stop numbers on 2D canvas'
                   }
                 >
                   <Route className="h-3 w-3" />
                   {isKo
-                    ? `동선 표시 ${showRouteLine ? 'ON' : 'OFF'}`
+                    ? `Route ${showRouteLine ? 'ON' : 'OFF'}`
                     : `Route ${showRouteLine ? 'ON' : 'OFF'}`}
                 </button>
                 <button
@@ -2972,13 +2972,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   }`}
                   title={
                     isKo
-                      ? '선반별 박스 수량 배지와 층별 채움 표시 켜기/끄기'
+                      ? 'Toggle box quantity badges & level fill strips'
                       : 'Toggle box quantity badges & level fill strips'
                   }
                 >
                   <Package className="h-3 w-3" />
                   {isKo
-                    ? `수량 표시 ${showQty ? 'ON' : 'OFF'}`
+                    ? `Qty ${showQty ? 'ON' : 'OFF'}`
                     : `Qty ${showQty ? 'ON' : 'OFF'}`}
                 </button>
                 <select
@@ -3035,9 +3035,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                     );
                   }}
                   className="rounded border border-cyan-500/45 bg-cyan-500/15 px-1.5 py-1 text-[10px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
-                  title={isKo ? '2D 화면에 꽉 차게 자동 줌 맞춤' : 'Auto-Fit 2D Zoom'}
+                  title={isKo ? 'Auto-Fit 2D Zoom' : 'Auto-Fit 2D Zoom'}
                 >
-                  {isKo ? '화면맞춤' : 'Fit'}
+                  {isKo ? 'Fit' : 'Fit'}
                 </button>
                 <button
                   type="button"
@@ -3305,12 +3305,12 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   const stripSeg =
                     rack.levels > 0 ? Math.max(2, (rh - 8) / rack.levels) : 0;
                   const tooltip = [
-                    `A${rack.aisle}-B${rack.bay} · ${isKo ? '총' : 'Total'} ${rackQty}${isKo ? '개' : ' pcs'}`,
+                    `A${rack.aisle}-B${rack.bay} · ${isKo ? 'Total' : 'Total'} ${rackQty}${isKo ? ' pcs' : ' pcs'}`,
                     ...[...rackAllocs]
                       .sort((a, b) => b.bin.level - a.bin.level)
                       .map(
                         (a) =>
-                          `Z${a.bin.level}: ${a.boxes.length}${isKo ? '개' : ' pcs'} (${a.cubicUtilizationPct.toFixed(0)}%)`
+                          `Z${a.bin.level}: ${a.boxes.length}${isKo ? ' pcs' : ' pcs'} (${a.cubicUtilizationPct.toFixed(0)}%)`
                       ),
                   ].join('\n');
                   return (
@@ -3530,7 +3530,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2.5 text-xs">
               <span className="text-[11px] text-[var(--t-muted)]">
                 {isKo
-                  ? '선반·출입구·테두리 핸들을 자유롭게 드래그 · 빈 바닥 드래그로 다중 선택 · 우클릭으로 세부 편집'
+                  ? 'Drag racks/depot/edges freely · Drag empty floor to multi-select group · Right-click anywhere to edit'
                   : 'Drag racks/depot/edges freely · Drag empty floor to multi-select group · Right-click anywhere to edit'}
               </span>
               <div className="flex gap-2">
@@ -3540,7 +3540,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-3 py-1.5 font-semibold hover:border-[var(--t-accent)]"
                 >
                   <Save className="h-3.5 w-3.5 text-emerald-400" />
-                  {isKo ? '새 공간 카드로 저장' : 'Save as New Map Card'}
+                  {isKo ? 'Save as New Map Card' : 'Save as New Map Card'}
                 </button>
                 <button
                   type="button"
@@ -3552,7 +3552,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   }}
                 >
                   <Check className="h-3.5 w-3.5" />
-                  {isKo ? '3D 화면에 바로 적용' : 'Apply Canvas to 3D Twin'}
+                  {isKo ? 'Apply Canvas to 3D Twin' : 'Apply Canvas to 3D Twin'}
                 </button>
               </div>
             </div>
@@ -3582,7 +3582,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               <div className="flex items-center justify-between border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
                 <span>
                   {isKo
-                    ? `선반 A${ctxRack.aisle}-B${ctxRack.bay}`
+                    ? `Rack A${ctxRack.aisle}-B${ctxRack.bay}`
                     : `Rack A${ctxRack.aisle}-B${ctxRack.bay}`}
                 </span>
                 <span className="font-mono text-[10px] text-[var(--t-muted)]">
@@ -3595,7 +3595,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   <div className="mb-1 flex items-center justify-between text-[10px]">
                     <span className="font-semibold text-cyan-300">
                       {isKo
-                        ? `Z${Math.min(targetLevel, ctxRack.levels)}층 총 박스 개수:`
+                        ? `Z${Math.min(targetLevel, ctxRack.levels)} Total Boxes:`
                         : `Z${Math.min(targetLevel, ctxRack.levels)} Total Boxes:`}
                     </span>
                   </div>
@@ -3623,7 +3623,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   <div className="mb-1 flex items-center justify-between text-[10px]">
                     <span className="font-semibold text-emerald-300">
                       {isKo
-                        ? `박스 바로 넣기 (Z${Math.min(targetLevel, ctxRack.levels)}층):`
+                        ? `Quick Insert Box (Z${Math.min(targetLevel, ctxRack.levels)}):`
                         : `Quick Insert Box (Z${Math.min(targetLevel, ctxRack.levels)}):`}
                     </span>
                   </div>
@@ -3662,13 +3662,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               >
                 <Route className="h-3.5 w-3.5" />
                 {isKo
-                  ? '피킹 동선 경유지 추가 / 해제'
+                  ? 'Add / Remove Pick Route Waypoint'
                   : 'Add / Remove Pick Route Waypoint'}
               </button>
 
               <div className="px-2 py-1.5">
                 <div className="mb-1 text-[10px] text-[var(--t-muted)]">
-                  {isKo ? '선반 단수(층수) 변경:' : 'Set Z-Levels:'}
+                  {isKo ? 'Set Z-Levels:' : 'Set Z-Levels:'}
                 </div>
                 <div className="grid grid-cols-6 gap-1">
                   {[1, 2, 3, 4, 5, 6].map((lv) => (
@@ -3715,7 +3715,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <RotateCw className="h-3.5 w-3.5 text-cyan-400" />
-                {isKo ? '선반 90° 회전 (가로 ↔ 세로)' : 'Rotate 90° (Swap L ↔ W)'}
+                {isKo ? 'Rotate 90° (Swap L ↔ W)' : 'Rotate 90° (Swap L ↔ W)'}
               </button>
               <button
                 type="button"
@@ -3733,7 +3733,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Copy className="h-3.5 w-3.5 text-emerald-400" />
-                {isKo ? '옆에 선반 복제하기' : 'Duplicate Rack Nearby'}
+                {isKo ? 'Duplicate Rack Nearby' : 'Duplicate Rack Nearby'}
               </button>
               <button
                 type="button"
@@ -3746,7 +3746,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Ban className="h-3.5 w-3.5 text-amber-400" />
-                {isKo ? '기둥 / 장애물로 변환' : 'Convert to Pillar / Block'}
+                {isKo ? 'Convert to Pillar / Block' : 'Convert to Pillar / Block'}
               </button>
               <button
                 type="button"
@@ -3761,14 +3761,14 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-rose-400 hover:bg-rose-950/40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                {isKo ? '이 선반 삭제' : 'Delete This Rack'}
+                {isKo ? 'Delete This Rack' : 'Delete This Rack'}
               </button>
             </>
           ) : ctxObstacle ? (
             <>
               <div className="border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
                 {isKo
-                  ? `기둥 / 장애물 (${ctxObstacle.xMeters}m, ${ctxObstacle.yMeters}m)`
+                  ? `Obstacle @ (${ctxObstacle.xMeters}m, ${ctxObstacle.yMeters}m)`
                   : `Obstacle @ (${ctxObstacle.xMeters}m, ${ctxObstacle.yMeters}m)`}
               </div>
               <button
@@ -3784,7 +3784,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <PlusSquare className="h-3.5 w-3.5 text-cyan-400" />
-                {isKo ? '선반 스택으로 변환' : 'Convert to Rack Stack'}
+                {isKo ? 'Convert to Rack Stack' : 'Convert to Rack Stack'}
               </button>
               <button
                 type="button"
@@ -3798,14 +3798,14 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-rose-400 hover:bg-rose-950/40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                {isKo ? '기둥 / 장애물 삭제' : 'Delete Obstacle'}
+                {isKo ? 'Delete Obstacle' : 'Delete Obstacle'}
               </button>
             </>
           ) : (
             <>
               <div className="border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
                 {isKo
-                  ? `바닥 위치 (${ctxMenu.worldX}m, ${ctxMenu.worldY}m)`
+                  ? `Floor @ (${ctxMenu.worldX}m, {ctxMenu.worldY}m)`
                   : `Floor @ (${ctxMenu.worldX}m, {ctxMenu.worldY}m)`}
               </div>
               <button
@@ -3818,7 +3818,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               >
                 <PlusSquare className="h-3.5 w-3.5 text-cyan-400" />
                 {isKo
-                  ? `여기에 선반 추가 (Z1–${levels}단)`
+                  ? `Add Rack Stack Here (Z1–${levels})`
                   : `Add Rack Stack Here (Z1–${levels})`}
               </button>
               <button
@@ -3831,7 +3831,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               >
                 <PlusSquare className="h-3.5 w-3.5 text-emerald-400" />
                 {isKo
-                  ? '여기에 낮은 선반 추가 (Z1–2단)'
+                  ? 'Add Low Shelf Here (Z1–2)'
                   : 'Add Low Shelf Here (Z1–2)'}
               </button>
               <button
@@ -3843,7 +3843,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Ban className="h-3.5 w-3.5 text-amber-400" />
-                {isKo ? '여기에 기둥 / 벽 추가' : 'Add Pillar / Wall Here'}
+                {isKo ? 'Add Pillar / Wall Here' : 'Add Pillar / Wall Here'}
               </button>
               <button
                 type="button"
@@ -3857,7 +3857,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               >
                 <Navigation className="h-3.5 w-3.5 text-sky-400" />
                 {isKo
-                  ? '★ 출입구(피킹 출발지) 여기로 이동'
+                  ? 'Move I/O Depot / Entry Here'
                   : 'Move I/O Depot / Entry Here'}
               </button>
               <button
@@ -3870,7 +3870,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               >
                 <Route className="h-3.5 w-3.5" />
                 {isKo
-                  ? '최단 피킹 동선 자동 재정렬'
+                  ? 'Auto-Sort Shortest Pick Route'
                   : 'Auto-Sort Shortest Pick Route'}
               </button>
             </>

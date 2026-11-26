@@ -52,28 +52,28 @@ function setLruTexture(
 export function classifyCargoVisual(box: PackedBox): CargoVisualKind {
   const token = `${box.skuCode} ${box.name}`.toUpperCase();
   if (
-    /WTR|WATER|BEV|DRINK|OIL|MILK|DET|SYR|WINE|JUICE|LIQ|생수|음료|세제|우유|오일|시럽/.test(
+    /WTR|WATER|BEV|DRINK|OIL|MILK|DET|SYR|WINE|JUICE|LIQ/.test(
       token
     )
   ) {
     return 'bottle_crate';
   }
   if (
-    /COAT|CLTH|APP|SHRT|JEAN|KNIT|SHOE|BAG|DUV|WARD|TOTE|의류|코트|신발|가방|이불|수건/.test(
+    /COAT|CLTH|APP|SHRT|JEAN|KNIT|SHOE|BAG|DUV|WARD|TOTE/.test(
       token
     )
   ) {
     return 'apparel_tote';
   }
   if (
-    /RICE|GRAIN|CAN|RAM|SNK|KIM|MEAT|FRZ|BEAN|CUP|FLR|BAK|FOOD|PANTRY|쌀|곡물|김치|냉동|원두|간식|통조림/.test(
+    /RICE|GRAIN|CAN|RAM|SNK|KIM|MEAT|FRZ|BEAN|CUP|FLR|BAK|FOOD|PANTRY/.test(
       token
     )
   ) {
     return 'food_container';
   }
   if (
-    /TENT|CAMP|CHR|LNT|DRL|TOOL|TIRE|BAT|JACK|BRK|ENG|GEAR|캠핑|텐트|공구|드릴|타이어/.test(
+    /TENT|CAMP|CHR|LNT|DRL|TOOL|TIRE|BAT|JACK|BRK|ENG|GEAR/.test(
       token
     )
   ) {
@@ -81,7 +81,7 @@ export function classifyCargoVisual(box: PackedBox): CargoVisualKind {
   }
   if (
     box.fragile ||
-    /GPU|PCB|CPU|VAX|MED|LP|CAM|FIG|ESD|DISH|유리|정밀|식기/.test(token)
+    /GPU|PCB|CPU|VAX|MED|LP|CAM|FIG|ESD|DISH/.test(token)
   ) {
     return 'fragile_tech';
   }
@@ -527,7 +527,7 @@ export function buildTemplateEnvironmentProps(params: {
   const tag = `${scenarioName} ${config.mapTag ?? ''}`.toLowerCase();
 
   const isEveryday =
-    /pantry|closet|fridge|garage|camping|one-room|oneroom|smartstore|hobby|laundry|cafe|office|moving|everyday|팬트리|드레스룸|냉장고|차고|캠핑|원룸|스마트스토어|서재|다용도실|카페|사무실|이삿짐/.test(
+    /pantry|closet|fridge|garage|camping|one-room|oneroom|studio|smartstore|shop|hobby|laundry|utility|cafe|office|moving|everyday/.test(
       tag
     );
 
@@ -557,13 +557,13 @@ export function buildTemplateEnvironmentProps(params: {
   const enclosure = config.roomEnclosure ?? 'cutaway_corner';
 
   if (enclosure !== 'open_floor') {
-    const defaultWallCol = /fridge|cold|냉장고/.test(tag)
+    const defaultWallCol = /fridge|cold/.test(tag)
       ? '#0ea5e9'
       : isEveryday
         ? '#b45309'
         : '#334155';
     const effWallColor = config.wallColor || defaultWallCol;
-    const isGlass = enclosure === 'glass_room' || /fridge|cold|냉장고/.test(tag);
+    const isGlass = enclosure === 'glass_room' || /fridge|cold/.test(tag);
     const wallMat = new THREE.MeshStandardMaterial({
       color: effWallColor,
       transparent: true,
@@ -634,7 +634,7 @@ export function buildTemplateEnvironmentProps(params: {
     propGroup.add(badge);
   }
 
-  if (/fridge|cold|냉장고/.test(tag)) {
+  if (/fridge|cold/.test(tag)) {
     const doorGeo = new THREE.BoxGeometry(backWallW * 0.48, wallH * 0.92, 0.05);
     const glassMat = new THREE.MeshStandardMaterial({
       color: '#38bdf8',
@@ -716,15 +716,15 @@ export function getEffectiveInteriorProps(params: {
   const leftPropX = Number((depotX - 2.15).toFixed(2));
   const propY = Number((depotZ + 0.25).toFixed(2));
 
-  if (/fridge|cold|냉장고/.test(tag)) {
+  if (/fridge|cold/.test(tag)) {
     return [];
   }
-  if (/closet|apparel|드레스룸/.test(tag)) {
+  if (/closet|apparel/.test(tag)) {
     return [
       {
         id: 'tpl-default-mirror',
         type: 'wardrobe_mirror',
-        label: '드레스룸 전신 거울 (Wardrobe Mirror)',
+        label: 'Wardrobe Full-Length Mirror',
         xMeters: Number((bounds.minX + 0.55).toFixed(2)),
         yMeters: Number(bounds.centerZ.toFixed(2)),
         rotationDeg: 90,
@@ -734,7 +734,7 @@ export function getEffectiveInteriorProps(params: {
       {
         id: 'tpl-default-rug',
         type: 'rug_carpet',
-        label: '바닥 매트·러그 (Floor Rug)',
+        label: 'Floor Carpet Runner',
         xMeters: Number(bounds.centerX.toFixed(2)),
         yMeters: Number(bounds.centerZ.toFixed(2)),
         rotationDeg: 0,
@@ -743,12 +743,12 @@ export function getEffectiveInteriorProps(params: {
       },
     ];
   }
-  if (/laundry|다용도실/.test(tag)) {
+  if (/laundry|utility/.test(tag)) {
     return [
       {
         id: 'tpl-default-washer',
         type: 'washer_dryer',
-        label: '드럼 세탁기·건조기 (Washer/Dryer)',
+        label: 'Front-Load Washer & Dryer',
         xMeters: leftPropX,
         yMeters: propY,
         rotationDeg: 0,
@@ -757,12 +757,12 @@ export function getEffectiveInteriorProps(params: {
       },
     ];
   }
-  if (/pantry|cafe|kitchen|팬트리|카페/.test(tag)) {
+  if (/pantry|cafe|kitchen/.test(tag)) {
     return [
       {
         id: 'tpl-default-island',
         type: 'island_counter',
-        label: '주방 아일랜드·커피머신 (Kitchen Island)',
+        label: 'Kitchen Island & Espresso Counter',
         xMeters: sidePropX,
         yMeters: propY,
         rotationDeg: 0,
@@ -771,12 +771,12 @@ export function getEffectiveInteriorProps(params: {
       },
     ];
   }
-  if (/garage|camping|auto|차고|캠핑/.test(tag)) {
+  if (/garage|camping|auto/.test(tag)) {
     return [
       {
         id: 'tpl-default-toolcab',
         type: 'tool_cabinet',
-        label: '5단 이동식 공구함 (Tool Cabinet)',
+        label: '5-Drawer Rolling Tool Cabinet',
         xMeters: leftPropX,
         yMeters: propY,
         rotationDeg: 0,
@@ -786,7 +786,7 @@ export function getEffectiveInteriorProps(params: {
     ];
   }
   if (
-    /oneroom|one-room|hobby|office|smartstore|moving|원룸|서재|사무실|스마트스토어|이삿짐/.test(
+    /oneroom|one-room|studio|hobby|office|smartstore|shop|moving/.test(
       tag
     )
   ) {
@@ -794,7 +794,7 @@ export function getEffectiveInteriorProps(params: {
       {
         id: 'tpl-default-window',
         type: 'window_frame',
-        label: '채광 창문 프레임 (Daylight Window)',
+        label: 'Daylight Window Frame',
         xMeters: Number(bounds.centerX.toFixed(2)),
         yMeters: Number((bounds.maxZ - 0.22).toFixed(2)),
         rotationDeg: 0,
@@ -804,7 +804,7 @@ export function getEffectiveInteriorProps(params: {
       {
         id: 'tpl-default-desk',
         type: 'desk_work',
-        label: '책상 & 모니터 작업대 (Work Desk)',
+        label: 'Workstation Desk & Monitor',
         xMeters: sidePropX,
         yMeters: propY,
         rotationDeg: 0,
@@ -818,7 +818,7 @@ export function getEffectiveInteriorProps(params: {
       {
         id: 'tpl-default-forklift',
         type: 'forklift_unit',
-        label: '전동 리치트럭 지게차 (Reach-Truck)',
+        label: 'Electric Reach-Truck Forklift',
         xMeters: Number((depotX - 2.25).toFixed(2)),
         yMeters: Number((depotZ + 0.2).toFixed(2)),
         rotationDeg: 0,
