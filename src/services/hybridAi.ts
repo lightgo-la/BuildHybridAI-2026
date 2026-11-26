@@ -227,6 +227,7 @@ export function generateLocalDeterministicAudit(
   const optLine = lines.find((l) => l.startsWith('Optimized 3D KPIs:')) ?? '';
   const deltaLine = lines.find((l) => l.startsWith('3D Improvement Deltas:')) ?? '';
   const topLine = lines.find((l) => l.startsWith('Top Active Bins:')) ?? '';
+  const routeLine = lines.find((l) => l.startsWith('Active Pick Route')) ?? '';
   const focusLine = lines.find((l) => l.startsWith('Focused Bin')) ?? '';
 
   if (isKo) {
@@ -236,8 +237,9 @@ export function generateLocalDeterministicAudit(
       `   - ${optLine || '3D 최적화 배치가 활성화되어 있습니다.'}`,
       baseLine ? `   - 기존 2D 대비 비교: ${baseLine}` : '',
       deltaLine ? `   - 개선 효과 요약: ${deltaLine.replace('3D Improvement Deltas:', '').trim()}` : '',
-      `2. **핵심 점검 대상 선반 (클릭하여 3D 포커스)**: **${binListStr}**`,
+      `2. **핵심 점검 대상 선반 & 피킹 동선 (클릭하여 3D 포커스)**: **${binListStr}**`,
       topLine ? `   - ${topLine.replace('Top Active Bins:', '최상위 피킹 집중 칸:')}` : '',
+      routeLine ? `   - 활성 피킹 동선: ${routeLine}` : '',
       focusLine ? `   - 현재 선택 칸 상세: ${focusLine}` : '',
       `3. **권장 액션 3가지**:`,
       `   - 고빈도 Class A 품목은 허리~가슴 높이 골든존(**${primaryBins[0] ?? 'A1-B1-Z2'}**)에 집중 배치해 수직 리프트 피로도를 줄이세요.`,
@@ -254,8 +256,9 @@ export function generateLocalDeterministicAudit(
     `   - ${optLine}`,
     baseLine ? `   - ${baseLine}` : '',
     deltaLine ? `   - ${deltaLine}` : '',
-    `2. **Priority Action Bins (Click chip below to focus in 3D)**: **${binListStr}**`,
+    `2. **Priority Action Bins & Active Pick Route (Click chip below to focus in 3D)**: **${binListStr}**`,
     topLine ? `   - ${topLine}` : '',
+    routeLine ? `   - ${routeLine}` : '',
     focusLine ? `   - ${focusLine}` : '',
     `3. **Recommended Engineering Actions**:`,
     `   - Keep high-velocity Class-A SKUs aligned to Golden Zone shelves (**${primaryBins[0] ?? 'A1-B1-Z2'}**) to minimize mast vertical travel.`,
@@ -368,12 +371,27 @@ export function buildWarehousePromptContext(
     ? `Focused Bin ${selectedBin.bin.id}: elevation=${selectedBin.bin.zMeters}m, goldenZone=${selectedBin.bin.isGoldenZone}, cubicUtil=${selectedBin.cubicUtilizationPct.toFixed(1)}%, weight=${selectedBin.currentWeightKg.toFixed(1)}/${selectedBin.bin.maxWeightKg}kg, safetyViolation=${selectedBin.safetyViolation}, SKUs=[${selectedBin.boxes.map((x) => `${x.skuCode}(${x.lengthCm}x${x.widthCm}x${x.heightCm}cm,${x.weightKg}kg)`).join(', ')}]`
     : 'No single bin focused.';
 
+  const isCustomRoute = Boolean(
+    config.customRouteBinIds && config.customRouteBinIds.length > 0
+  );
+  const routeModeLabel = isCustomRoute
+    ? `User Custom Pick Route (${config.customRouteBinIds!.length} stops${config.routeReturnToDepot ? ', Return-to-Depot ON' : ''})`
+    : 'Auto 3D TSP Pick Route';
+  const routeSummary =
+    optimized.pickRoute
+      .map(
+        (wp, idx) =>
+          `#${idx + 1} ${wp.binId}(${wp.skuCode}, z=${wp.zMeters}m, +${wp.stepTimeSec}s)`
+      )
+      .join(' -> ') || 'None';
+
   return [
     `Warehouse Config: ${config.aisles} aisles x ${config.baysPerAisle} bays x ${config.levels} levels, equipment=${config.equipmentMode}, preset=${config.optimizationPreset ?? 'balanced'}, Golden Zone=${config.goldenZoneMinM}m-${config.goldenZoneMaxM}m.`,
     `Baseline 2D KPIs: CubicUtil=${b.cubicUtilizationPct}%, HoneycombingWaste=${b.honeycombingWastePct}%, AvgCycle=${b.avgCycleTimeSec}s, GoldenZoneHit=${b.goldenZoneHitRatePct}%, ErgonomicsScore=${b.ergonomicsScore}/100, SafetyViolations=${b.safetyViolations}.`,
     `Optimized 3D KPIs: CubicUtil=${o.cubicUtilizationPct}%, HoneycombingWaste=${o.honeycombingWastePct}%, AvgCycle=${o.avgCycleTimeSec}s, GoldenZoneHit=${o.goldenZoneHitRatePct}%, ErgonomicsScore=${o.ergonomicsScore}/100, SafetyViolations=${o.safetyViolations}, UnplacedUnits=${optimized.unplacedUnits}.`,
     `3D Improvement Deltas: CubicUtilDelta=${cubicDelta >= 0 ? '+' : ''}${cubicDelta}%p, CycleTimeSaved=${cycleSaved >= 0 ? '+' : ''}${cycleSaved}s, GoldenZoneHitDelta=${goldenDelta >= 0 ? '+' : ''}${goldenDelta}%p.`,
     `Top Active Bins: ${topCongested}`,
+    `Active Pick Route [${routeModeLabel}]: ${routeSummary}`,
     binDetail,
   ].join('\n');
 }

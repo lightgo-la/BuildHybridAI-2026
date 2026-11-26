@@ -339,6 +339,9 @@ export function App() {
   const [main2DPlanMode, setMain2DPlanMode] = useState<
     'off' | 'split' | 'full_2d'
   >('split');
+  const [split2DSize, setSplit2DSize] = useState<
+    'collapsed' | 'compact' | 'normal' | 'large'
+  >('normal');
   const [windowMaximized, setWindowMaximized] = useState<boolean>(false);
   const [lang, setLang] = useState<LangCode>(loadLang);
   const [appView, setAppView] = useState<'workspace' | 'home'>('workspace');
@@ -3288,10 +3291,16 @@ export function App() {
 
             {main2DPlanMode !== 'off' && (
               <div
-                className={`flex flex-col border-t border-cyan-500/35 bg-[#06101f] ${
+                className={`flex flex-col border-t border-cyan-500/35 bg-[#06101f] transition-all ${
                   main2DPlanMode === 'full_2d'
                     ? 'flex-1 min-h-[540px]'
-                    : 'h-72 shrink-0'
+                    : split2DSize === 'collapsed'
+                      ? 'h-9 shrink-0 overflow-hidden'
+                      : split2DSize === 'compact'
+                        ? 'h-48 shrink-0'
+                        : split2DSize === 'large'
+                          ? 'h-96 shrink-0'
+                          : 'h-72 shrink-0'
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/95 px-3 py-1.5 text-[11px]">
@@ -3309,6 +3318,47 @@ export function App() {
                     </span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    {main2DPlanMode === 'split' && (
+                      <div className="inline-flex items-center rounded border border-slate-700 bg-slate-950/90 p-0.5">
+                        {(
+                          [
+                            {
+                              id: 'collapsed',
+                              ko: '접기',
+                              en: 'Fold',
+                            },
+                            {
+                              id: 'compact',
+                              ko: '소형',
+                              en: 'Small',
+                            },
+                            {
+                              id: 'normal',
+                              ko: '기본',
+                              en: 'Medium',
+                            },
+                            {
+                              id: 'large',
+                              ko: '크게',
+                              en: 'Large',
+                            },
+                          ] as const
+                        ).map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setSplit2DSize(opt.id)}
+                            className={`rounded px-1.5 py-0.5 font-semibold transition ${
+                              split2DSize === opt.id
+                                ? 'bg-cyan-500 text-slate-950'
+                                : 'text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            {lang === 'ko' ? opt.ko : opt.en}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     <button
                       type="button"
                       onClick={() => setMapEditorOpen(true)}
@@ -3561,6 +3611,19 @@ export function App() {
                                 );
                               }}
                             >
+                              {isSelectedStack && (
+                                <rect
+                                  x={rx - 3.5}
+                                  y={ry - 3.5}
+                                  width={rw + 7}
+                                  height={rh + 7}
+                                  rx={5}
+                                  fill="none"
+                                  stroke="#facc15"
+                                  strokeWidth={2}
+                                  strokeDasharray="4,2"
+                                />
+                              )}
                               <rect
                                 x={rx}
                                 y={ry}

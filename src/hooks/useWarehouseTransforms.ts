@@ -262,6 +262,17 @@ export function useWarehouseTransforms({
             setCustomBinsOverride(nextBins);
             setExtraBins([]);
             setRemovedBinIds([]);
+            if (
+              nextL > targetBin.binLengthCm ||
+              nextW > targetBin.binWidthCm ||
+              nextH > targetBin.binHeightCm
+            ) {
+              showToast(
+                lang === 'ko'
+                  ? `선반 [${binId}] 규격이 박스 수량(${clampedCount}개)에 맞춰 ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm → ${nextL}×${nextW}×${nextH}cm로 자동 확장되었습니다.`
+                  : `Shelf [${binId}] auto-expanded from ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm to ${nextL}×${nextW}×${nextH}cm to fit ${clampedCount} boxes.`
+              );
+            }
           }
         }
       }
@@ -1512,6 +1523,7 @@ export function useWarehouseTransforms({
       const needsWeightExpand =
         existingWeight + boxKg * qty > targetBin.maxWeightKg;
 
+      let expandedDimsNotice = '';
       if (
         autoExpand &&
         (needsLengthExpand ||
@@ -1519,14 +1531,17 @@ export function useWarehouseTransforms({
           needsHeightExpand ||
           needsWeightExpand)
       ) {
+        const nextL = Math.max(targetBin.binLengthCm, boxL + 4);
+        const nextW = Math.max(targetBin.binWidthCm, boxW + 4);
+        const nextH = Math.max(targetBin.binHeightCm, boxH + 4);
         const nextBins = adjustColumnZLevelsForTallBins(
           bins.map((b) =>
             b.id === targetBin.id
               ? {
                   ...b,
-                  binLengthCm: Math.max(b.binLengthCm, boxL + 4),
-                  binWidthCm: Math.max(b.binWidthCm, boxW + 4),
-                  binHeightCm: Math.max(b.binHeightCm, boxH + 4),
+                  binLengthCm: nextL,
+                  binWidthCm: nextW,
+                  binHeightCm: nextH,
                   maxWeightKg: Math.max(
                     b.maxWeightKg,
                     Math.ceil(existingWeight + boxKg * qty + 20)
@@ -1541,6 +1556,12 @@ export function useWarehouseTransforms({
         setCustomBinsOverride(nextBins);
         setExtraBins([]);
         setRemovedBinIds([]);
+        if (needsLengthExpand || needsWidthExpand || needsHeightExpand) {
+          expandedDimsNotice =
+            lang === 'ko'
+              ? ` (선반 규격 ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm → ${nextL}×${nextW}×${nextH}cm 자동 확장)`
+              : ` (Shelf auto-expanded to ${nextL}×${nextW}×${nextH}cm)`;
+        }
       }
 
       const idSuffix = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -1593,8 +1614,8 @@ export function useWarehouseTransforms({
 
       showToast(
         lang === 'ko'
-          ? `선반 [${targetBin.id}]에 맞춤 박스 (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) ${qty}개를 넣었습니다.`
-          : `Placed ${qty}× custom box (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) into shelf [${targetBin.id}].`
+          ? `선반 [${targetBin.id}]에 맞춤 박스 (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) ${qty}개를 넣었습니다.${expandedDimsNotice}`
+          : `Placed ${qty}× custom box (${boxL}×${boxW}×${boxH}cm, ${boxKg}kg) into shelf [${targetBin.id}].${expandedDimsNotice}`
       );
     },
     [
@@ -1655,23 +1676,26 @@ export function useWarehouseTransforms({
             (clampedW !== undefined && clampedW > targetBin.binWidthCm) ||
             (clampedH !== undefined && clampedH > targetBin.binHeightCm))
         ) {
+          const nextL = Math.max(
+            targetBin.binLengthCm,
+            (clampedL ?? targetBin.binLengthCm) + 4
+          );
+          const nextW = Math.max(
+            targetBin.binWidthCm,
+            (clampedW ?? targetBin.binWidthCm) + 4
+          );
+          const nextH = Math.max(
+            targetBin.binHeightCm,
+            (clampedH ?? targetBin.binHeightCm) + 4
+          );
           const nextBins = adjustColumnZLevelsForTallBins(
             bins.map((b) =>
               b.id === targetBin.id
                 ? {
                     ...b,
-                    binLengthCm: Math.max(
-                      b.binLengthCm,
-                      (clampedL ?? b.binLengthCm) + 4
-                    ),
-                    binWidthCm: Math.max(
-                      b.binWidthCm,
-                      (clampedW ?? b.binWidthCm) + 4
-                    ),
-                    binHeightCm: Math.max(
-                      b.binHeightCm,
-                      (clampedH ?? b.binHeightCm) + 4
-                    ),
+                    binLengthCm: nextL,
+                    binWidthCm: nextW,
+                    binHeightCm: nextH,
                   }
                 : b
             ),
@@ -1682,6 +1706,11 @@ export function useWarehouseTransforms({
           setCustomBinsOverride(nextBins);
           setExtraBins([]);
           setRemovedBinIds([]);
+          showToast(
+            lang === 'ko'
+              ? `박스 규격 변경에 맞춰 선반 [${targetBin.id}] 규격이 ${targetBin.binLengthCm}×${targetBin.binWidthCm}×${targetBin.binHeightCm}cm → ${nextL}×${nextW}×${nextH}cm로 자동 확장되었습니다.`
+              : `Shelf [${targetBin.id}] auto-expanded to ${nextL}×${nextW}×${nextH}cm to fit updated box dimensions.`
+          );
         }
       }
 

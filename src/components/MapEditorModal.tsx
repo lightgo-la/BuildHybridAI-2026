@@ -1156,6 +1156,66 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
     };
   }, [activeRouteStops, config.equipmentMode, depotX, depotY, routeReturnToDepot]);
 
+  const unoptimizedRouteComparison = useMemo(() => {
+    if (activeRouteStops.length <= 1) {
+      return { savedDistM: 0, savedSec: 0 };
+    }
+    const corridorY = Math.min(depotY + 0.75, 0.85);
+    // Compare against visiting the exact same stops sorted purely by dailyPickLoad descending (naive order without TSP)
+    const naiveStops = [...activeRouteStops].sort(
+      (a, b) => b.dailyPickLoad - a.dailyPickLoad || a.bin.id.localeCompare(b.bin.id)
+    );
+    let curX = depotX;
+    let curY = depotY;
+    let curZ = 0;
+    let naiveDistM = 0;
+    let naiveSec = 0;
+    naiveStops.forEach((a) => {
+      const dXY = computeAisleTravelDistanceM(
+        curX,
+        curY,
+        a.bin.xMeters,
+        a.bin.yMeters,
+        corridorY
+      );
+      const dZ = Math.abs(a.bin.zMeters - curZ);
+      naiveDistM += dXY;
+      naiveSec +=
+        config.equipmentMode === 'asrs_crane'
+          ? Math.max(dXY / 2.6, dZ / 1.35) + 1.4
+          : dXY / 1.9 + dZ / 0.55 + 2.2;
+      curX = a.bin.xMeters;
+      curY = a.bin.yMeters;
+      curZ = a.bin.zMeters;
+    });
+    if (routeReturnToDepot) {
+      const returnDist = computeAisleTravelDistanceM(
+        curX,
+        curY,
+        depotX,
+        depotY,
+        corridorY
+      );
+      naiveDistM += returnDist;
+      naiveSec +=
+        config.equipmentMode === 'asrs_crane'
+          ? returnDist / 2.6 + 0.8
+          : returnDist / 1.9 + 1.0;
+    }
+    return {
+      savedDistM: Number((naiveDistM - routeMetrics.totalDistM).toFixed(1)),
+      savedSec: Number((naiveSec - routeMetrics.totalSec).toFixed(1)),
+    };
+  }, [
+    activeRouteStops,
+    config.equipmentMode,
+    depotX,
+    depotY,
+    routeMetrics.totalDistM,
+    routeMetrics.totalSec,
+    routeReturnToDepot,
+  ]);
+
   const handleApply = () => {
     const customBins = buildCustomBins();
     const maxLvl = customBins.reduce((m, b) => Math.max(m, b.level), levels);
@@ -2619,16 +2679,32 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             )}
 
             <div className="space-y-2 rounded-xl border border-amber-500/45 bg-[var(--t-surface-alt)] p-3 text-[11px]">
-              <div className="flex items-center justify-between gap-1 font-semibold text-amber-300">
+              <div className="flex flex-wrap items-center justify-between gap-1 font-semibold text-amber-300">
                 <span className="inline-flex items-center gap-1.5">
                   <Route className="h-3.5 w-3.5" />
                   {isKo
                     ? '피킹 동선 에디터 (출입구 → 경유 선반)'
                     : 'Pick Route Editor (Depot → Waypoints)'}
                 </span>
-                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold">
-                  {routeMetrics.totalDistM}m · {routeMetrics.totalSec}s
-                </span>
+                <div className="flex items-center gap-1">
+                  {unoptimizedRouteComparison.savedDistM > 0.1 && (
+                    <span
+                      className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 font-mono text-[9.5px] font-bold text-emerald-300"
+                      title={
+                        isKo
+                          ? '단순 빈도순 방문 대비 현재 동선의 이동거리 및 시간 절감량'
+                          : 'Distance and time saved vs naive frequency-ordered visiting'
+                      }
+                    >
+                      {isKo
+                        ? `-${unoptimizedRouteComparison.savedDistM}m / -${unoptimizedRouteComparison.savedSec}s 단축`
+                        : `-${unoptimizedRouteComparison.savedDistM}m / -${unoptimizedRouteComparison.savedSec}s saved`}
+                    </span>
+                  )}
+                  <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold">
+                    {routeMetrics.totalDistM}m · {routeMetrics.totalSec}s
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-1 text-[10px]">
