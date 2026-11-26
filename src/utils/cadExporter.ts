@@ -189,10 +189,6 @@ function dxfText(
   ].join('\n');
 }
 
-/**
- * Generates a Standard R12 ASCII .DXF file (AutoCAD-compatible, metric units: 1 drawing unit = 1 meter)
- * containing both the Top-Down 2D Floor Plan and Front Z-Elevation View.
- */
 export function generateWarehouseDXF(
   result: SlottingResult,
   config: WarehouseConfig,
@@ -242,7 +238,6 @@ export function generateWarehouseDXF(
 
   const entities: string[] = [];
 
-  // 1. Floor Perimeter & Title Annotation (Units in meters)
   entities.push(dxfRect('FLOOR_BOUNDARY', 7, minX, minY, maxX, maxY));
   entities.push(
     dxfText(
@@ -255,7 +250,6 @@ export function generateWarehouseDXF(
     )
   );
 
-  // 2. I/O Staging Depot
   entities.push(
     dxfRect(
       'DEPOT_IO',
@@ -272,7 +266,6 @@ export function generateWarehouseDXF(
     );
   }
 
-  // Structural Obstacles / Pillars
   for (const obs of config.obstacles ?? []) {
     entities.push(
       dxfRect(
@@ -298,31 +291,35 @@ export function generateWarehouseDXF(
     }
   }
 
-  // 3. Plan View Bins (ensure every XY rack column has a representative even if Z1 was deleted, and include cartons across all Z levels)
+  const colTotalBoxes = new Map<string, number>();
+  for (const a of allocations) {
+    const colKey = `${a.bin.xMeters.toFixed(2)},${a.bin.yMeters.toFixed(2)}`;
+    colTotalBoxes.set(colKey, (colTotalBoxes.get(colKey) ?? 0) + a.boxes.length);
+  }
+
   const planBins =
     options.planLevelFilter === 'all'
       ? (() => {
-          const repByCol = new Map<string, BinAllocation>();
-          const extraOccupied: BinAllocation[] = [];
+          const bestByCol = new Map<string, BinAllocation>();
           for (const a of allocations) {
             const colKey = `${a.bin.xMeters.toFixed(2)},${a.bin.yMeters.toFixed(2)}`;
-            const existing = repByCol.get(colKey);
-            if (!existing || a.bin.level < existing.bin.level) {
-              repByCol.set(colKey, a);
+            const cur = bestByCol.get(colKey);
+            if (!cur) {
+              bestByCol.set(colKey, a);
+              continue;
             }
-            if (a.boxes.length > 0) {
-              extraOccupied.push(a);
+            const scoreAlloc = (x: BinAllocation) =>
+              (x.boxes.length > 0 ? 1000 : 0) +
+              (x.bin.isGoldenZone ? 300 : 0) +
+              x.dailyPickLoad;
+            if (scoreAlloc(a) > scoreAlloc(cur)) {
+              bestByCol.set(colKey, a);
             }
           }
-          const combined = new Set<BinAllocation>([
-            ...repByCol.values(),
-            ...extraOccupied,
-          ]);
-          return [...combined];
+          return [...bestByCol.values()];
         })()
       : allocations.filter((a) => a.bin.level === options.planLevelFilter);
 
-  // Track unique XY footprints for rack outlines
   const seenColumns = new Set<string>();
   for (const alloc of planBins) {
     const { bin } = alloc;
@@ -368,7 +365,6 @@ export function generateWarehouseDXF(
     }
   }
 
-  // 4. 2D Pick Route Polyline (Orthogonal Aisle-Corridor Routing)
   if (options.includePickRoute && pickRoute.length > 0) {
     const pts = buildOrthogonalPlanRoute2D(pickRoute, depotX, depotY);
     for (let i = 0; i < pts.length - 1; i++) {
@@ -378,7 +374,6 @@ export function generateWarehouseDXF(
     }
   }
 
-  // 5. Front Z-Elevation View (placed cleanly to the right of Plan View)
   if (options.includeElevation) {
     const elevOffsetX = maxX + 3.0;
     const elevWidth = maxX - minX;
@@ -396,7 +391,6 @@ export function generateWarehouseDXF(
       )
     );
 
-    // Golden Zone horizontal guide lines
     entities.push(
       dxfLine(
         'GOLDEN_ZONE',
@@ -482,9 +476,6 @@ export function generateWarehouseDXF(
   ].join('\n');
 }
 
-/**
- * Generates a vector 2D CAD Architectural Blueprint SVG (Plan + Z-Elevation + Title Block).
- */
 export function generateWarehouseSVG(
   result: SlottingResult,
   config: WarehouseConfig,
@@ -514,11 +505,9 @@ export function generateWarehouseSVG(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${totalW}" height="${totalH}" viewBox="0 0 ${totalW} ${totalH}" style="background:#071326;font-family:ui-monospace,SFMono-Regular,Menlo,monospace">`
   );
 
-  // Blueprint subtle grid
   parts.push(`<defs><pattern id="cadgrid" width="${scale}" height="${scale}" patternUnits="userSpaceOnUse"><path d="M ${scale} 0 L 0 0 0 ${scale}" fill="none" stroke="#12294d" stroke-width="0.7"/></pattern></defs>`);
   parts.push(`<rect width="${totalW}" height="${totalH}" fill="url(#cadgrid)" />`);
 
-  // Title Header Block
   parts.push(
     `<rect x="16" y="12" width="${totalW - 32}" height="34" fill="#0b1f3d" stroke="#38bdf8" stroke-width="1"/>`
   );
@@ -530,7 +519,6 @@ export function generateWarehouseSVG(
     `<text x="${totalW - 26}" y="33" text-anchor="end" fill="#7dd3fc" font-size="11">Cubic: ${kpis.cubicUtilizationPct}% | Cycle: ${kpis.avgCycleTimeSec}s | Golden: ${kpis.goldenZoneHitRatePct}% | Scale 1m=${scale}px</text>`
   );
 
-  // Floor boundary
   parts.push(
     `<rect x="${px(minX)}" y="${py(maxY)}" width="${planW}" height="${planH}" fill="rgba(15,23,42,0.35)" stroke="#60a5fa" stroke-width="1.5"/>`
   );
@@ -538,7 +526,6 @@ export function generateWarehouseSVG(
     `<text x="${px(minX)}" y="${py(maxY) - 8}" fill="#93c5fd" font-size="11" font-weight="bold">PLAN VIEW (X-Y FLOOR · ${options.planLevelFilter === 'all' ? 'ALL LEVELS' : `Z${options.planLevelFilter}`})</text>`
   );
 
-  // Depot
   const dx1 = px(depotX - 1.4);
   const dy1 = py(depotY + 0.55);
   parts.push(
@@ -548,7 +535,6 @@ export function generateWarehouseSVG(
     `<text x="${px(depotX)}" y="${py(depotY) + 4}" text-anchor="middle" fill="#e0f2fe" font-size="10">I/O DEPOT</text>`
   );
 
-  // Structural Obstacles / Pillars
   for (const obs of config.obstacles ?? []) {
     const ox = px(obs.xMeters - 0.4);
     const oy = py(obs.yMeters + 0.4);
@@ -566,27 +552,35 @@ export function generateWarehouseSVG(
     }
   }
 
-  // Rack Bins in Plan (ensure every XY rack column renders even if Z1 was deleted, and include cartons across all Z levels)
+  const svgColTotalBoxes = new Map<string, number>();
+  for (const a of allocations) {
+    const colKey = `${a.bin.xMeters.toFixed(2)},${a.bin.yMeters.toFixed(2)}`;
+    svgColTotalBoxes.set(
+      colKey,
+      (svgColTotalBoxes.get(colKey) ?? 0) + a.boxes.length
+    );
+  }
+
   const planBins =
     options.planLevelFilter === 'all'
       ? (() => {
-          const repByCol = new Map<string, BinAllocation>();
-          const extraOccupied: BinAllocation[] = [];
+          const bestByCol = new Map<string, BinAllocation>();
           for (const a of allocations) {
             const colKey = `${a.bin.xMeters.toFixed(2)},${a.bin.yMeters.toFixed(2)}`;
-            const existing = repByCol.get(colKey);
-            if (!existing || a.bin.level < existing.bin.level) {
-              repByCol.set(colKey, a);
+            const cur = bestByCol.get(colKey);
+            if (!cur) {
+              bestByCol.set(colKey, a);
+              continue;
             }
-            if (a.boxes.length > 0) {
-              extraOccupied.push(a);
+            const scoreAlloc = (x: BinAllocation) =>
+              (x.boxes.length > 0 ? 1000 : 0) +
+              (x.bin.isGoldenZone ? 300 : 0) +
+              x.dailyPickLoad;
+            if (scoreAlloc(a) > scoreAlloc(cur)) {
+              bestByCol.set(colKey, a);
             }
           }
-          const combined = new Set<BinAllocation>([
-            ...repByCol.values(),
-            ...extraOccupied,
-          ]);
-          return [...combined];
+          return [...bestByCol.values()];
         })()
       : allocations.filter((a) => a.bin.level === options.planLevelFilter);
 
@@ -600,6 +594,7 @@ export function generateWarehouseSVG(
     const bw = wM * scale;
     const bh = lM * scale;
     const colKey = `${bin.xMeters.toFixed(2)},${bin.yMeters.toFixed(2)}`;
+    const colBoxes = svgColTotalBoxes.get(colKey) ?? alloc.boxes.length;
 
     if (!drawnCols.has(colKey)) {
       drawnCols.add(colKey);
@@ -608,7 +603,7 @@ export function generateWarehouseSVG(
       );
       if (options.includeLabels) {
         parts.push(
-          `<text x="${bx + 3}" y="${by + 11}" fill="#cbd5e1" font-size="9">A${bin.aisle}-B${bin.bay}</text>`
+          `<text x="${bx + 3}" y="${by + 11}" fill="#cbd5e1" font-size="8.5" font-weight="bold">A${bin.aisle}-B${bin.bay}${colBoxes > 0 ? ` (${colBoxes})` : ''}</text>`
         );
       }
     }
@@ -632,7 +627,6 @@ export function generateWarehouseSVG(
     }
   }
 
-  // Pick Route (Orthogonal Aisle-Corridor Routing)
   if (options.includePickRoute && pickRoute.length > 0) {
     const orthoPts = buildOrthogonalPlanRoute2D(pickRoute, depotX, depotY);
     const polyPts = orthoPts.map((pt) => `${px(pt.x)},${py(pt.y)}`).join(' ');
@@ -641,7 +635,6 @@ export function generateWarehouseSVG(
     );
   }
 
-  // Elevation View
   if (options.includeElevation) {
     const ex0 = pad + planW + gap;
     const eyBottom = pad + 42 + planH;
@@ -655,7 +648,6 @@ export function generateWarehouseSVG(
       `<rect x="${ex0}" y="${ez(maxZ)}" width="${planW}" height="${maxZ * scale}" fill="rgba(15,23,42,0.35)" stroke="#60a5fa" stroke-width="1.5"/>`
     );
 
-    // Golden Zone Band
     const gzTop = ez(config.goldenZoneMaxM + 0.5);
     const gzBottom = ez(config.goldenZoneMinM);
     parts.push(
@@ -691,7 +683,6 @@ export function generateWarehouseSVG(
     }
   }
 
-  // Footer Dimension & Legend Bar
   const footY = totalH - 18;
   parts.push(
     `<text x="16" y="${footY}" fill="#93c5fd" font-size="10">WIDTH: ${(maxX - minX).toFixed(1)}m × DEPTH: ${(maxY - minY).toFixed(1)}m × MAX RACK HEIGHT: ${maxZ.toFixed(1)}m · Generated by CubiSlot 3D</text>`

@@ -248,7 +248,6 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
       <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
-        {/* Header + Tab Switcher */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--t-border)] px-5 py-3.5">
           <div className="flex items-center gap-2">
             <button
@@ -292,7 +291,6 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
 
         {tab === 'interior' ? (
           <div className="flex-1 space-y-5 overflow-y-auto p-5 text-xs">
-            {/* 1. Room Wall Enclosure Style & Wall Color */}
             <section className="space-y-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="font-bold">
@@ -361,7 +359,6 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               </div>
             </section>
 
-            {/* 2. 1-Click 3D Furniture & Appliance Catalog (12 Types) */}
             <section className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="font-bold">
@@ -439,7 +436,6 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
               </div>
             </section>
 
-            {/* 3. Placed 3D Interior Items List & Live Controls */}
             <section className="space-y-2.5 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
               <div className="flex items-center justify-between">
                 <span className="font-bold">

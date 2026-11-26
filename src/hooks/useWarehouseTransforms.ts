@@ -219,7 +219,6 @@ export function useWarehouseTransforms({
         : 0;
       const boxWeight = sampleBox?.weightKg ?? 0;
 
-      // Check if target bin needs a 1:1 swap because it is near full capacity
       const swappedSkuId =
         targetAlloc &&
         targetAlloc.boxes.length > 0 &&
@@ -295,7 +294,6 @@ export function useWarehouseTransforms({
       const snappedX = Number((Math.round(floorX / 0.25) * 0.25).toFixed(2));
       const snappedY = Number((Math.round(floorZ / 0.25) * 0.25).toFixed(2));
 
-      // Check if an existing Z1 bin is already at this floor location
       const existingFloorBin = bins.find(
         (b) =>
           Math.hypot(b.xMeters - snappedX, b.yMeters - snappedY) < 0.45 &&
@@ -384,7 +382,6 @@ export function useWarehouseTransforms({
       const fromBin = bins.find((b) => b.id === fromBinId);
       if (!fromBin) return;
 
-      // Find nearest bin in the requested direction (dxSign, dySign), preferring same Z-level
       const candidates = bins
         .filter((b) => {
           if (b.id === fromBinId) return false;
@@ -497,7 +494,6 @@ export function useWarehouseTransforms({
       const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75];
       const maxWeights = [1200, 750, 600, 420, 280, 200, 160];
 
-      // Pick lowest unoccupied Z-level at this actual (snappedX, snappedY) floor coordinate
       let targetLevel = 1;
       while (
         targetLevel <= 7 &&
@@ -544,7 +540,6 @@ export function useWarehouseTransforms({
     [bins, config, handleAddBin]
   );
 
-  // Move ONLY a single individual shelf bin (낱개 선반 칸) in 3D X/Y/Z without moving other levels in its column
   const handleMoveSingleBin = useCallback(
     (binId: string, newX: number, newY: number, newLevel?: number) => {
       const target = bins.find((b) => b.id === binId);
@@ -906,19 +901,61 @@ export function useWarehouseTransforms({
         INTERIOR_PROP_CATALOG.find((c) => c.type === type) ??
         INTERIOR_PROP_CATALOG[0];
       const existing = activePropsList;
-      const offsetIdx = existing.length;
+
+      let chosenX = customX;
+      let chosenY = customY;
+
+      if (chosenX === undefined || chosenY === undefined) {
+        const binXs = bins.map((b) => b.xMeters);
+        const binYs = bins.map((b) => b.yMeters);
+        const minBX = binXs.length > 0 ? Math.min(...binXs) : 0;
+        const maxBX = binXs.length > 0 ? Math.max(...binXs) : 6;
+        const minBY = binYs.length > 0 ? Math.min(...binYs) : 1.8;
+        const maxBY = binYs.length > 0 ? Math.max(...binYs) : 6;
+
+        const candidateSpots: Array<[number, number]> = [];
+        for (let ring = 0; ring < 5; ring++) {
+          const margin = 1.6 + ring * 1.35;
+          for (let x = minBX - 1.2; x <= maxBX + 1.5; x += 1.35) {
+            candidateSpots.push([x, minBY - margin + 0.6]);
+            candidateSpots.push([x, maxBY + margin]);
+          }
+          for (let y = minBY - 0.5; y <= maxBY + 1.5; y += 1.35) {
+            candidateSpots.push([minBX - margin, y]);
+            candidateSpots.push([maxBX + margin, y]);
+          }
+        }
+
+        const isOccupied = (cx: number, cy: number) => {
+          for (const b of bins) {
+            if (Math.hypot(b.xMeters - cx, b.yMeters - cy) < 1.15) return true;
+          }
+          for (const o of config.obstacles ?? []) {
+            if (Math.hypot(o.xMeters - cx, o.yMeters - cy) < 1.05) return true;
+          }
+          for (const p of existing) {
+            if (Math.hypot(p.xMeters - cx, p.yMeters - cy) < 1.15) return true;
+          }
+          return false;
+        };
+
+        const foundSpot = candidateSpots.find(([cx, cy]) => !isOccupied(cx, cy));
+        if (foundSpot) {
+          chosenX = foundSpot[0];
+          chosenY = foundSpot[1];
+        } else {
+          const offsetIdx = existing.length;
+          chosenX = -1.6 + (offsetIdx % 8) * 1.4;
+          chosenY = -0.8 - Math.floor(offsetIdx / 8) * 1.4;
+        }
+      }
+
       const newProp: InteriorProp = {
         id: `prop-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         type,
         label: lang === 'ko' ? cat.nameKo : cat.nameEn,
-        xMeters:
-          customX !== undefined
-            ? Number(customX.toFixed(2))
-            : Number((-0.8 + (offsetIdx % 4) * 1.4).toFixed(2)),
-        yMeters:
-          customY !== undefined
-            ? Number(customY.toFixed(2))
-            : Number((0.4 + Math.floor(offsetIdx / 4) * 1.3).toFixed(2)),
+        xMeters: Number(chosenX.toFixed(2)),
+        yMeters: Number(chosenY.toFixed(2)),
         rotationDeg: 0,
         scale: 1.0,
         color: cat.defaultColor,
@@ -932,12 +969,14 @@ export function useWarehouseTransforms({
       setSelectedCargo(null);
       showToast(
         lang === 'ko'
-          ? `3D 인테리어 추가됨: ${newProp.label}`
-          : `Added 3D Interior: ${newProp.label}`
+          ? `3D 인테리어 추가됨: ${newProp.label} (${newProp.xMeters}m, ${newProp.yMeters}m)`
+          : `Added 3D Interior: ${newProp.label} (${newProp.xMeters}m, ${newProp.yMeters}m)`
       );
     },
     [
       activePropsList,
+      bins,
+      config.obstacles,
       lang,
       pushWorkspaceUndo,
       setConfigPatch,
@@ -1284,7 +1323,6 @@ export function useWarehouseTransforms({
       const targetAlloc = allocations.find((a) => a.bin.id === targetBin.id);
       const existingWeight = targetAlloc?.currentWeightKg ?? 0;
 
-      // Auto-expand the shelf bin if the configured box size exceeds bin internal bounds
       const needsLengthExpand = boxL > targetBin.binLengthCm;
       const needsWidthExpand = boxW > targetBin.binWidthCm;
       const needsHeightExpand = boxH > targetBin.binHeightCm;

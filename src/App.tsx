@@ -203,7 +203,6 @@ export function App() {
 
   const pushWorkspaceUndo = useCallback(() => {
     const now = performance.now();
-    // Coalesce rapid continuous edits (e.g. color picker drag or held arrow keys) within 350ms
     if (now - lastUndoPushMsRef.current < 350) {
       lastUndoPushMsRef.current = now;
       return;
@@ -892,7 +891,6 @@ export function App() {
             }}
           />
 
-          {/* KPI ROI Strip */}
           {designSettings.showKpiBar && (
             <section className="px-4 pt-3">
               <KPIComparisonBar
@@ -907,9 +905,7 @@ export function App() {
             </section>
           )}
 
-          {/* Main Resizable 3-Column Digital Twin Workspace */}
           <main className="workspace-grid flex-1 p-4" style={workspaceStyle}>
-        {/* Left Panel: Optimizer / Space & Cargo Editor / Bin Inspector */}
         <section className="flex flex-col rounded-xl border border-slate-800 bg-slate-900/90">
           <div className="flex border-b border-slate-800 text-[11px] font-medium">
             <button
@@ -972,7 +968,6 @@ export function App() {
             </button>
           </div>
 
-          {/* Beginner 1-Click Direct Shortcut to Shelf & Box Size Builder when on Tab 1 or Tab 2 */}
           {leftTab !== 'inspector' && (
             <div className="border-b border-slate-800/80 bg-emerald-950/25 px-3.5 py-2">
               <button
@@ -1130,12 +1125,10 @@ export function App() {
           </div>
         </section>
 
-        {/* Center Panel: 3D Digital Twin Viewport */}
         <section
           className="relative flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950"
           style={{ minHeight: `${designSettings.viewportMinHeightPx}px` }}
         >
-          {/* Viewport Overlay Controls */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-[11px]">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex overflow-hidden rounded-lg border border-slate-700 bg-slate-950">
@@ -1163,7 +1156,6 @@ export function App() {
                 </button>
               </div>
 
-              {/* 1-Click 3D Optimization Goal Switcher */}
               <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950/90 px-1.5 py-0.5 text-[10px]">
                 <span className="font-semibold text-slate-400">
                   {t(lang, 'optGoalLabel')}
@@ -1233,7 +1225,6 @@ export function App() {
                 {t(lang, 'view3dGolden')}
               </button>
 
-              {/* 1-Click 3D Space Interior & Furniture Builder Button */}
               <button
                 type="button"
                 onClick={() => {
@@ -1251,7 +1242,6 @@ export function App() {
                 {lang === 'ko' ? '3D 인테리어' : '3D Interior'}
               </button>
 
-              {/* 1-Click 3D Background Studio Editor Button */}
               <button
                 type="button"
                 onClick={() => setSceneBgModalOpen(true)}
@@ -1266,7 +1256,6 @@ export function App() {
                 {lang === 'ko' ? '3D 배경·조명' : '3D Background'}
               </button>
 
-              {/* Keyboard Shortcuts Help Button */}
               <button
                 type="button"
                 onClick={() => {
@@ -1286,7 +1275,6 @@ export function App() {
             </div>
           </div>
 
-          {/* Beginner-Friendly Direct 3D Edit Bar + Collapsible Advanced Transform Drawer */}
           <div className="border-b border-slate-800/80 bg-slate-950/85 px-3 py-1.5 text-[10px]">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex flex-wrap items-center gap-1.5">
@@ -1323,7 +1311,6 @@ export function App() {
                     : 'Shelf & Custom Box Size'}
                 </button>
 
-                {/* Instant 3D Item Finder Dropdown: Select any SKU to locate & auto-zoom to its 3D shelf */}
                 <select
                   value=""
                   onChange={(e) => {
@@ -1387,7 +1374,6 @@ export function App() {
                   ))}
                 </select>
 
-                {/* 1-Click Quick Interior Add / Delete Bar Toggle */}
                 <button
                   type="button"
                   onClick={() => setShowQuickInteriorBar((v) => !v)}
@@ -1433,7 +1419,6 @@ export function App() {
                   </>
                 ) : null}
 
-                {/* 3D Workspace Undo / Redo Buttons */}
                 <div className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900">
                   <button
                     type="button"
@@ -1503,7 +1488,6 @@ export function App() {
               </div>
 
               <div className="flex flex-wrap items-center gap-1.5">
-                {/* Instant 1-Click Map Floor Color Swatches & Color Picker */}
                 <div className="flex items-center gap-1 rounded-md border border-cyan-500/35 bg-slate-900 px-1.5 py-0.5">
                   <span className="font-semibold text-cyan-300">
                     {lang === 'ko' ? '바닥색상:' : 'Floor:'}
@@ -1547,7 +1531,6 @@ export function App() {
                   />
                 </div>
 
-                {/* Instant 1-Click 3D Background Brightness Pills */}
                 <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900 px-1.5 py-0.5">
                   <Sun className="h-3 w-3 text-amber-400" />
                   {[
@@ -1580,7 +1563,6 @@ export function App() {
                   ))}
                 </div>
 
-                {/* Toggle Advanced Whole-Template & Drag-Scope Tools in Simple Mode */}
                 {simpleMode && (
                   <button
                     type="button"
@@ -1603,7 +1585,6 @@ export function App() {
               </div>
             </div>
 
-            {/* Ultra-Simple 1-Click Interior Quick Add / Delete / Wall Bar */}
             {(showQuickInteriorBar || selectedProp !== null) && (
               <div className="mt-1.5 space-y-1.5 rounded-lg border border-emerald-500/35 bg-slate-900/95 p-2 text-[10px]">
                 <div className="flex flex-wrap items-center justify-between gap-1.5">
@@ -1634,7 +1615,6 @@ export function App() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1">
-                    {/* Quick Room Wall Enclosure Switcher */}
                     {(
                       [
                         ['cutaway_corner', lang === 'ko' ? 'ㄱ자벽' : 'L-Wall'],
@@ -1680,6 +1660,160 @@ export function App() {
                     >
                       {lang === 'ko' ? '✨ 자동세트 배치' : '✨ Auto Set'}
                     </button>
+
+                    <label
+                      className="cursor-pointer rounded border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-bold text-cyan-200 hover:bg-cyan-500/25"
+                      title={
+                        lang === 'ko'
+                          ? 'test1 폴더의 100개 샘플 JSON(인테리어·기둥·선반·품목·맞춤박스) 또는 전체 셋팅 JSON 파일을 즉시 불러옵니다'
+                          : 'Import 100-item sample JSON (Interior, Obstacles, Bins, SKUs, Custom Boxes) or Full Workspace JSON'
+                      }
+                    >
+                      {lang === 'ko' ? '📂 JSON 샘플/셋팅 열기' : '📂 Load JSON'}
+                      <input
+                        type="file"
+                        accept=".json,application/json"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            try {
+                              const data = JSON.parse(String(reader.result ?? ''));
+                              pushWorkspaceUndo();
+                              if (Array.isArray(data) && data.length > 0) {
+                                const first = data[0];
+                                if (first.rotationDeg !== undefined && first.type) {
+                                  setConfigPatch((prev) => ({
+                                    ...prev,
+                                    interiorProps: data as InteriorProp[],
+                                  }));
+                                  showToast(
+                                    lang === 'ko'
+                                      ? `3D 인테리어 가구 ${data.length}개 JSON 불러오기 완료!`
+                                      : `Loaded ${data.length} 3D interior props from JSON!`
+                                  );
+                                } else if (first.binLengthCm !== undefined && first.zMeters !== undefined) {
+                                  setCustomBinsOverride(data as BinSpec[]);
+                                  setExtraBins([]);
+                                  setRemovedBinIds([]);
+                                  showToast(
+                                    lang === 'ko'
+                                      ? `3D 선반/랙 빈 ${data.length}개 JSON 불러오기 완료!`
+                                      : `Loaded ${data.length} 3D shelf bins from JSON!`
+                                  );
+                                } else if (first.dailyPicks !== undefined && first.skuCode) {
+                                  setSkus(data as SKUItem[]);
+                                  showToast(
+                                    lang === 'ko'
+                                      ? `SKU 품목 마스터 ${data.length}개 JSON 불러오기 완료!`
+                                      : `Loaded ${data.length} SKUs from JSON!`
+                                  );
+                                } else if (first.sampleId !== undefined && first.binId && first.lengthCm) {
+                                  const convertedSkus: SKUItem[] = data.map((c: any, idx: number) => ({
+                                    id: `sku-cbox-${idx + 1}`,
+                                    skuCode: c.skuCode || `CBOX-${idx + 1}`,
+                                    name: c.name || `Custom Box ${idx + 1}`,
+                                    category: 'CustomBox',
+                                    abcClass: c.abcClass || 'A',
+                                    dailyPicks: c.abcClass === 'A' ? 110 : 45,
+                                    lengthCm: Number(c.lengthCm) || 36,
+                                    widthCm: Number(c.widthCm) || 28,
+                                    heightCm: Number(c.heightCm) || 24,
+                                    weightKg: Number(c.weightKg) || 5,
+                                    quantity: Number(c.quantity) || 1,
+                                    fragile: Boolean(c.fragile),
+                                    color: c.color || '#22d3ee',
+                                  }));
+                                  setSkus(convertedSkus);
+                                  showToast(
+                                    lang === 'ko'
+                                      ? `맞춤 박스 규격 샘플 ${data.length}개 JSON 불러오기 완료!`
+                                      : `Loaded ${data.length} custom box samples from JSON!`
+                                  );
+                                } else if (first.aisle !== undefined && first.bay !== undefined && first.xMeters !== undefined) {
+                                  setConfigPatch((prev) => ({
+                                    ...prev,
+                                    obstacles: data as WarehouseObstacle[],
+                                  }));
+                                  showToast(
+                                    lang === 'ko'
+                                      ? `기둥/장애물 ${data.length}개 JSON 불러오기 완료!`
+                                      : `Loaded ${data.length} obstacles from JSON!`
+                                  );
+                                }
+                              } else if (data && typeof data === 'object') {
+                                if (Array.isArray(data.skus)) setSkus(data.skus);
+                                if (data.configPatch) setConfigPatch(data.configPatch);
+                                if (Array.isArray(data.interiorProps)) {
+                                  setConfigPatch((prev) => ({
+                                    ...prev,
+                                    interiorProps: data.interiorProps,
+                                  }));
+                                }
+                                if (Array.isArray(data.customBinsOverride)) {
+                                  setCustomBinsOverride(data.customBinsOverride);
+                                }
+                                showToast(
+                                  lang === 'ko'
+                                    ? '전체 워크스페이스 셋팅 JSON 불러오기 완료!'
+                                    : 'Loaded full workspace settings JSON!'
+                                );
+                              }
+                            } catch {
+                              showToast(
+                                lang === 'ko'
+                                  ? 'JSON 파일 형식을 확인해 주세요.'
+                                  : 'Invalid JSON file format.'
+                              );
+                            }
+                          };
+                          reader.readAsText(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const payload = {
+                          exportedAt: new Date().toISOString(),
+                          scenarioId,
+                          scenarioName: activeScenario.name,
+                          config,
+                          configPatch,
+                          interiorProps: effectiveInteriorProps,
+                          obstacles: config.obstacles ?? [],
+                          customBinsOverride,
+                          skus,
+                          pinnedPlacements,
+                        };
+                        const blob = new Blob([JSON.stringify(payload, null, 2)], {
+                          type: 'application/json;charset=utf-8;',
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'cubislot-3d-workspace-settings.json';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showToast(
+                          lang === 'ko'
+                            ? '현재 3D 인테리어·공간 전체 셋팅을 JSON으로 저장했습니다.'
+                            : 'Saved current 3D interior & workspace settings to JSON.'
+                        );
+                      }}
+                      className="rounded border border-slate-700 bg-slate-950 px-2 py-0.5 font-semibold text-slate-300 hover:border-cyan-400 hover:text-cyan-200"
+                      title={
+                        lang === 'ko'
+                          ? '현재 인테리어·선반·품목 전체 셋팅을 JSON 파일로 저장합니다'
+                          : 'Export current interior, shelf & SKU settings to JSON'
+                      }
+                    >
+                      {lang === 'ko' ? '⬇ 셋팅 JSON 저장' : '⬇ Save JSON'}
+                    </button>
                     {effectiveInteriorProps.length > 0 && (
                       <button
                         type="button"
@@ -1704,7 +1838,6 @@ export function App() {
                   </div>
                 </div>
 
-                {/* Active Placed Props Chips with 1-Click Focus & 1-Click Delete (×) */}
                 <div className="flex max-h-20 flex-wrap items-center gap-1 overflow-y-auto border-t border-slate-800 pt-1">
                   <span className="font-semibold text-slate-400">
                     {lang === 'ko'
@@ -1766,7 +1899,6 @@ export function App() {
               </div>
             )}
 
-            {/* Collapsible Secondary Bar: Drag Scope Switcher & Whole-Template Transforms */}
             {(!simpleMode || showAdvanced3DTools || dragMoveMode) && (
               <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-800/80 pt-1.5">
                 <div className="flex flex-wrap items-center gap-1.5">
@@ -1850,7 +1982,6 @@ export function App() {
                   </div>
                 </div>
 
-                {/* Whole-Template 1-Click Transform Controls */}
                 <div className="flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-950/30 px-1.5 py-0.5">
                   <span className="font-semibold text-emerald-300">
                     {lang === 'ko' ? '전체 공간 변환:' : 'Whole Space:'}
@@ -1929,14 +2060,12 @@ export function App() {
           </div>
 
           <div className="relative flex-1">
-            {/* Keyboard Shortcut Feedback Toast */}
             {shortcutToast && (
               <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-cyan-400/60 bg-slate-950/90 px-4 py-1.5 text-xs font-bold text-cyan-200 shadow-2xl backdrop-blur">
                 {shortcutToast}
               </div>
             )}
 
-            {/* On-Screen Selected 3D Individual Cargo Item (낱개 물건) Quick Move Floating Bar */}
             {selectedCargo && !selectedProp && (
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-amber-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span
@@ -1950,7 +2079,6 @@ export function App() {
                   {selectedCargo.binId}
                 </span>
 
-                {/* Inline Live Box Size (L×W×H cm) Quick Inputs directly on the 3D Floating Bar */}
                 <div className="flex items-center gap-1 rounded-md border border-emerald-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
                   <span className="font-semibold text-emerald-300">
                     {lang === 'ko' ? '박스치수:' : 'Size:'}
@@ -2171,7 +2299,6 @@ export function App() {
               </div>
             )}
 
-            {/* On-Screen Selected Shelf Bin (선반 사이즈 실시간 변경 & 위치 이동) Floating Bar */}
             {selectedBin &&
               !selectedCargo &&
               !selectedProp &&
@@ -2184,7 +2311,6 @@ export function App() {
                       : `Shelf [${selectedBin.bin.id}]`}
                   </span>
 
-                  {/* Live Shelf Dimensions (L×W×H cm) Quick Inputs directly on 3D Floating Bar */}
                   <div className="flex items-center gap-1 rounded-md border border-cyan-500/40 bg-slate-900/90 px-1.5 py-0.5 text-[10px]">
                     <span className="font-semibold text-cyan-300">
                       {lang === 'ko' ? '선반치수:' : 'Shelf Size:'}
@@ -2314,7 +2440,6 @@ export function App() {
                     </button>
                   </div>
 
-                  {/* Move Individual Bin or Rack Column */}
                   <button
                     type="button"
                     onClick={() =>
@@ -2409,7 +2534,6 @@ export function App() {
                 </div>
               )}
 
-            {/* On-Screen Selected 3D Pillar / Obstacle Quick Edit Floating Bar */}
             {selectedObstacle && (
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-yellow-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span className="font-bold text-yellow-300">
@@ -2485,7 +2609,6 @@ export function App() {
               </div>
             )}
 
-            {/* On-Screen Selected 3D I/O Depot / Entry Point Quick Edit Floating Bar */}
             {selectedDepot && (
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-sky-400/70 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span className="font-bold text-sky-300">
@@ -2556,7 +2679,6 @@ export function App() {
               </div>
             )}
 
-            {/* On-Screen Selected 3D Interior Furniture Quick Edit Floating Bar */}
             {selectedProp && (
               <div className="absolute left-1/2 top-12 z-20 flex -translate-x-1/2 flex-wrap items-center gap-1.5 rounded-xl border border-emerald-400/60 bg-slate-950/95 px-3 py-1.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
                 <span className="font-bold text-emerald-300">
@@ -2717,7 +2839,6 @@ export function App() {
               lang={lang}
             />
 
-            {/* Floating Camera, Z-Slice & Route Controls */}
             <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/90 p-1.5 text-[10px] backdrop-blur">
               <button
                 type="button"
@@ -2810,7 +2931,6 @@ export function App() {
                     : 'Move 3D'}
               </button>
 
-              {/* Inline Z-Level Quick Slicer Pills directly inside the 3D Studio */}
               <div className="flex items-center gap-0.5 border-l border-slate-700 pl-1.5">
                 <button
                   type="button"
@@ -2845,7 +2965,6 @@ export function App() {
               </div>
             </div>
 
-            {/* Legend */}
             <div className="absolute right-3 top-3 rounded-lg border border-slate-800 bg-slate-900/85 px-2.5 py-2 text-[10px] text-slate-300 backdrop-blur">
               <div className="flex items-center gap-1.5">
                 <span
@@ -2873,7 +2992,6 @@ export function App() {
           </div>
         </section>
 
-        {/* Right Panel: Firebase AI Logic Hybrid Co-Pilot */}
         <section className="min-h-[420px]">
           <HybridAICopilotPanel
             firebaseState={firebaseState}

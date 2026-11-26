@@ -337,7 +337,6 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
       <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--t-border)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <Sun className="h-5 w-5 text-amber-400" />
@@ -375,7 +374,6 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto p-5 text-xs">
-          {/* 1. 12 Instant 3D Background & Lighting Presets */}
           <section className="space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 font-bold">
@@ -439,7 +437,6 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             </div>
           </section>
 
-          {/* 2. Custom Color Pickers & Floor Material */}
           <section className="space-y-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-1.5 font-bold">
@@ -555,7 +552,6 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             </div>
           </section>
 
-          {/* 3. Lighting Exposure, Sun, Ambient & Fog Sliders */}
           <section className="space-y-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
             <div className="flex items-center gap-1.5 font-bold">
               <Lightbulb className="h-3.5 w-3.5 text-amber-400" />
@@ -672,7 +668,6 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
             </div>
           </section>
 
-          {/* 4. 3D Scene Elements & Visual Clarity Toggles */}
           <section className="space-y-2.5 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-4">
             <div className="flex items-center gap-1.5 font-bold">
               <Eye className="h-3.5 w-3.5 text-emerald-400" />

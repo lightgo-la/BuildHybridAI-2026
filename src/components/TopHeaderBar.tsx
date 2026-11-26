@@ -85,7 +85,6 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        {/* App View Mode Switcher: Everyday Home <-> 3D Workspace */}
         <div className="flex overflow-hidden rounded-lg border border-slate-700 bg-slate-950 p-0.5">
           <button
             type="button"
@@ -113,7 +112,6 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           </button>
         </div>
 
-        {/* Guided 3-Step Flow */}
         <button
           type="button"
           onClick={onOpenTemplateGallery}
@@ -144,7 +142,6 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           3. {t(lang, 'navCad')}
         </button>
 
-        {/* Language Switcher (Korean / English) */}
         <button
           type="button"
           onClick={onToggleLanguage}
@@ -155,7 +152,6 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           {lang === 'ko' ? '한국어/EN' : 'EN/한국어'}
         </button>
 
-        {/* Easy / Pro Terminology Toggle */}
         <button
           type="button"
           onClick={onToggleSimpleMode}
@@ -165,7 +161,6 @@ export const TopHeaderBar: React.FC<TopHeaderBarProps> = ({
           {simpleMode ? t(lang, 'easyModeOn') : t(lang, 'proModeOn')}
         </button>
 
-        {/* Instant 24-Theme Switcher + Design & Size Studio */}
         <div
           className="flex items-center overflow-hidden rounded-lg border"
           style={{

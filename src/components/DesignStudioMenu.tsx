@@ -91,7 +91,6 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
 
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
-      {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--t-border)] px-4 py-3">
         <div className="flex items-center gap-2">
           <Palette className="h-4 w-4 text-[var(--t-accent)]" />
@@ -120,14 +119,12 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto p-4 text-xs">
-        {/* Size & Layout Controls */}
         <section className="space-y-3 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-3.5">
           <div className="flex items-center gap-1.5 text-xs font-semibold">
             <Maximize2 className="h-3.5 w-3.5 text-[var(--t-accent)]" />
             {lang === 'ko' ? '화면 & 패널 크기 조절' : 'Menu & Panel Size Controls'}
           </div>
 
-          {/* Quick Size Presets */}
           <div className="grid grid-cols-2 gap-1.5 text-[11px]">
             <button
               type="button"
@@ -159,7 +156,6 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             </button>
           </div>
 
-          {/* Sliders */}
           <div className="space-y-2.5 pt-1 text-[11px]">
             <div>
               <div className="flex justify-between">
@@ -252,7 +248,6 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
             </div>
           </div>
 
-          {/* Section Visibility Toggles */}
           <div className="flex gap-3 pt-1 text-[11px]">
             <label className="flex cursor-pointer items-center gap-1.5">
               <input
@@ -281,7 +276,6 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
           </div>
         </section>
 
-        {/* 24 Design Themes */}
         <section className="space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold">

@@ -108,7 +108,6 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
       setCopiedIdx(idx);
       window.setTimeout(() => setCopiedIdx(null), 1800);
     } catch {
-      // ignore clipboard permissions error
     }
   };
 
@@ -157,7 +156,6 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
 
   return (
     <div className="flex h-full flex-col rounded-xl border border-slate-800 bg-slate-900/90">
-      {/* Clean Header */}
       <div className="border-b border-slate-800 p-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -201,7 +199,6 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
           </div>
         </div>
 
-        {/* Collapsible Technical SDK Telemetry & InferenceMode */}
         {showAdvanced && (
           <div className="mt-2.5 space-y-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2.5">
             <div className="flex flex-wrap gap-1.5 text-[10px]">
@@ -259,7 +256,6 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
         )}
       </div>
 
-      {/* Friendly 1-Click Prompts */}
       <div className="flex flex-wrap gap-1.5 border-b border-slate-800/80 bg-slate-950/40 px-3 py-2.5">
         {buildQuickPrompts(config, lang).map((qp) => (
           <button
@@ -274,7 +270,6 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
         ))}
       </div>
 
-      {/* Response Stream */}
       <div className="flex-1 space-y-3 overflow-y-auto p-3 text-xs">
         {history.length === 0 && (
           <div className="rounded-xl border border-dashed border-slate-800 bg-slate-950/50 p-3.5 text-slate-400">
@@ -417,7 +412,6 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
         ))}
       </div>
 
-      {/* Prompt Input */}
       <form
         onSubmit={(e) => {
           e.preventDefault();

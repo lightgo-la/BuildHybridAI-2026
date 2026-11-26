@@ -107,7 +107,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
 }) => {
   const isKo = lang === 'ko' || simpleMode;
 
-  // Custom Box Size Builder state
   const binL = selectedBin?.bin.binLengthCm ?? 120;
   const binW = selectedBin?.bin.binWidthCm ?? 90;
   const binH = selectedBin?.bin.binHeightCm ?? 70;
@@ -126,11 +125,9 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
   const [autoExpandBin, setAutoExpandBin] = useState(true);
   const [justAddedFlash, setJustAddedFlash] = useState(false);
 
-  // Shelf resize drawer state (expanded by default so users can resize shelves anytime)
   const [showBinResize, setShowBinResize] = useState(true);
   const [shelfResizeScope, setShelfResizeScope] =
     useState<ShelfResizeScope>('single');
-  // Inline box resize target SKU ID
   const [resizingSkuId, setResizingSkuId] = useState<string | null>(null);
   const [showAllExistingSkus, setShowAllExistingSkus] = useState(false);
 
@@ -244,7 +241,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
     );
   }
 
-  // Compute live fit metrics for the Custom Box Size Builder
   const singleBoxVolCm3 = boxL * boxW * boxH;
   const totalAddVolCm3 = singleBoxVolCm3 * boxQty;
   const singleBoxVolPct =
@@ -294,7 +290,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* Header & Shelf Switcher */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -344,7 +339,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
         </div>
       )}
 
-      {/* Shelf Capacity & Shelf Size Quick Editor */}
       <div className="space-y-2 rounded-lg bg-slate-950 p-2.5 text-[11px]">
         <div>
           <div className="flex justify-between text-slate-400">
@@ -390,7 +384,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
           </div>
         </div>
 
-        {/* Collapsible Individual / Column / Whole Warehouse Shelf Size Editor */}
         {showBinResize && onResizeSingleBin && (
           <div className="space-y-2 rounded-lg border border-cyan-500/35 bg-slate-900/95 p-2.5 text-[10px]">
             <div className="flex flex-wrap items-center justify-between gap-1">
@@ -423,7 +416,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
               </div>
             </div>
 
-            {/* 1-Click Shelf Dimension Presets */}
             <div className="grid grid-cols-3 gap-1 text-[9px]">
               {[
                 { label: isKo ? '슬림 (80×45×40)' : 'Slim 80×45×40', l: 80, w: 45, h: 40 },
@@ -585,7 +577,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
         </div>
       </div>
 
-      {/* NEW: Custom Box Size Configurator & Direct Shelf Placement */}
       {onPlaceCustomBoxInBin && (
         <form
           onSubmit={handleSubmitCustomBox}
@@ -603,7 +594,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             </span>
           </div>
 
-          {/* 1-Click Box Size Presets */}
           <div>
             <div className="mb-1 text-[10px] text-slate-400">
               {isKo
@@ -679,7 +669,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             </div>
           </div>
 
-          {/* Direct L / W / H (cm) Number + Slider Controls */}
           <div className="grid grid-cols-3 gap-1.5">
             <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-1.5">
               <div className="flex items-center justify-between text-[10px]">
@@ -778,7 +767,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             </div>
           </div>
 
-          {/* Box Name, Weight, Quantity, ABC Class */}
           <div className="grid grid-cols-12 gap-1.5">
             <div className="col-span-5">
               <span className="text-[10px] text-slate-400">
@@ -839,7 +827,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             </div>
           </div>
 
-          {/* Box Color Swatches + Fragile Option */}
           <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[10px]">
             <div className="flex items-center gap-1">
               <span className="text-slate-400">{isKo ? '색상:' : 'Color:'}</span>
@@ -874,7 +861,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
             </label>
           </div>
 
-          {/* Live 3D Fit & Volume Simulation Summary */}
           <div className="rounded-lg border border-slate-800 bg-slate-950/90 px-2.5 py-1.5 text-[10px]">
             <div className="flex items-center justify-between text-slate-300">
               <span>
@@ -955,7 +941,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
         </form>
       )}
 
-      {/* 1-Click Bin Actions */}
       <div className="flex flex-wrap gap-1.5 text-[11px]">
         <button
           type="button"
@@ -987,7 +972,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
         </button>
       </div>
 
-      {/* Direct 1-Click Cargo Placement of Existing Catalog SKUs */}
       {onPinCargo && skus.length > 0 && (
         <div className="rounded-xl border border-slate-800 bg-slate-950/75 p-2.5 text-[11px]">
           <div className="mb-1.5 flex items-center justify-between">
@@ -1052,7 +1036,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
         </div>
       )}
 
-      {/* Currently Packed Boxes in This Shelf Bin + Live Dimension Editor */}
       <div>
         <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-slate-300">
           <span>
@@ -1226,7 +1209,6 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                     </div>
                   </div>
 
-                  {/* Inline Live Box Dimension Editor */}
                   {isResizing && onUpdateBoxDimensions && (
                     <div
                       onClick={(e) => e.stopPropagation()}

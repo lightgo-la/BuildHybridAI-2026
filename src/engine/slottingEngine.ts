@@ -72,7 +72,6 @@ interface Orientation {
 function getOrientations(sku: SKUItem): Orientation[] {
   const { lengthCm: L, widthCm: W, heightCm: H, fragile } = sku;
   if (fragile) {
-    // Fragile items keep vertical orientation (H upright)
     return [
       { l: L, w: W, h: H, rotated: false },
       { l: W, w: L, h: H, rotated: true },
@@ -86,7 +85,6 @@ function getOrientations(sku: SKUItem): Orientation[] {
     { l: W, w: H, h: L, rotated: true },
     { l: H, w: W, h: L, rotated: true },
   ];
-  // Deduplicate identical dimensions
   const seen = new Set<string>();
   return perms.filter((p) => {
     const key = `${p.l}x${p.w}x${p.h}`;
@@ -135,9 +133,7 @@ function hasPhysicalSupport(
     const overlapX = Math.max(0, Math.min(x + l, b.xCm + b.lengthCm) - Math.max(x, b.xCm));
     const overlapY = Math.max(0, Math.min(y + w, b.yCm + b.widthCm) - Math.max(y, b.yCm));
     if (overlapX > 0 && overlapY > 0) {
-      // Do not stack items directly onto a fragile carton
       if (b.fragile) return false;
-      // In 3D Optimized mode, block crushing heavy-on-light stacking (>1.45x weight ratio)
       if (enforceWeightStability && candidateWeightKg > b.weightKg * 1.45) {
         return false;
       }
@@ -165,7 +161,6 @@ function tryPackIntoBin(
     ? getOrientations(sku)
     : [{ l: sku.lengthCm, w: sku.widthCm, h: sku.heightCm, rotated: false }];
 
-  // Generate candidate bottom-left-front anchor coordinates from existing boxes
   const xs = new Set<number>([0]);
   const ys = new Set<number>([0]);
   const zs = new Set<number>([0]);
@@ -182,7 +177,6 @@ function tryPackIntoBin(
 
   const { binLengthCm: BL, binWidthCm: BW, binHeightCm: BH } = alloc.bin;
 
-  // Prefer lower Z first (stability), then Y, then X; in Best-Fit mode evaluate all valid orientations at the first fit anchor
   for (const z of sortedZ) {
     for (const y of sortedY) {
       for (const x of sortedX) {
@@ -219,7 +213,6 @@ function tryPackIntoBin(
               bestOri = ori;
               break;
             }
-            // Score orientation: favor lower stack height (center of gravity) & tight edge alignment
             const remX = BL - (x + ori.l);
             const remY = BW - (y + ori.w);
             const remZ = BH - (z + ori.h);
@@ -280,8 +273,6 @@ export function computeAisleTravelDistanceM(
   if (dx < 0.35) {
     return dx + Math.abs(y2 - y1);
   }
-  // Changing aisles: if both points are deep inside rack bays (> corridorYMeters),
-  // route via the front cross-aisle corridor rather than cutting through solid racks.
   if (y1 > corridorYMeters && y2 > corridorYMeters) {
     return (y1 - corridorYMeters) + dx + (y2 - corridorYMeters);
   }
@@ -309,7 +300,6 @@ export function computeCycleTimeSec(
   );
   const verticalDist = bin.zMeters;
 
-  // Obstacle / pillar proximity detour penalty when a structural pillar blocks direct bay access
   let obstacleDetourSec = 0;
   if (obstacles && obstacles.length > 0) {
     for (const obs of obstacles) {
@@ -322,14 +312,12 @@ export function computeCycleTimeSec(
   }
 
   if (equipmentMode === 'asrs_crane') {
-    // Chebyshev distance: simultaneous horizontal & vertical crane motion
     const vx = 2.6; // m/s
     const vz = 1.35; // m/s
     const oneWay = Math.max(horizontalDist / vx, verticalDist / vz);
     return oneWay * 2 + 2.4 + obstacleDetourSec; // + shuttle engage
   }
 
-  // Reach Truck: horizontal travel + sequential mast lift/lower
   const walkSpeed = 1.9; // m/s
   const mastSpeed = 0.55; // m/s
   const oneWay = horizontalDist / walkSpeed + verticalDist / mastSpeed;
@@ -409,7 +397,6 @@ function evaluateAllocations(
           binPenalty += box.dailyPicksShare * (alloc.bin.level >= 4 ? 1.8 : 1.1);
         }
       }
-      // Heavy items (>16kg, or >10kg in safety preset) on high racks (level >= 3) pose ergonomic/stability hazard
       if (box.weightKg > heavyCutoffKg && alloc.bin.level >= 3) {
         binSafetyViolation = true;
         binPenalty += 25 * (alloc.bin.level - 1);
@@ -431,14 +418,12 @@ function evaluateAllocations(
   const goldenZoneHitRatePct =
     totalAPicks > 0 ? (goldenAPicks / totalAPicks) * 100 : 100;
 
-  // Ergonomics score (0..100)
   const normalizedPenalty = totalPickLoad > 0 ? totalErgoPenalty / totalPickLoad : 0;
   const ergonomicsScore = Math.max(
     15,
     Math.min(100, 100 - normalizedPenalty * 42 - safetyViolations * 6)
   );
 
-  // Energy index combining cycle time + vertical lift penalty
   const avgZ =
     occupied.length > 0
       ? occupied.reduce((acc, a) => acc + a.bin.zMeters * a.dailyPickLoad, 0) /
@@ -446,14 +431,12 @@ function evaluateAllocations(
       : 1;
   const travelEnergyIndex = avgCycleTimeSec * (1 + avgZ * 0.14);
 
-  // Max single-bin congestion relative to ideal balanced load
   const idealPerOccupied = totalPickLoad / Math.max(1, occupied.length);
   const maxCongestionPct =
     idealPerOccupied > 0
       ? Math.min(100, (maxPickLoad / (idealPerOccupied * 3.2)) * 100)
       : 0;
 
-  // Build sample 5-stop wave pick route for the top A-class bins
   const hotBinsRaw = [...occupied]
     .sort((a, b) => b.dailyPickLoad - a.dailyPickLoad)
     .slice(0, 5);
@@ -467,7 +450,6 @@ function evaluateAllocations(
 
   let orderedHotBins = hotBinsRaw;
   if (mode === 'optimized_3d' && hotBinsRaw.length > 1) {
-    // Nearest-Neighbor TSP ordering starting from I/O Depot using real aisle-corridor travel
     const remaining = [...hotBinsRaw];
     orderedHotBins = [];
     let curX = depotX;
@@ -639,14 +621,12 @@ export function runBaseline2DSlotting(
     unplacedMap
   );
 
-  // 2D sort: strictly by Bay (Y), then Aisle (X), filling Z top-to-bottom or sequentially (ignoring ergonomics)
   const orderedBins = [...allocations].sort((a, b) => {
     if (a.bin.bay !== b.bin.bay) return a.bin.bay - b.bin.bay;
     if (a.bin.aisle !== b.bin.aisle) return a.bin.aisle - b.bin.aisle;
     return b.bin.level - a.bin.level; // poor Z-discipline: fills upper racks early
   });
 
-  // 2D slotting puts SKUs sequentially by pick frequency without 3D divider mixing optimization
   const sortedSkus = [...remainingSkus].sort((a, b) => b.dailyPicks - a.dailyPicks);
   let unplacedUnits = unplacedPinned;
 
@@ -657,7 +637,6 @@ export function runBaseline2DSlotting(
       let placed = false;
       for (let offset = 0; offset < orderedBins.length; offset++) {
         const candidate = orderedBins[(binCursor + offset) % orderedBins.length];
-        // Naive 2D: don't mix SKUs inside a bin and don't rotate in 3D
         const sameSkuOnly =
           candidate.boxes.length === 0 ||
           candidate.boxes.every((b) => b.skuId === sku.id);
@@ -674,7 +653,6 @@ export function runBaseline2DSlotting(
         }
       }
       if (!placed) {
-        // Fallback pass for high-SKU-count catalogs (e.g. 100+ distinct SKUs): allow sharing partially filled bins in 2D unrotated mode
         for (let offset = 0; offset < orderedBins.length; offset++) {
           const candidate = orderedBins[(binCursor + offset) % orderedBins.length];
           const box = tryPackIntoBin(candidate, sku, false);
@@ -723,7 +701,6 @@ export function runOptimized3DSlotting(
     unplacedMap
   );
 
-  // Prioritize heavy items first (weight base layer stability), then ABC tier & dailyPicks velocity
   const prioritizedUnits: SKUItem[] = [];
   const sortedSkus = [...remainingSkus].sort((a, b) => {
     const tierA = a.abcClass === 'A' ? 90 : a.abcClass === 'B' ? 30 : 0;
@@ -754,7 +731,6 @@ export function runOptimized3DSlotting(
   const sameSkuBonus = preset === 'density' ? 76 : 65;
   const allowCoPack = config.allowRotationAndCoPack ?? true;
 
-  // Precompute constant cycle time per bin once (eliminates O(Units * Bins) redundant kinematics calls)
   const binCycleCache = new Map<string, number>();
   for (const alloc of allocations) {
     binCycleCache.set(
@@ -772,11 +748,9 @@ export function runOptimized3DSlotting(
   }
 
   for (const sku of prioritizedUnits) {
-    // Score candidate bins dynamically for this SKU unit
     const scoredBins = allocations
       .map((alloc) => {
         const { bin } = alloc;
-        // Hard safety constraint in 3D optimization: heavy items stay on Z1-Z2
         if (sku.weightKg > heavyCutoffKg && bin.level > 2) {
           return { alloc, score: -Infinity };
         }

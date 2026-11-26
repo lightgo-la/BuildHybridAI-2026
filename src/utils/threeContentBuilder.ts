@@ -25,7 +25,6 @@ function getLruTexture(
 ): THREE.CanvasTexture | undefined {
   const existing = cache.get(key);
   if (!existing) return undefined;
-  // Refresh LRU order
   cache.delete(key);
   cache.set(key, existing);
   return existing;
@@ -98,7 +97,6 @@ function drawSurfacePattern(
 ): void {
   ctx.save();
   if (kind === 'shipping_carton' || kind === 'heavy_pallet') {
-    // Corrugated cardboard subtle horizontal ribs
     ctx.strokeStyle = 'rgba(0,0,0,0.08)';
     ctx.lineWidth = 2;
     for (let y = 16; y < 500; y += 10) {
@@ -108,7 +106,6 @@ function drawSurfacePattern(
       ctx.stroke();
     }
   } else if (kind === 'apparel_tote') {
-    // Woven fabric cross-hatch grain & dashed seam stitch
     ctx.strokeStyle = 'rgba(255,255,255,0.12)';
     ctx.lineWidth = 2;
     for (let i = 20; i < 492; i += 14) {
@@ -124,13 +121,11 @@ function drawSurfacePattern(
     ctx.lineWidth = 3;
     ctx.strokeRect(26, 26, 460, 460);
   } else if (kind === 'tool_camp_case') {
-    // Industrial diamond/ribbed molding bars
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     for (let x = 36; x < 476; x += 44) {
       ctx.fillRect(x, 24, 18, 464);
     }
   } else if (kind === 'food_container' || kind === 'bottle_crate') {
-    // Glossy translucent container reflection diagonal highlight
     const grad = ctx.createLinearGradient(0, 0, 512, 512);
     grad.addColorStop(0, 'rgba(255,255,255,0.26)');
     grad.addColorStop(0.45, 'rgba(255,255,255,0.03)');
@@ -229,7 +224,6 @@ export function getCargoLabelTexture(
 
   drawSurfacePattern(ctx, kind);
 
-  // Outer bevel & corner brackets
   ctx.fillStyle = 'rgba(15, 23, 42, 0.22)';
   ctx.fillRect(16, 16, 480, 480);
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
@@ -250,7 +244,6 @@ export function getCargoLabelTexture(
 
   drawDetailedKindIllustration(ctx, kind, 256, 136);
 
-  // High-contrast Shipping / Content Label Plaque
   ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
   ctx.fillRect(34, 224, 444, 252);
   ctx.strokeStyle =
@@ -258,7 +251,6 @@ export function getCargoLabelTexture(
   ctx.lineWidth = 5;
   ctx.strokeRect(34, 224, 444, 252);
 
-  // Header row: SKU Code + ABC Class Pill
   ctx.fillStyle = '#38bdf8';
   ctx.font = 'bold 42px "Segoe UI", sans-serif';
   ctx.fillText(box.skuCode.slice(0, 11), 54, 282);
@@ -270,7 +262,6 @@ export function getCargoLabelTexture(
   ctx.font = 'bold 30px sans-serif';
   ctx.fillText(`CLS ${box.abcClass}`, 376, 277);
 
-  // Full Readable Item Name (Cleanly splits bilingual Korean + English parenthetical)
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 34px "Malgun Gothic", "Segoe UI", sans-serif';
   const parenIdx = box.name.indexOf(' (');
@@ -294,7 +285,6 @@ export function getCargoLabelTexture(
     ctx.fillText(line2, 54, 382);
   }
 
-  // Weight + Dimensions + Barcode
   ctx.fillStyle = '#94a3b8';
   ctx.font = 'bold 28px sans-serif';
   ctx.fillText(
@@ -321,7 +311,8 @@ export function createRichCargoGroup(
   hM: number,
   lM: number,
   safetyViolation: boolean,
-  showBoxOutlines = true
+  showBoxOutlines = true,
+  compactLod = false
 ): THREE.Group {
   const itemGroup = new THREE.Group();
   const kind = classifyCargoVisual(box);
@@ -338,17 +329,21 @@ export function createRichCargoGroup(
     metalness: kind === 'tool_camp_case' ? 0.25 : 0.08,
   });
   const mainMesh = new THREE.Mesh(mainGeo, mainMat);
-  mainMesh.castShadow = true;
-  mainMesh.receiveShadow = true;
+  mainMesh.castShadow = !compactLod;
+  mainMesh.receiveShadow = !compactLod;
   itemGroup.add(mainMesh);
 
-  if (showBoxOutlines) {
+  if (showBoxOutlines && !compactLod) {
     const edgeGeo = new THREE.EdgesGeometry(mainGeo);
     const edgeMat = new THREE.LineBasicMaterial({
       color: safetyViolation ? '#fecaca' : '#0f172a',
     });
     const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
     itemGroup.add(edgeLines);
+  }
+
+  if (compactLod) {
+    return itemGroup;
   }
 
   const dummy = new THREE.Object3D();
@@ -964,7 +959,6 @@ export function createInteriorPropMesh(
     }
     g.add(body);
   } else {
-    // forklift_unit
     const body = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.72, 1.32), mainMat);
     body.position.set(0, 0.42, 0);
     const mast1 = new THREE.Mesh(new THREE.BoxGeometry(0.11, 2.0, 0.11), darkMat);

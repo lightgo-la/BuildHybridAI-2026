@@ -198,7 +198,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   );
   const [mapName, setMapName] = useState(`${scenario.name} (Custom)`);
 
-  // Space Size Controls
   const [floorWidthM, setFloorWidthM] = useState(12);
   const [floorDepthM, setFloorDepthM] = useState(10);
   const [aisles, setAisles] = useState(config.aisles);
@@ -210,7 +209,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   const [binWidthCm, setBinWidthCm] = useState(config.binWidthCm ?? 90);
   const [binHeightCm, setBinHeightCm] = useState(config.binHeightCm ?? 70);
 
-  // Canvas Interaction State
   const [tool, setTool] = useState<CanvasTool>('select');
   const [snapStepM, setSnapStepM] = useState<number>(0.25);
   const [zoom, setZoom] = useState<number>(1);
@@ -444,8 +442,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
           setFloorWidthM(Math.max(6, Math.min(40, snapCoord(wx + 1.0))));
         }
         if (drag.axis === 'y' || drag.axis === 'xy') {
-          // Bottom edge in world coords is y = -1.0, top is y = -1.0 + floorDepthM
-          // Let dragging top/bottom edge resize depth cleanly:
           const nextD = Math.max(6, Math.min(35, snapCoord(wy + 1.0)));
           setFloorDepthM(nextD);
         }
@@ -748,7 +744,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         if (Array.isArray(parsed.racks)) setRacks(parsed.racks);
         if (Array.isArray(parsed.obstacles)) setObstacles(parsed.obstacles);
       } catch {
-        // ignore invalid JSON
       }
     };
     reader.readAsText(file);
@@ -764,7 +759,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm">
       <div className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--t-border)] px-4 py-3">
           <div className="flex items-center gap-2.5">
             <MapIcon className="h-4 w-4 text-[var(--t-accent)]" />
@@ -848,9 +842,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
           </div>
         </div>
 
-        {/* Body */}
         <div className="grid flex-1 grid-cols-1 gap-3 overflow-hidden p-4 lg:grid-cols-12">
-          {/* Left Space Size & Selected Rack Controls */}
           <div className="space-y-3 overflow-y-auto pr-1 text-xs lg:col-span-4">
             <div>
               <label className="mb-1 block text-[11px] text-[var(--t-muted)]">
@@ -863,7 +855,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               />
             </div>
 
-            {/* Easy Whole-Space Size Controls */}
             <div className="space-y-2.5 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-3 text-[11px]">
               <div className="flex items-center justify-between font-semibold">
                 <span className="inline-flex items-center gap-1.5">
@@ -875,7 +866,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </span>
               </div>
 
-              {/* 1-Click Floor Size Presets */}
               <div className="grid grid-cols-4 gap-1 text-[10px]">
                 {FLOOR_SIZE_PRESETS.map((p) => (
                   <button
@@ -893,7 +883,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 ))}
               </div>
 
-              {/* Sliders for Width & Depth */}
               <div>
                 <div className="flex justify-between text-[10px] text-[var(--t-muted)]">
                   <span>{isKo ? '바닥 가로 폭 (Width)' : 'Floor Width'}</span>
@@ -926,7 +915,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 />
               </div>
 
-              {/* Map Floor Color Picker (2D & 3D Synced) */}
               {onChangeFloorColor && (
                 <div className="flex items-center justify-between gap-2 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2.5 py-1.5 text-[10px]">
                   <span className="font-semibold text-[var(--t-text)]">
@@ -965,7 +953,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
               )}
 
-              {/* Quick Scale All Racks */}
               <div className="flex items-center justify-between gap-1.5 pt-0.5 text-[10px]">
                 <span className="text-[var(--t-muted)]">
                   {isKo ? '전체 선반 크기 일괄 조절:' : 'Scale All Shelves:'}
@@ -1162,7 +1149,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               </div>
             </div>
 
-            {/* Selected Rack(s) Batch or Single Editor */}
             {selectedKeys.length > 1 ? (
               <div className="space-y-2 rounded-xl border border-[var(--t-accent)] bg-[var(--t-surface-alt)] p-3 text-[11px]">
                 <div className="flex items-center justify-between font-semibold text-[var(--t-accent)]">
@@ -1400,9 +1386,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
             )}
           </div>
 
-          {/* Right Free-Form 2D Vector Canvas */}
           <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] lg:col-span-8">
-            {/* Canvas Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2 text-[11px]">
               <div className="flex flex-wrap gap-1">
                 {(
@@ -1476,7 +1460,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               </div>
             </div>
 
-            {/* Interactive SVG Floor Canvas */}
             <div className="relative flex-1 overflow-auto bg-[#06101f] p-3">
               <svg
                 ref={svgRef}
@@ -1522,7 +1505,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   fill="url(#editorGrid)"
                 />
 
-                {/* Configured Floor Space Boundary + Draggable Resize Handles */}
                 <rect
                   data-floor="true"
                   x={toScreenX(-1.0)}
@@ -1546,7 +1528,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   {totalBins} bins) · Drag edges to resize
                 </text>
 
-                {/* Right Edge Width Resize Handle */}
                 <g
                   className="cursor-ew-resize"
                   onPointerDown={(e) => {
@@ -1568,7 +1549,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   />
                 </g>
 
-                {/* Top Edge Depth Resize Handle */}
                 <g
                   className="cursor-ns-resize"
                   onPointerDown={(e) => {
@@ -1590,7 +1570,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   />
                 </g>
 
-                {/* Corner Diagonal Resize Handle */}
                 <g
                   className="cursor-nesw-resize"
                   onPointerDown={(e) => {
@@ -1612,7 +1591,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   />
                 </g>
 
-                {/* I/O Depot / Entry (Draggable) */}
                 <g
                   className="cursor-move"
                   onPointerDown={(e) => {
@@ -1649,7 +1627,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   </text>
                 </g>
 
-                {/* Obstacles / Pillars */}
                 {obstacles.map((obs) => (
                   <g
                     key={obs.id}
@@ -1708,7 +1685,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   </g>
                 ))}
 
-                {/* Rack Nodes (Single or Multi-Group Drag & Drop) */}
                 {racks.map((rack) => {
                   const wM = rack.binWidthCm / 100;
                   const lM = rack.binLengthCm / 100;
@@ -1828,7 +1804,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   );
                 })}
 
-                {/* Marquee Selection Box */}
                 {marqueeRect && (
                   <rect
                     x={toScreenX(marqueeRect.x1)}
@@ -1844,7 +1819,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               </svg>
             </div>
 
-            {/* Footer */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--t-border)] bg-[var(--t-surface)] px-3 py-2.5 text-xs">
               <span className="text-[11px] text-[var(--t-muted)]">
                 {isKo
@@ -1878,7 +1852,6 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         </div>
       </div>
 
-      {/* Right-Click Context Menu Inside Map Editor Canvas */}
       {ctxMenu && (
         <div
           style={{

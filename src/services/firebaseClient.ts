@@ -91,7 +91,6 @@ export function loadEnvOrStoredConfig(): FirebaseRuntimeConfig {
       return JSON.parse(raw) as FirebaseRuntimeConfig;
     }
   } catch {
-    // Ignore malformed localStorage
   }
 
   return envConfig;
@@ -138,8 +137,6 @@ export async function initFirebaseServices(
   }
 
   try {
-    // Tear down any previously initialized FirebaseApp instances when re-initializing
-    // so new credentials and App Check providers apply cleanly without duplicate errors.
     if (getApps().length > 0) {
       await Promise.all(getApps().map((existing) => deleteApp(existing)));
     }
@@ -153,7 +150,6 @@ export async function initFirebaseServices(
       appId: cfg.appId,
     });
 
-    // Firebase App Check (required for Firebase AI Logic)
     let appCheck: AppCheck | null = null;
     let appCheckMode: FirebaseServicesState['appCheckMode'] = 'unconfigured';
 
@@ -173,14 +169,12 @@ export async function initFirebaseServices(
       });
       if (!cfg.debugToken) appCheckMode = 'recaptcha_v3';
     } else if (cfg.debugToken) {
-      // Fallback debug initialization with placeholder key if debug token is enabled
       appCheck = initializeAppCheck(app, {
         provider: new ReCaptchaV3Provider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'),
         isTokenAutoRefreshEnabled: true,
       });
     }
 
-    // Firebase Remote Config for dynamic model & Golden Zone thresholds
     let remoteConfig: RemoteConfig | null = null;
     let remoteParams: RemoteSlottingParams = { ...DEFAULT_REMOTE_PARAMS };
     try {
@@ -219,10 +213,8 @@ export async function initFirebaseServices(
         source: 'remote_config',
       };
     } catch {
-      // Keep default params if Remote Config API isn't provisioned yet
     }
 
-    // Firebase Auth + Firestore (optional persistence for slotting scenarios)
     let auth: Auth | null = null;
     let firestore: Firestore | null = null;
     let userId: string | null = null;
@@ -232,7 +224,6 @@ export async function initFirebaseServices(
       userId = cred.user.uid;
       firestore = getFirestore(app);
     } catch {
-      // Anonymous auth may be disabled in project; continue gracefully
     }
 
     cachedState = {

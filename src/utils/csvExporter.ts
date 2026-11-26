@@ -18,7 +18,6 @@ function escapeCsvCell(val: string | number | boolean): string {
 }
 
 function triggerCsvDownload(filename: string, csvContent: string): void {
-  // Prepend UTF-8 BOM so Excel opens Korean text cleanly without mojibake
   const blob = new Blob([`\uFEFF${csvContent}`], {
     type: 'text/csv;charset=utf-8;',
   });

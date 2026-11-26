@@ -97,7 +97,6 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
       <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--t-border)] px-4 py-3">
           <div className="flex items-center gap-2">
             <Ruler className="h-4 w-4 text-[var(--t-accent)]" />
@@ -150,7 +149,6 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
           </div>
         </div>
 
-        {/* CAD Layer Options */}
         <div className="flex flex-wrap items-center gap-4 border-b border-[var(--t-border)] bg-[var(--t-surface-alt)] px-4 py-2 text-[11px]">
           <label className="flex cursor-pointer items-center gap-1.5">
             <input
@@ -231,7 +229,6 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
           </div>
         </div>
 
-        {/* SVG Blueprint Preview */}
         <div className="flex-1 overflow-auto bg-[#071326] p-4">
           <div
             className="mx-auto w-fit rounded-lg border border-sky-500/30 shadow-xl"

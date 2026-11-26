@@ -60,7 +60,6 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
   >('everyday');
   const [search, setSearch] = useState('');
 
-  // 10-Second Custom Room / Shelf Builder
   const [roomWidthM, setRoomWidthM] = useState(4.5);
   const [roomDepthM, setRoomDepthM] = useState(4.0);
   const [roomLevels, setRoomLevels] = useState(4);
@@ -91,9 +90,7 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
 
   return (
     <div className="mx-auto flex w-full max-w-[1650px] flex-1 flex-col gap-5 p-4 md:p-6">
-      {/* Top Hero + Quick Room Builder Grid */}
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        {/* Active Space Showcase */}
         <div className="theme-surface flex flex-col justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/85 p-5 lg:col-span-7">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div className="relative w-full shrink-0 overflow-hidden rounded-xl border border-slate-700/80 bg-slate-950 sm:w-56">
@@ -130,7 +127,6 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
             </div>
           </div>
 
-          {/* Plain-language KPIs + 3D Goal Pills + Actions */}
           <div className="grid grid-cols-3 gap-2.5">
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-2.5">
               <div className="flex items-center gap-1 text-[10px] text-slate-400">
@@ -210,7 +206,6 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
           </div>
         </div>
 
-        {/* 10-Second Custom Room / Shelf Builder */}
         <div className="theme-surface flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/85 p-5 lg:col-span-5">
           <div>
             <div className="flex items-center gap-2 text-sm font-bold text-white">
@@ -318,7 +313,6 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
         </div>
       </section>
 
-      {/* Filter Toolbar + 24 Visual Template Cards */}
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-1 text-xs">

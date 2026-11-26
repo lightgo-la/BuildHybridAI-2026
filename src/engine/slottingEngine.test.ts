@@ -96,7 +96,6 @@ test('3D Optimized Slotting enforces 0 safety violations and outperforms 2D Base
     '3D Optimized should improve ergonomics score'
   );
 
-  // Verify heavy items (>16kg) never land on level >= 3 in 3D Optimized mode
   for (const alloc of optimized.allocations) {
     if (alloc.bin.level >= 3) {
       for (const box of alloc.boxes) {
@@ -133,14 +132,12 @@ test('Max Safety preset enforces stricter 10kg cutoff on Z3+ in both baseline ev
     },
   ];
 
-  // Baseline 2D fills upper Z4/Z3 first, triggering safety violation in Max Safety (>10kg) mode
   const baseline = runBaseline2DSlotting(bins, mediumHeavySkus, safetyConfig);
   assert.ok(
     baseline.kpis.safetyViolations > 0,
     'Baseline 2D with 12kg on Z3/Z4 must be flagged in Max Safety (>10kg) mode'
   );
 
-  // 3D Optimized keeps all 12kg units on Z1-Z2 in Max Safety mode -> 0 violations
   const optimized = runOptimized3DSlotting(bins, mediumHeavySkus, safetyConfig);
   assert.equal(optimized.kpis.safetyViolations, 0);
 });
@@ -150,7 +147,6 @@ test('Aisle corridor routing adds cross-aisle detour when switching aisles deep 
   assert.ok(Math.abs(sameAisleDist - 1.45) < 0.001);
 
   const crossAisleDist = computeAisleTravelDistanceM(0, 3.25, 3.4, 3.25, 0.75);
-  // Must exit aisle 1 (3.25 -> 0.75 = 2.5m), cross (3.4m), and enter aisle 2 (0.75 -> 3.25 = 2.5m) = 8.4m
   assert.ok(
     crossAisleDist > 3.4,
     `Expected detour > direct 3.4m, got ${crossAisleDist}`
@@ -274,7 +270,6 @@ test('3D single-item and batch cargo transfer snapshot live bin allocations accu
   const emptyAlloc = initial.allocations.find((a) => a.boxes.length === 0);
   assert.ok(emptyAlloc, 'Expected at least one empty target bin');
 
-  // Move 1 individual box from sourceAlloc to emptyAlloc
   const { nextPins, movedCount } = buildTransferredSkuPins(
     [],
     initial.allocations,

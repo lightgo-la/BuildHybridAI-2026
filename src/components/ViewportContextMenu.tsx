@@ -337,7 +337,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             </button>
           </div>
 
-          {/* Shelf Dimension Quick Editor directly inside Right-Click Menu */}
           {onResizeSingleBin && (
             <div className="space-y-1.5 rounded-lg border border-cyan-500/35 bg-slate-950/75 p-2">
               <div className="flex items-center justify-between text-[10px] font-bold text-cyan-300">
@@ -460,7 +459,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             </div>
           )}
 
-          {/* Custom Box Size Builder directly inside Right-Click Menu */}
           {onPlaceCustomBoxInBin && (
             <div className="space-y-1.5 rounded-lg border border-emerald-500/40 bg-emerald-950/20 p-2">
               <div className="flex items-center justify-between text-[10px] font-bold text-emerald-300">
@@ -605,7 +603,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             </div>
           )}
 
-          {/* Quick Place Any Cargo Item into This Bin */}
           <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
             <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold text-[var(--t-muted)]">
               <span className="inline-flex items-center gap-1 text-emerald-300">
@@ -654,7 +651,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             </div>
           </div>
 
-          {/* Move Existing Items in This Bin to Z1 / Z2 or Remove */}
           {alloc.boxes.length > 0 && onMoveSkuToLevel && (
             <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
               <div className="mb-1 text-[10px] font-semibold text-amber-300">
@@ -768,7 +764,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </>
       ) : null}
 
-      {/* If an Interior Furniture Prop was right-clicked or selected */}
       {prop && onUpdateInteriorProp && (
         <div className="space-y-1.5 rounded-lg border border-emerald-500/40 bg-emerald-950/20 p-2">
           <div className="flex items-center justify-between text-[11px] font-bold text-emerald-300">
@@ -881,7 +876,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       )}
 
-      {/* Cursor Floor Placement: Add Rack Bin or Place 3D Furniture at Cursor */}
       <div className="space-y-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
         <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--t-muted)]">
           <span>
@@ -939,7 +933,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           </div>
         )}
 
-        {/* Quick Map Floor Color Picker directly inside Right-Click Menu */}
         {onChangeFloorColor && (
           <div className="flex items-center justify-between rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1.5 text-[10px]">
             <span className="font-semibold text-cyan-300">
@@ -1015,7 +1008,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
 
   const renderOptimizeSection = () => (
     <div className="space-y-2">
-      {/* Undo / Redo + Before / After 3D Toggle */}
       <div className="grid grid-cols-3 gap-1">
         <button
           type="button"
@@ -1060,7 +1052,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </button>
       </div>
 
-      {/* 4 Optimization Goal Presets */}
       {onChangeOptimizationPreset && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
@@ -1095,7 +1086,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       )}
 
-      {/* Smart 6-Axis Rotation + Equipment Mode */}
       <div className="grid grid-cols-2 gap-1 text-[10px]">
         {onToggleRotationAndCoPack && (
           <button
@@ -1142,7 +1132,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         )}
       </div>
 
-      {/* 3D Mouse Drag-Move Modes */}
       {onToggleDragMove && (
         <div className="grid grid-cols-2 gap-1 text-[10px]">
           <button
@@ -1208,7 +1197,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       )}
 
-      {/* Whole-Template 1-Click Transforms */}
       {onTranslateWholeTemplate && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
@@ -1291,7 +1279,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       )}
 
-      {/* Reset Pins / Reset Space Edits */}
       <div className="grid grid-cols-2 gap-1 text-[10px]">
         {onClearAllPins && (
           <button
@@ -1323,7 +1310,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
 
   const renderView3DSection = () => (
     <div className="space-y-2">
-      {/* Camera Angles */}
       <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
         <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
           {isKo ? '3D 카메라 시점 & 동선 표시' : '3D Camera & Pick Route'}
@@ -1408,7 +1394,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         )}
       </div>
 
-      {/* 3D Visualization Layers */}
       <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
         <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
           {isKo ? '3D 시각화 레이어' : '3D Visualization Layer'}
@@ -1462,7 +1447,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       </div>
 
-      {/* Z-Level Slicer */}
       <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
         <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
           {isKo ? '높이 층별(Z) 단면 보기' : 'Z-Level Cross-Section Slice'}
@@ -1502,7 +1486,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       </div>
 
-      {/* 3D Background Brightness & X-Ray + Studio Modals */}
       {onApplyScenePreset && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-[var(--t-muted)]">
@@ -1597,7 +1580,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
 
   const renderSpaceDataSection = () => (
     <div className="space-y-2">
-      {/* Main Studios: 24 Templates, 2D Map Editor, 2D CAD */}
       <div className="space-y-1">
         {onOpenTemplateGallery && (
           <button
@@ -1642,7 +1624,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </button>
       </div>
 
-      {/* Quick Scenario Jump */}
       {onQuickSelectScenario && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
@@ -1673,7 +1654,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       )}
 
-      {/* Left Panel Tabs Jump */}
       {onOpenLeftTab && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 text-[10px] font-semibold text-[var(--t-muted)]">
@@ -1714,7 +1694,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       )}
 
-      {/* CSV Export */}
       {(onExportSkusCsv || onExportSlottingCsv) && (
         <div className="grid grid-cols-2 gap-1 text-[10px]">
           {onExportSkusCsv && (
@@ -1750,7 +1729,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
 
   const renderAiSystemSection = () => (
     <div className="space-y-2">
-      {/* 1-Click AI Co-Pilot Audits */}
       {onRunQuickAiPrompt && (
         <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
           <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold text-cyan-300">
@@ -1809,7 +1787,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       )}
 
-      {/* Theme Cycle & Design Studio */}
       <div className="grid grid-cols-3 gap-1 text-[10px]">
         {onCycleTheme && (
           <>
@@ -1846,7 +1823,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         )}
       </div>
 
-      {/* App View, Simple Mode, Language, Shortcuts, Firebase */}
       <div className="grid grid-cols-2 gap-1 text-[10px]">
         {onToggleAppView && (
           <button
@@ -1942,7 +1918,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
       onContextMenu={(e) => e.preventDefault()}
       className="fixed z-50 flex max-h-[560px] w-[340px] flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-xs text-[var(--t-text)] shadow-2xl backdrop-blur-md"
     >
-      {/* Top Command Center Header + Category Tabs */}
       <div className="border-b border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 pt-2 pb-1.5">
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-[11px] font-bold text-cyan-300">
@@ -1986,7 +1961,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         </div>
       </div>
 
-      {/* Scrollable Body */}
       <div className="flex-1 space-y-2.5 overflow-y-auto p-2.5">
         {tab === 'target' && renderTargetSection()}
         {tab === 'optimize' && renderOptimizeSection()}
@@ -2012,7 +1986,6 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
         )}
       </div>
 
-      {/* Quick Bottom Bar */}
       <div className="flex items-center justify-between border-t border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 py-1.5 text-[10px] text-[var(--t-muted)]">
         <button
           type="button"

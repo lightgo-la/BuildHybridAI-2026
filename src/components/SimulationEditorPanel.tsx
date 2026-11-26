@@ -101,13 +101,11 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
     }
   }, [selectedBinId]);
 
-  // Step 1: Custom Bin Add Form
   const [newAisle, setNewAisle] = useState(1);
   const [newBay, setNewBay] = useState(config.baysPerAisle + 1);
   const [newLevel, setNewLevel] = useState(2);
   const [newMaxWeight, setNewMaxWeight] = useState(750);
 
-  // Step 2: Cargo Designer Form
   const maxL = (config.binLengthCm ?? 120) - 2;
   const maxW = (config.binWidthCm ?? 90) - 2;
   const maxH = (config.binHeightCm ?? 70) - 2;
@@ -123,7 +121,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   const [fragile, setFragile] = useState(false);
   const [editingSkuId, setEditingSkuId] = useState<string | null>(null);
 
-  // Sync dimension form defaults whenever active template/rack bin bounds change
   useEffect(() => {
     setNewBay(config.baysPerAisle + 1);
     setLengthCm((prev) => Math.max(10, Math.min(maxL, prev)));
@@ -216,7 +213,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
   return (
     <div className="space-y-3 text-xs">
-      {/* 2-Step Guided Switcher */}
       <div className="grid grid-cols-2 gap-1.5 rounded-xl border border-slate-800 bg-slate-950/70 p-1">
         <button
           type="button"
@@ -246,7 +242,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
 
       {step === 'space' ? (
         <div className="space-y-3">
-          {/* Grid Dimensions */}
           <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/60 p-3">
             <div className="flex items-center justify-between text-[11px] font-semibold text-slate-200">
               <span>
@@ -381,7 +376,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
           </div>
 
-          {/* Add / Delete Individual Storage Rack Bin */}
           <form
             onSubmit={handleAddCustomBin}
             className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/60 p-3 text-[11px]"
@@ -499,7 +493,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
         </div>
       ) : (
         <div className="space-y-3">
-          {/* Unplaced Cargo Warning Alert (if capacity or weight constraints overflow) */}
           {activeResult &&
             activeResult.unplacedUnits > 0 &&
             activeResult.unplacedItems &&
@@ -537,7 +530,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </div>
             )}
 
-          {/* CSV Import / Export Bar for Real Warehouse Master Data */}
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
             <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold text-slate-400">
               <span className="inline-flex items-center gap-1">
@@ -698,7 +690,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
           </div>
 
-          {/* 1-Click Quick Item Chips (No typing required) */}
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2.5">
             <div className="mb-1.5 text-[10px] font-semibold text-slate-400">
               {lang === 'ko'
@@ -736,7 +727,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
           </div>
 
-          {/* Design New Cargo */}
           <form
             onSubmit={handleAddCargo}
             className="grid grid-cols-3 gap-2 rounded-xl border border-emerald-500/35 bg-slate-950/70 p-2.5 text-[11px]"
@@ -752,7 +742,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </span>
             </div>
 
-            {/* Target Shelf Bin Selector */}
             <div className="col-span-3">
               <span className="text-[10px] text-slate-400">
                 {lang === 'ko'
@@ -779,7 +768,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </select>
             </div>
 
-            {/* Quick Box Dimension Presets */}
             <div className="col-span-3">
               <div className="mb-1 text-[10px] text-slate-400">
                 {lang === 'ko'
@@ -954,7 +942,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </button>
           </form>
 
-          {/* Pinned Cargo Summary */}
           {pinnedPlacements.length > 0 && (
             <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-2.5 text-[11px]">
               <div className="flex items-center justify-between font-semibold text-cyan-300">
@@ -997,7 +984,6 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
           )}
 
-          {/* Cargo List with Qty +/-, Inline Edit, Pin to Bin, Delete */}
           <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
             {skus.map((sku) => {
               const isEditing = editingSkuId === sku.id;

@@ -206,7 +206,6 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
         </div>
       )}
 
-      {/* 3-Step Interactive Beginner Onboarding Bar (Visible in Simple Mode) */}
       {simpleMode && showBeginnerGuide && (
         <section className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-500/30 bg-emerald-950/25 px-4 py-2 text-xs">
           <div className="flex flex-wrap items-center gap-2">

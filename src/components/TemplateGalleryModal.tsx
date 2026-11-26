@@ -58,7 +58,6 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
       <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--t-border)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             <LayoutGrid className="h-5 w-5 text-[var(--t-accent)]" />
@@ -80,7 +79,6 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
           </button>
         </div>
 
-        {/* Filter Bar */}
         <div className="flex flex-wrap items-center gap-2 border-b border-[var(--t-border)] bg-[var(--t-surface-alt)] px-5 py-2.5 text-xs">
           <div className="flex overflow-hidden rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)]">
             {(
@@ -153,7 +151,6 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
           </div>
         </div>
 
-        {/* 24 Template Cards Grid */}
         <div className="grid flex-1 grid-cols-1 gap-3 overflow-y-auto p-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((tpl) => {
             const isSelected = tpl.id === activeTemplateId;

@@ -317,7 +317,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   const depotX = config.depotXMeters ?? gridCenterX;
   const depotZ = config.depotYMeters ?? 0;
 
-  // Compute real 3D space bounds from actual bins, obstacles, depot, and configured floorWidthM/DepthM
   const bounds = React.useMemo(() => {
     const xs = [
       ...allocations.map((a) => a.bin.xMeters),
@@ -595,7 +594,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        // Structural Obstacles / Pillars direct click & drag-to-move
         const obsHits = raycaster.intersectObjects(cachedTargets.obstacles, false);
         if (obsHits.length > 0 && hasFloorHit) {
           const hitMesh = obsHits[0].object;
@@ -629,7 +627,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        // I/O Depot / Entry Point direct click & drag-to-move
         const depotHits = raycaster.intersectObjects(cachedTargets.depot, false);
         if (depotHits.length > 0 && hasFloorHit) {
           const hitMesh = depotHits[0].object;
@@ -655,7 +652,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        // Individual 3D Cargo Box direct click & drag-and-drop (Shift+Drag moves entire SKU batch in that bin)
         if (
           hasFloorHit &&
           (!dragMoveModeRef.current || dragScopeRef.current === 'single_cargo')
@@ -856,7 +852,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                 targetAlloc.bin.yMeters
               );
 
-              // Live 3D validity & safety color feedback while hovering target bin
               const isUpperHeavyHazard =
                 itemWeight > 16 && targetAlloc.bin.level >= 3;
               const isNearFull =
@@ -949,7 +944,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         return;
       }
 
-      // Skip hover raycasting while orbiting/panning camera with mouse buttons held down
       if (e.buttons !== 0) return;
       if (hoverRafId) return;
 
@@ -1227,7 +1221,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         : null;
       const cachedTargets = hitTargetsCacheRef.current;
 
-      // 1. Check 3D Interior Furniture Props first
       const propHits = raycaster.intersectObjects(cachedTargets.props, false);
       if (propHits.length > 0) {
         const prop = propHitMeshesRef.current.get(propHits[0].object) ?? null;
@@ -1244,7 +1237,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
       }
 
-      // 2. Check 3D Storage Rack Bins
       const hits = raycaster.intersectObjects(cachedTargets.bins, false);
       if (hits.length > 0) {
         const alloc = hitMeshesRef.current.get(hits[0].object) ?? null;
@@ -1259,7 +1251,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         return;
       }
 
-      // 3. Empty Floor / Scene Background
       handler({
         clientX: e.clientX,
         clientY: e.clientY,
@@ -1418,7 +1409,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Apply 3D Background Studio & Theme colors to scene sky/fog/lighting/marker
   useEffect(() => {
     const scene = sceneRef.current;
     const effTop = sceneBg.useThemeDefault
@@ -1467,7 +1457,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     }
   }, [theme, sceneBg]);
 
-  // Dynamic floor, grid, space boundary & I/O depot matching 2D Canvas 1:1
   useEffect(() => {
     const envGroup = environmentGroupRef.current;
     if (!envGroup) return;
@@ -1518,7 +1507,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       envGroup.add(grid);
     }
 
-    // Draw explicit 2D-canvas floor boundary frame when floorWidthM / floorDepthM are active
     if (config.floorWidthM && config.floorDepthM) {
       const fw = config.floorWidthM;
       const fd = config.floorDepthM;
@@ -1541,14 +1529,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     sceneBg,
   ]);
 
-  // Sync OrbitControls zoomToCursor whenever zoomMode changes
   useEffect(() => {
     if (controlsRef.current) {
       controlsRef.current.zoomToCursor = zoomMode !== 'orbit_center';
     }
   }, [zoomMode]);
 
-  // Camera presets & automatic framing when switching maps or applying 2D Canvas edits
   useEffect(() => {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
@@ -1791,7 +1777,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     handleFocusSelectedObject,
   ]);
 
-  // Rebuild racks, 3D packed boxes, heatmap & pick route
   useEffect(() => {
     const group = dynamicGroupRef.current;
     if (!group) return;
@@ -1804,7 +1789,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     depotHitMeshesRef.current.clear();
     cargoHitMeshesRef.current.clear();
 
-    // Interactive 3D I/O Depot / Entry Point (Clickable & Draggable)
     const depotGroup = new THREE.Group();
     depotGroup.position.set(depotX, 0, depotZ);
     const depotPadGeo = new THREE.BoxGeometry(2.8, 0.09, 1.15);
@@ -1840,6 +1824,11 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     group.add(depotGroup);
 
     const maxPickLoad = Math.max(1, ...allocations.map((a) => a.dailyPickLoad));
+    const totalBoxCount = allocations.reduce(
+      (sum, a) => sum + a.boxes.length,
+      0
+    );
+    const compactLod = totalBoxCount > 160;
     const maxRackTop = allocations.reduce(
       (max, a) => Math.max(max, a.bin.zMeters + a.bin.binHeightCm / 100),
       3.5
@@ -1865,7 +1854,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       roughness: 0.4,
     });
 
-    // Draw per-column rack upright posts matching each column's exact height & dimensions
     const colMap = new Map<
       string,
       { x: number; z: number; maxTop: number; wM: number; lM: number }
@@ -1932,7 +1920,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       group.add(instancedPosts);
     }
 
-    // Golden Zone highlight per actual rack column via InstancedMesh (1 draw call for all columns!)
     let usedGoldenFrameMat = false;
     if (viewLayer === 'golden_zone' || viewLayer === 'slotting') {
       const bandHeight = Math.max(0.4, config.goldenZoneMaxM - config.goldenZoneMinM);
@@ -2088,7 +2075,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             hM,
             lM,
             alloc.safetyViolation,
-            sceneBg.showBoxOutlines
+            sceneBg.showBoxOutlines,
+            compactLod
           );
           cargoGroup.position.set(
             originX + box.yCm / 100 + wM / 2,
@@ -2153,7 +2141,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       rackFrameMat.dispose();
     }
 
-    // Template-Specific 3D Room Architecture, Environment Props & Space Signboard
     const templateProps = buildTemplateEnvironmentProps({
       scenarioName,
       config,
@@ -2167,7 +2154,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     });
     group.add(templateProps);
 
-    // User-Placed & Template-Default Interactive 3D Interior Furniture, Appliances, Doors & Windows
     const effectiveProps = sceneBg.showRoomProps
       ? getEffectiveInteriorProps({
           scenarioName,
@@ -2188,7 +2174,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       group.add(propMeshGroup);
     }
 
-    // Interactive Structural Obstacles / Pillars (Clickable & Draggable in 3D)
     for (const obs of config.obstacles ?? []) {
       const obsGroup = new THREE.Group();
       obsGroup.position.set(obs.xMeters, 0, obs.yMeters);
@@ -2258,7 +2243,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           points.push(new THREE.Vector3(wp.xMeters, 0.35, wp.yMeters));
         }
 
-        // 3D Pick Stop Beacon Node & Floor Footprint Ring
         const stopNode = new THREE.Mesh(stopNodeGeo, stopMat);
         stopNode.position.set(wp.xMeters, stopY, wp.yMeters);
         const stopFloorRing = new THREE.Mesh(stopRingGeo, stopMat);
@@ -2286,7 +2270,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       routeCurveRef.current = null;
     }
 
-    // Cache raycast target arrays once per scene build (eliminates 60fps per-frame Array.from allocations)
     hitTargetsCacheRef.current = {
       bins: Array.from(hitMeshesRef.current.keys()),
       props: Array.from(propHitMeshesRef.current.keys()),
@@ -2319,7 +2302,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     disposeObjectTree(overlayGroup);
     overlayGroup.clear();
 
-    // Lightweight O(1) Selection Rings for Depot, Obstacle, or Interior Furniture Prop
     if (selectedDepot) {
       const depotRingGeo = new THREE.RingGeometry(1.48, 1.66, 36);
       depotRingGeo.rotateX(-Math.PI / 2);
@@ -2404,7 +2386,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     wire.position.copy(pos);
     overlayGroup.add(wire);
 
-    // Highlight individual selected 3D cargo item inside the bin
     if (selectedCargo && selectedCargo.binId === selected.bin.id) {
       const targetBox =
         selected.boxes[selectedCargo.boxIndex] ??
@@ -2480,6 +2461,92 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     onChangeCameraPreset?.('iso');
   }, [bounds.width, bounds.depth, config.levels, centerX, centerZ, onChangeCameraPreset]);
 
+  const handleCapture3DSnapshotPng = React.useCallback(() => {
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !scene || !camera) return;
+
+    renderer.render(scene, camera);
+    const glCanvas = renderer.domElement;
+    const outW = Math.max(1280, glCanvas.width);
+    const outH = Math.max(800, glCanvas.height + 116);
+
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = outW;
+    outCanvas.height = outH;
+    const ctx = outCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.fillStyle = '#020617';
+    ctx.fillRect(0, 0, outW, outH);
+
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, outW, 64);
+    ctx.strokeStyle = theme.accent;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, outW - 2, 62);
+
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 20px "Malgun Gothic", "Segoe UI", sans-serif';
+    ctx.fillText(
+      `CubiSlot 3D Digital Twin — ${scenarioName} (${config.aisles}×${config.baysPerAisle}×Z${config.levels} · ${allocations.length} Bins)`,
+      20,
+      28
+    );
+
+    const occupiedCount = allocations.filter((a) => a.boxes.length > 0).length;
+    const totalBoxes = allocations.reduce((s, a) => s + a.boxes.length, 0);
+    const avgCubic =
+      occupiedCount > 0
+        ? (
+            allocations
+              .filter((a) => a.boxes.length > 0)
+              .reduce((s, a) => s + a.cubicUtilizationPct, 0) / occupiedCount
+          ).toFixed(1)
+        : '0.0';
+    const hazards = allocations.filter((a) => a.safetyViolation).length;
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '13px "Malgun Gothic", "Segoe UI", sans-serif';
+    ctx.fillText(
+      `선반규격: ${config.binLengthCm ?? 120}×${config.binWidthCm ?? 90}×${config.binHeightCm ?? 70}cm  |  골든존: ${config.goldenZoneMinM}m~${config.goldenZoneMaxM}m  |  적재박스: ${totalBoxes}개 (${occupiedCount}/${allocations.length}칸 사용 · 평균채움 ${avgCubic}%)  |  안전위반: ${hazards}건  |  줌: ${zoomPercent}% (${zoomMode})`,
+      20,
+      50
+    );
+
+    ctx.drawImage(glCanvas, 0, 64, outW, outH - 116);
+
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, outH - 52, outW, 52);
+    ctx.fillStyle = '#34d399';
+    ctx.font = 'bold 13px "Malgun Gothic", "Segoe UI", sans-serif';
+    ctx.fillText(
+      `장비모드: ${config.equipmentMode === 'asrs_crane' ? 'AS/RS 크레인 (Chebyshev)' : '전동 리치트럭'}  ·  최적화프리셋: ${config.optimizationPreset ?? 'balanced'}  ·  6축회전/합포장: ${config.allowRotationAndCoPack !== false ? 'ON' : 'OFF'}  ·  바닥색상: ${sceneBg.floorColor}  ·  피킹경유지: ${pickRoute.length}곳`,
+      20,
+      outH - 22
+    );
+
+    const dataUrl = outCanvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    const safeSlug = scenarioName
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣]+/g, '-')
+      .replace(/^-|-$/g, '');
+    a.href = dataUrl;
+    a.download = `${safeSlug || 'cubislot-3d'}-setting-snapshot.png`;
+    a.click();
+  }, [
+    allocations,
+    config,
+    pickRoute.length,
+    scenarioName,
+    sceneBg.floorColor,
+    theme.accent,
+    zoomMode,
+    zoomPercent,
+  ]);
+
   return (
     <div className="relative h-full w-full">
       <div
@@ -2500,7 +2567,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
       />
 
-      {/* Friendly Non-Intrusive Click & Mouse Guide when no bin is hovered */}
       {!hoveredBin && !hoveredOtherLabel && (
         <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-slate-800/80 bg-slate-950/80 px-2.5 py-1.5 text-[10px] text-slate-200 backdrop-blur">
           {lang === 'ko'
@@ -2509,9 +2575,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         </div>
       )}
 
-      {/* On-Screen Camera Zoom Mode & Interactive Zoom Slider HUD (Bottom-Right) */}
       <div className="absolute bottom-3 right-3 z-20 flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-700/90 bg-slate-950/90 px-2.5 py-1.5 text-[10px] text-slate-200 shadow-2xl backdrop-blur">
-        {/* 3 Camera Zoom Modes Switcher */}
         <div
           className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900"
           title={
@@ -2570,7 +2634,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           </button>
         </div>
 
-        {/* Interactive Zoom Out (-) / Slider / Zoom In (+) / Reset 100% */}
         <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/90 px-1.5 py-0.5">
           <button
             type="button"
@@ -2612,7 +2675,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           </button>
         </div>
 
-        {/* 1-Click Focus Selected Object (F) & Fit All Space (R) */}
         <button
           type="button"
           onClick={handleFocusSelectedObject}
@@ -2637,8 +2699,19 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         >
           {lang === 'ko' ? '⛶ 전체 맞춤 (R)' : '⛶ Fit All (R)'}
         </button>
+        <button
+          type="button"
+          onClick={handleCapture3DSnapshotPng}
+          className="inline-flex items-center gap-1 rounded-md border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/25"
+          title={
+            lang === 'ko'
+              ? '현재 3D 화면과 상·하단 셋팅/KPI 요약 배너를 고해상도 PNG 이미지 파일로 즉시 저장합니다'
+              : 'Save current 3D view + Setting/KPI summary banner as a high-res PNG image'
+          }
+        >
+          {lang === 'ko' ? '📸 3D+셋팅 PNG저장' : '📸 Save PNG'}
+        </button>
 
-        {/* Live 3D Pick Wave Waypoint Stops & Simulation Speed Switcher */}
         {animateRoute && pickRoute.length > 0 && (
           <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5">
             <span className="font-semibold text-amber-300">
@@ -2708,7 +2781,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         )}
       </div>
 
-      {/* Live 3D Hover Card for Furniture, Obstacles, or I/O Depot */}
       {hoveredOtherLabel && !hoveredBin && (
         <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-xs rounded-xl border border-emerald-400/50 bg-slate-950/90 p-2.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
           <div className="font-bold text-emerald-300">{hoveredOtherLabel}</div>
@@ -2720,7 +2792,6 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         </div>
       )}
 
-      {/* Live 3D Hover HUD Overlay Card */}
       {hoveredBin && (
         <div className="pointer-events-none absolute left-3 top-3 z-20 max-w-xs rounded-xl border border-cyan-500/40 bg-slate-950/90 p-2.5 text-[11px] text-slate-100 shadow-2xl backdrop-blur">
           <div className="flex items-center justify-between gap-2">

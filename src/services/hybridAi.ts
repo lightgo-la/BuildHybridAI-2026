@@ -137,7 +137,6 @@ export function deriveRecommendedActions(
     },
   ];
 
-  // Prioritize actions directly mentioned in the user's prompt first, then AI response text
   for (const cand of candidates) {
     if (cand.regex.test(promptLower)) {
       actions.push(...cand.items);
@@ -209,7 +208,6 @@ async function tryDirectChromePromptApi(
       return out;
     }
   } catch {
-    // Fall through to next fallback
   }
   return null;
 }

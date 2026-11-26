@@ -41,7 +41,6 @@ export function loadSavedWorkspaceSession(): SavedWorkspaceSession | null {
       return JSON.parse(raw) as SavedWorkspaceSession;
     }
   } catch {
-    // ignore storage errors
   }
   return null;
 }
@@ -50,7 +49,6 @@ export function saveWorkspaceSession(payload: SavedWorkspaceSession): void {
   try {
     localStorage.setItem(WORKSPACE_SESSION_KEY, JSON.stringify(payload));
   } catch {
-    // ignore storage quota errors
   }
 }
 
@@ -64,7 +62,6 @@ export function loadScene3DBg(): Scene3DBackgroundSettings {
       };
     }
   } catch {
-    // ignore storage errors
   }
   return DEFAULT_SCENE_3D_BACKGROUND;
 }
@@ -73,7 +70,6 @@ export function saveScene3DBg(sceneBg: Scene3DBackgroundSettings): void {
   try {
     localStorage.setItem(SCENE_3D_BG_KEY, JSON.stringify(sceneBg));
   } catch {
-    // ignore storage errors
   }
 }
 
@@ -82,7 +78,6 @@ export function loadLang(): LangCode {
     const saved = localStorage.getItem(LANG_STORAGE_KEY);
     if (saved === 'ko' || saved === 'en') return saved;
   } catch {
-    // ignore storage errors
   }
   return 'ko';
 }
@@ -91,7 +86,6 @@ export function saveLang(lang: LangCode): void {
   try {
     localStorage.setItem(LANG_STORAGE_KEY, lang);
   } catch {
-    // ignore storage errors
   }
 }
 
@@ -102,7 +96,6 @@ export function loadCustomMaps(): WarehouseScenario[] {
       return JSON.parse(raw) as WarehouseScenario[];
     }
   } catch {
-    // ignore malformed storage
   }
   return [];
 }
@@ -111,7 +104,6 @@ export function saveCustomMaps(maps: WarehouseScenario[]): void {
   try {
     localStorage.setItem(CUSTOM_MAPS_KEY, JSON.stringify(maps));
   } catch {
-    // ignore storage quota errors
   }
 }
 
@@ -125,7 +117,6 @@ export function loadDesignSettings(): DesignLayoutSettings {
       };
     }
   } catch {
-    // ignore malformed storage
   }
   return DEFAULT_DESIGN_LAYOUT;
 }
@@ -134,6 +125,5 @@ export function saveDesignSettings(settings: DesignLayoutSettings): void {
   try {
     localStorage.setItem(DESIGN_STORAGE_KEY, JSON.stringify(settings));
   } catch {
-    // ignore storage quota errors
   }
 }
