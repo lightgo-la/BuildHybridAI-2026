@@ -398,13 +398,14 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
+    controls.dampingFactor = 0.09;
     controls.target.set(centerX, 1.8, centerZ);
-    controls.maxPolarAngle = Math.PI / 2 - 0.02;
-    controls.minDistance = 0.65;
-    controls.maxDistance = 85;
-    controls.zoomSpeed = 1.15;
-    controls.panSpeed = 1.05;
+    controls.maxPolarAngle = Math.PI / 2 - 0.015;
+    controls.minDistance = 0.55;
+    controls.maxDistance = 95;
+    controls.zoomSpeed = 1.25;
+    controls.rotateSpeed = 0.92;
+    controls.panSpeed = 1.1;
     controls.screenSpacePanning = true;
     controls.zoomToCursor = wheelZoomStyleRef.current === 'cursor';
     controlsRef.current = controls;
@@ -1467,11 +1468,11 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
       if (cameraGoalRef.current && !followPickerCamRef.current) {
         const goal = cameraGoalRef.current;
-        camera.position.lerp(goal.position, 0.16);
-        controls.target.lerp(goal.target, 0.18);
+        camera.position.lerp(goal.position, 0.22);
+        controls.target.lerp(goal.target, 0.24);
         if (
-          camera.position.distanceTo(goal.position) < 0.025 &&
-          controls.target.distanceTo(goal.target) < 0.025
+          camera.position.distanceTo(goal.position) < 0.02 &&
+          controls.target.distanceTo(goal.target) < 0.02
         ) {
           camera.position.copy(goal.position);
           controls.target.copy(goal.target);
@@ -1653,18 +1654,18 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       const halfTan = Math.tan(vFovRad / 2);
       const aspectBoost = aspect < 1.25 ? 1.25 / aspect : 1;
 
-      const maxSpanXZ = Math.max(bounds.width, bounds.depth, 8);
+      const maxSpanXZ = Math.max(bounds.width, bounds.depth, 7.5);
       const fitDistIso = Math.max(
-        6.2,
-        ((maxSpanXZ * 0.56) / halfTan) * 0.62 * aspectBoost,
-        maxTopY * 1.75
+        5.4,
+        ((maxSpanXZ * 0.52) / halfTan) * 0.56 * aspectBoost,
+        maxTopY * 1.58
       );
-      const defaultTargetY = Math.max(1.25, maxTopY * 0.42);
+      const defaultTargetY = Math.max(1.1, maxTopY * 0.4);
 
       const defaultIsoPos = new THREE.Vector3(
-        centerX + fitDistIso * 0.68,
-        Math.max(5.8, maxTopY * 1.22 + fitDistIso * 0.38),
-        centerZ + fitDistIso * 0.72
+        centerX + fitDistIso * 0.64,
+        Math.max(4.9, maxTopY * 1.12 + fitDistIso * 0.34),
+        centerZ + fitDistIso * 0.68
       );
       const defaultIsoTarget = new THREE.Vector3(
         centerX,
@@ -1672,24 +1673,24 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         centerZ
       );
 
-      const baseDist = Math.max(4, defaultIsoPos.distanceTo(defaultIsoTarget));
+      const baseDist = Math.max(3.6, defaultIsoPos.distanceTo(defaultIsoTarget));
       const goalPos = defaultIsoPos.clone();
       const goalTarget = defaultIsoTarget.clone();
 
       if (activePreset === 'top') {
-        const effSpan = Math.max(bounds.width / aspect, bounds.depth, 8);
-        const topHeight = Math.max(13.5, (effSpan * 0.58) / halfTan);
-        goalPos.set(centerX, topHeight, centerZ + 0.08);
+        const effSpan = Math.max(bounds.width / aspect, bounds.depth, 7.5);
+        const topHeight = Math.max(11.2, (effSpan * 0.52) / halfTan);
+        goalPos.set(centerX, topHeight, centerZ + 0.06);
         goalTarget.set(centerX, 0, centerZ);
       } else if (activePreset === 'elevation') {
-        const elevSpan = Math.max(bounds.depth / aspect, maxTopY * 1.45, 6);
-        const elevDist = Math.max(8.5, (elevSpan * 0.64) / halfTan);
+        const elevSpan = Math.max(bounds.depth / aspect, maxTopY * 1.35, 5.5);
+        const elevDist = Math.max(7.2, (elevSpan * 0.58) / halfTan);
         goalPos.set(
           centerX + elevDist,
-          Math.max(1.8, maxTopY * 0.48),
+          Math.max(1.6, maxTopY * 0.46),
           centerZ
         );
-        goalTarget.set(centerX, Math.max(1.5, maxTopY * 0.45), centerZ);
+        goalTarget.set(centerX, Math.max(1.35, maxTopY * 0.44), centerZ);
       } else if (activePreset === 'closeup') {
         const gzCenterY = (config.goldenZoneMinM + config.goldenZoneMaxM) / 2;
         const goldenSample =

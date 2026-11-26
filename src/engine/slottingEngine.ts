@@ -745,8 +745,15 @@ function evaluateAllocations(
   const depotY = config.depotYMeters ?? 0;
   const corridorY = Math.min(depotY + 0.75, 0.85);
 
+  const allocById = new Map(allocations.map((a) => [a.bin.id, a]));
+  const customRouteAllocs = (config.customRouteBinIds ?? [])
+    .map((id) => allocById.get(id))
+    .filter((a): a is BinAllocation => Boolean(a));
+
   let orderedHotBins = hotBinsRaw;
-  if (mode === 'optimized_3d' && hotBinsRaw.length > 1) {
+  if (customRouteAllocs.length > 0) {
+    orderedHotBins = customRouteAllocs;
+  } else if (mode === 'optimized_3d' && hotBinsRaw.length > 1) {
     const remaining = [...hotBinsRaw];
     orderedHotBins = [];
     let curX = depotX;
@@ -808,10 +815,19 @@ function evaluateAllocations(
     };
   });
 
+  const customRouteTimeSum = pickRoute.reduce(
+    (sum, wp) => sum + wp.stepTimeSec,
+    0
+  );
+  const effectiveCycleTimeSec =
+    customRouteAllocs.length > 0 && pickRoute.length > 0
+      ? Number((customRouteTimeSum / pickRoute.length).toFixed(1))
+      : Number(avgCycleTimeSec.toFixed(1));
+
   const kpis: WarehouseKPIs = {
     cubicUtilizationPct: Number(cubicUtilizationPct.toFixed(1)),
     honeycombingWastePct: Number(honeycombingWastePct.toFixed(1)),
-    avgCycleTimeSec: Number(avgCycleTimeSec.toFixed(1)),
+    avgCycleTimeSec: effectiveCycleTimeSec,
     travelEnergyIndex: Number(travelEnergyIndex.toFixed(1)),
     goldenZoneHitRatePct: Number(goldenZoneHitRatePct.toFixed(1)),
     ergonomicsScore: Number(ergonomicsScore.toFixed(1)),
@@ -1159,6 +1175,58 @@ export function computeZLevelBreakdown(
     });
   }
   return summaries;
+}
+
+export function buildExactBinSkuPins(
+  prevPins: PinnedCargoPlacement[],
+  allocations: BinAllocation[],
+  targetBinId: string,
+  skuId: string,
+  exactCount: number
+): { nextPins: PinnedCargoPlacement[]; totalPinnedForSku: number } {
+  const sanitizedCount = Math.max(0, Math.min(200, Math.round(exactCount)));
+  const currentCounts = new Map<string, number>();
+
+  for (const alloc of allocations) {
+    const cnt = alloc.boxes.filter((b) => b.skuId === skuId).length;
+    if (cnt > 0) {
+      currentCounts.set(alloc.bin.id, cnt);
+    }
+  }
+
+  for (const p of prevPins) {
+    if (p.skuId === skuId && p.count > 0 && !currentCounts.has(p.binId)) {
+      currentCounts.set(p.binId, p.count);
+    }
+  }
+
+  if (sanitizedCount <= 0) {
+    currentCounts.delete(targetBinId);
+  } else {
+    currentCounts.set(targetBinId, sanitizedCount);
+  }
+
+  const otherSkuPins = prevPins.filter((p) => p.skuId !== skuId);
+  const updatedSkuPins: PinnedCargoPlacement[] = [];
+  let totalPinnedForSku = 0;
+
+  if (currentCounts.has(targetBinId)) {
+    const c = currentCounts.get(targetBinId)!;
+    updatedSkuPins.push({ binId: targetBinId, skuId, count: c });
+    totalPinnedForSku += c;
+  }
+
+  for (const [bId, count] of currentCounts.entries()) {
+    if (bId !== targetBinId && count > 0) {
+      updatedSkuPins.push({ binId: bId, skuId, count });
+      totalPinnedForSku += count;
+    }
+  }
+
+  return {
+    nextPins: [...updatedSkuPins, ...otherSkuPins],
+    totalPinnedForSku,
+  };
 }
 
 export function buildTransferredSkuPins(

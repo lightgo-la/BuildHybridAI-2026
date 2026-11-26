@@ -38,7 +38,31 @@ export function loadSavedWorkspaceSession(): SavedWorkspaceSession | null {
   try {
     const raw = localStorage.getItem(WORKSPACE_SESSION_KEY);
     if (raw) {
-      return JSON.parse(raw) as SavedWorkspaceSession;
+      const parsed = JSON.parse(raw) as Partial<SavedWorkspaceSession>;
+      if (
+        parsed &&
+        typeof parsed.scenarioId === 'string' &&
+        Array.isArray(parsed.skus)
+      ) {
+        return {
+          scenarioId: parsed.scenarioId,
+          skus: parsed.skus,
+          configPatch:
+            parsed.configPatch && typeof parsed.configPatch === 'object'
+              ? parsed.configPatch
+              : {},
+          customBinsOverride: Array.isArray(parsed.customBinsOverride)
+            ? parsed.customBinsOverride
+            : null,
+          extraBins: Array.isArray(parsed.extraBins) ? parsed.extraBins : [],
+          removedBinIds: Array.isArray(parsed.removedBinIds)
+            ? parsed.removedBinIds
+            : [],
+          pinnedPlacements: Array.isArray(parsed.pinnedPlacements)
+            ? parsed.pinnedPlacements
+            : [],
+        };
+      }
     }
   } catch {
   }

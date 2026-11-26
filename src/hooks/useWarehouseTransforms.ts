@@ -1,6 +1,7 @@
 import { type Dispatch, type SetStateAction, useCallback } from 'react';
 import { INTERIOR_PROP_CATALOG } from '../components/InteriorStudioModal';
 import {
+  buildExactBinSkuPins,
   buildTransferredSkuPins,
   resolveShelfCollisions3D,
 } from '../engine/slottingEngine';
@@ -160,47 +161,211 @@ export function useWarehouseTransforms({
           ?.boxes.filter((b) => b.skuId === skuId).length ?? 0;
 
       setPinnedPlacements((prev) => {
-        if (delta < 0) {
-          return buildTransferredSkuPins(
-            prev,
-            allocations,
-            binId,
-            null,
-            skuId,
-            Math.abs(delta)
-          ).nextPins;
-        }
-        const idx = prev.findIndex(
+        const existingPin = prev.find(
           (p) => p.binId === binId && p.skuId === skuId
         );
-        const baseCount =
-          idx === -1 ? currentInBin : Math.max(prev[idx].count, currentInBin);
-        const nextCount = baseCount + delta;
-        let nextPins: PinnedCargoPlacement[];
-        if (idx === -1) {
-          nextPins = [{ binId, skuId, count: nextCount }, ...prev];
-        } else if (nextCount <= 0) {
-          nextPins = prev.filter((_, i) => i !== idx);
-        } else {
-          nextPins = prev.map((p, i) =>
-            i === idx ? { ...p, count: nextCount } : p
-          );
-        }
+        const baseCount = existingPin
+          ? Math.max(existingPin.count, currentInBin)
+          : currentInBin;
+        const targetCount = Math.max(0, baseCount + delta);
 
-        const totalPinnedForSku = nextPins
-          .filter((p) => p.skuId === skuId)
-          .reduce((sum, p) => sum + p.count, 0);
+        const { nextPins, totalPinnedForSku } = buildExactBinSkuPins(
+          prev,
+          allocations,
+          binId,
+          skuId,
+          targetCount
+        );
+
         setSkus((currSkus) =>
           currSkus.map((s) =>
-            s.id === skuId && s.quantity < totalPinnedForSku
-              ? { ...s, quantity: totalPinnedForSku }
-              : s
+            s.id === skuId ? { ...s, quantity: Math.max(0, totalPinnedForSku) } : s
           )
         );
         return nextPins;
       });
     },
     [allocations, pushWorkspaceUndo, setPinnedPlacements, setSkus]
+  );
+
+  const handleSetCargoCountInBin = useCallback(
+    (binId: string, skuId: string, exactCount: number, autoExpandBin = true) => {
+      pushWorkspaceUndo();
+      const clampedCount = Math.max(0, Math.min(120, Math.round(exactCount)));
+
+      if (autoExpandBin && clampedCount > 0) {
+        const targetBin = bins.find((b) => b.id === binId);
+        const targetAlloc = allocations.find((a) => a.bin.id === binId);
+        const sampleBox = targetAlloc?.boxes.find((b) => b.skuId === skuId);
+        if (targetBin && sampleBox) {
+          const singleVol =
+            sampleBox.lengthCm * sampleBox.widthCm * sampleBox.heightCm;
+          const otherBoxesVol = (targetAlloc?.boxes ?? [])
+            .filter((b) => b.skuId !== skuId)
+            .reduce((acc, b) => acc + b.lengthCm * b.widthCm * b.heightCm, 0);
+          const otherBoxesWeight = (targetAlloc?.boxes ?? [])
+            .filter((b) => b.skuId !== skuId)
+            .reduce((acc, b) => acc + b.weightKg, 0);
+          const neededVol = (otherBoxesVol + singleVol * clampedCount) * 1.18;
+          const currentVol =
+            targetBin.binLengthCm * targetBin.binWidthCm * targetBin.binHeightCm;
+          const neededWeight =
+            otherBoxesWeight + sampleBox.weightKg * clampedCount;
+
+          if (neededVol > currentVol || neededWeight > targetBin.maxWeightKg) {
+            const scale =
+              neededVol > currentVol ? Math.cbrt(neededVol / currentVol) : 1;
+            const nextL = Math.min(
+              300,
+              Math.max(
+                targetBin.binLengthCm,
+                Math.ceil(targetBin.binLengthCm * scale)
+              )
+            );
+            const nextW = Math.min(
+              300,
+              Math.max(
+                targetBin.binWidthCm,
+                Math.ceil(targetBin.binWidthCm * scale)
+              )
+            );
+            const nextH = Math.min(
+              250,
+              Math.max(
+                targetBin.binHeightCm,
+                Math.ceil(targetBin.binHeightCm * scale)
+              )
+            );
+            const nextBins = resolveShelfCollisions3D(
+              adjustColumnZLevelsForTallBins(
+                bins.map((b) =>
+                  b.id === binId
+                    ? {
+                        ...b,
+                        binLengthCm: nextL,
+                        binWidthCm: nextW,
+                        binHeightCm: nextH,
+                        maxWeightKg: Math.max(
+                          b.maxWeightKg,
+                          Math.ceil(neededWeight + 25)
+                        ),
+                      }
+                    : b
+                ),
+                config.goldenZoneMinM,
+                config.goldenZoneMaxM,
+                nextH > targetBin.binHeightCm
+              ),
+              config,
+              [binId]
+            );
+            setCustomBinsOverride(nextBins);
+            setExtraBins([]);
+            setRemovedBinIds([]);
+          }
+        }
+      }
+
+      setPinnedPlacements((prev) => {
+        const { nextPins, totalPinnedForSku } = buildExactBinSkuPins(
+          prev,
+          allocations,
+          binId,
+          skuId,
+          clampedCount
+        );
+        setSkus((currSkus) =>
+          currSkus.map((s) =>
+            s.id === skuId
+              ? { ...s, quantity: Math.max(0, totalPinnedForSku) }
+              : s
+          )
+        );
+        return nextPins;
+      });
+    },
+    [
+      allocations,
+      bins,
+      config,
+      pushWorkspaceUndo,
+      setCustomBinsOverride,
+      setExtraBins,
+      setPinnedPlacements,
+      setRemovedBinIds,
+      setSkus,
+    ]
+  );
+
+  const handleSetBinTotalBoxQuota = useCallback(
+    (binId: string, targetTotalBoxes: number, fallbackSkuId?: string) => {
+      const clampedTotal = Math.max(0, Math.min(120, Math.round(targetTotalBoxes)));
+      const targetAlloc = allocations.find((a) => a.bin.id === binId);
+      if (!targetAlloc) return;
+
+      if (targetAlloc.boxes.length === 0) {
+        if (clampedTotal > 0 && fallbackSkuId) {
+          handleSetCargoCountInBin(binId, fallbackSkuId, clampedTotal, true);
+        }
+        return;
+      }
+
+      const skuCounts = new Map<string, number>();
+      for (const b of targetAlloc.boxes) {
+        skuCounts.set(b.skuId, (skuCounts.get(b.skuId) ?? 0) + 1);
+      }
+      const entries = [...skuCounts.entries()];
+      if (clampedTotal === 0) {
+        pushWorkspaceUndo();
+        setPinnedPlacements((prev) => {
+          let working = prev;
+          for (const [sId] of entries) {
+            const res = buildExactBinSkuPins(working, allocations, binId, sId, 0);
+            working = res.nextPins;
+            const totalForSku = res.totalPinnedForSku;
+            setSkus((curr) =>
+              curr.map((s) =>
+                s.id === sId ? { ...s, quantity: Math.max(0, totalForSku) } : s
+              )
+            );
+          }
+          return working;
+        });
+        return;
+      }
+
+      if (entries.length === 1) {
+        handleSetCargoCountInBin(binId, entries[0][0], clampedTotal, true);
+        return;
+      }
+
+      const currentSum = targetAlloc.boxes.length;
+      const newCounts = new Map<string, number>();
+      let assigned = 0;
+      entries.forEach(([sId, cnt], idx) => {
+        if (idx === entries.length - 1) {
+          newCounts.set(sId, Math.max(0, clampedTotal - assigned));
+        } else {
+          const share = Math.max(
+            0,
+            Math.round((cnt / Math.max(1, currentSum)) * clampedTotal)
+          );
+          newCounts.set(sId, share);
+          assigned += share;
+        }
+      });
+
+      for (const [sId, nextCnt] of newCounts.entries()) {
+        handleSetCargoCountInBin(binId, sId, nextCnt, true);
+      }
+    },
+    [
+      allocations,
+      handleSetCargoCountInBin,
+      pushWorkspaceUndo,
+      setPinnedPlacements,
+      setSkus,
+    ]
   );
 
   const handleMoveSingleCargoToBin = useCallback(
@@ -1568,6 +1733,8 @@ export function useWarehouseTransforms({
     handleAddBin,
     handleDeleteBin,
     handlePinCargo,
+    handleSetCargoCountInBin,
+    handleSetBinTotalBoxQuota,
     handlePlaceCustomBoxInBin,
     handleUpdateBoxDimensions,
     handleResizeSingleBin,

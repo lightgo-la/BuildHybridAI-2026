@@ -90,6 +90,17 @@ interface ViewportContextMenuProps {
   onClose: () => void;
   onInspectBin: (alloc: BinAllocation) => void;
   onPinSkuToBin: (binId: string, skuId: string, delta?: number) => void;
+  onSetCargoCountInBin?: (
+    binId: string,
+    skuId: string,
+    exactCount: number,
+    autoExpandBin?: boolean
+  ) => void;
+  onSetBinTotalBoxQuota?: (
+    binId: string,
+    targetTotalBoxes: number,
+    fallbackSkuId?: string
+  ) => void;
   onPlaceCustomBoxInBin?: (input: CustomBoxPlacementInput) => void;
   onResizeSingleBin?: (
     binId: string,
@@ -188,6 +199,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
   onClose,
   onInspectBin,
   onPinSkuToBin,
+  onSetCargoCountInBin,
+  onSetBinTotalBoxQuota,
   onPlaceCustomBoxInBin,
   onResizeSingleBin,
   onChangeFloorColor,
@@ -603,13 +616,56 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
             </div>
           )}
 
-          <div className="rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
-            <div className="mb-1.5 flex items-center justify-between text-[10px] font-semibold text-[var(--t-muted)]">
+          <div className="space-y-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] p-2">
+            {onSetBinTotalBoxQuota && (
+              <div className="flex items-center justify-between gap-1 rounded border border-cyan-500/35 bg-slate-950/90 px-2 py-1 text-[10px]">
+                <span className="font-bold text-cyan-300">
+                  {isKo ? '선반 총 박스 개수:' : 'Shelf Total Boxes:'}
+                </span>
+                <div className="flex items-center gap-1">
+                  {[0, 1, 2, 4, 6, 8].map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() =>
+                        onSetBinTotalBoxQuota(alloc.bin.id, q, skus[0]?.id)
+                      }
+                      className={`rounded border px-1 py-0.5 font-mono font-bold ${
+                        alloc.boxes.length === q
+                          ? 'border-cyan-400 bg-cyan-500 text-slate-950'
+                          : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-cyan-400'
+                      }`}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={alloc.boxes.length}
+                    onChange={(e) =>
+                      onSetBinTotalBoxQuota(
+                        alloc.bin.id,
+                        Math.max(
+                          0,
+                          Math.min(100, Math.round(Number(e.target.value) || 0))
+                        ),
+                        skus[0]?.id
+                      )
+                    }
+                    className="w-11 rounded border border-cyan-500/50 bg-slate-900 px-1 py-0.5 text-center font-mono font-bold text-amber-300"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-[10px] font-semibold text-[var(--t-muted)]">
               <span className="inline-flex items-center gap-1 text-emerald-300">
                 <PackagePlus className="h-3 w-3" />
                 {isKo
-                  ? `이 칸에 물건 바로 넣기 (+1) · 전체 ${skus.length}종`
-                  : `Place Item into Bin (+1) · ${skus.length} SKUs`}
+                  ? `품목별 수량 직접 입력 · 전체 ${skus.length}종`
+                  : `Exact SKU Quantity in Bin · ${skus.length} SKUs`}
               </span>
               {skus.length > 6 && (
                 <button
@@ -627,27 +683,113 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                 </button>
               )}
             </div>
-            <div className="grid max-h-36 grid-cols-2 gap-1 overflow-y-auto pr-0.5">
-              {visibleSkus.map((sku) => (
-                <button
-                  key={sku.id}
-                  type="button"
-                  onClick={() => {
-                    onPinSkuToBin(alloc.bin.id, sku.id, 1);
-                    onClose();
-                  }}
-                  className="flex items-center gap-1.5 truncate rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-1.5 py-1 text-left text-[10px] hover:border-[var(--t-accent)]"
-                  title={`${sku.name} (${sku.lengthCm}×${sku.widthCm}×${sku.heightCm}cm, ${sku.weightKg}kg)`}
-                >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: sku.color }}
-                  />
-                  <span className="truncate">
-                    + {isKo ? sku.name.split(' (')[0] : sku.skuCode}
-                  </span>
-                </button>
-              ))}
+            <div className="max-h-40 space-y-1 overflow-y-auto pr-0.5">
+              {visibleSkus.map((sku) => {
+                const cntInBin = alloc.boxes.filter(
+                  (b) => b.skuId === sku.id
+                ).length;
+                return (
+                  <div
+                    key={sku.id}
+                    className={`flex items-center justify-between gap-1 rounded border px-1.5 py-1 text-[10px] ${
+                      cntInBin > 0
+                        ? 'border-emerald-500/50 bg-emerald-950/25'
+                        : 'border-[var(--t-border)] bg-[var(--t-surface)]'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (onSetCargoCountInBin) {
+                          onSetCargoCountInBin(
+                            alloc.bin.id,
+                            sku.id,
+                            cntInBin + 1,
+                            true
+                          );
+                        } else {
+                          onPinSkuToBin(alloc.bin.id, sku.id, 1);
+                        }
+                      }}
+                      className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-left"
+                      title={`${sku.name} (${sku.lengthCm}×${sku.widthCm}×${sku.heightCm}cm, ${sku.weightKg}kg)`}
+                    >
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: sku.color }}
+                      />
+                      <span className="truncate font-medium">
+                        {isKo ? sku.name.split(' (')[0] : sku.skuCode}
+                      </span>
+                    </button>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        disabled={cntInBin <= 0}
+                        onClick={() =>
+                          onSetCargoCountInBin
+                            ? onSetCargoCountInBin(
+                                alloc.bin.id,
+                                sku.id,
+                                Math.max(0, cntInBin - 1),
+                                true
+                              )
+                            : onPinSkuToBin(alloc.bin.id, sku.id, -1)
+                        }
+                        className="rounded border border-slate-700 bg-slate-900 px-1 py-0.2 font-bold text-rose-300 hover:border-rose-400 disabled:opacity-35"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={cntInBin}
+                        onChange={(e) => {
+                          const nextVal = Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              Math.round(Number(e.target.value) || 0)
+                            )
+                          );
+                          if (onSetCargoCountInBin) {
+                            onSetCargoCountInBin(
+                              alloc.bin.id,
+                              sku.id,
+                              nextVal,
+                              true
+                            );
+                          } else {
+                            onPinSkuToBin(
+                              alloc.bin.id,
+                              sku.id,
+                              nextVal - cntInBin
+                            );
+                          }
+                        }}
+                        className="w-10 rounded border border-slate-700 bg-slate-950 px-1 py-0.2 text-center font-mono font-bold text-amber-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onSetCargoCountInBin
+                            ? onSetCargoCountInBin(
+                                alloc.bin.id,
+                                sku.id,
+                                cntInBin + 1,
+                                true
+                              )
+                            : onPinSkuToBin(alloc.bin.id, sku.id, 1)
+                        }
+                        className="rounded border border-slate-700 bg-slate-900 px-1 py-0.2 font-bold text-emerald-300 hover:border-emerald-400"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

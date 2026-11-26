@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ArrowDown,
+  ArrowUp,
   Ban,
   Briefcase,
   Check,
@@ -9,12 +11,19 @@ import {
   Home,
   Map as MapIcon,
   Maximize2,
+  Minus,
   MousePointer2,
   Navigation,
+  Package,
+  PackagePlus,
+  Plus,
   PlusSquare,
   RotateCcw,
   RotateCw,
+  Route,
+  Ruler,
   Save,
+  Sparkles,
   Trash2,
   Undo2,
   Upload,
@@ -22,15 +31,27 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
+import { computeAisleTravelDistanceM } from '../engine/slottingEngine';
+import type { CustomBoxPlacementInput } from '../hooks/useWarehouseTransforms';
 import { type LangCode } from '../i18n/translations';
 import type {
+  ABCClass,
+  BinAllocation,
   BinSpec,
+  SKUItem,
   WarehouseConfig,
   WarehouseObstacle,
   WarehouseScenario,
 } from '../types/warehouse';
 
-type CanvasTool = 'select' | 'add_rack' | 'add_low' | 'add_obstacle' | 'move_depot' | 'erase';
+type CanvasTool =
+  | 'select'
+  | 'route_edit'
+  | 'add_rack'
+  | 'add_low'
+  | 'add_obstacle'
+  | 'move_depot'
+  | 'erase';
 type EditorPersona = 'professional' | 'everyday';
 
 interface CanvasRackNode {
@@ -43,6 +64,54 @@ interface CanvasRackNode {
   binLengthCm: number;
   binWidthCm: number;
   binHeightCm: number;
+  srcX?: number;
+  srcY?: number;
+}
+
+interface SkuBoxGroup {
+  skuId: string;
+  skuCode: string;
+  name: string;
+  color: string;
+  count: number;
+  weightKg: number;
+  lengthCm: number;
+  widthCm: number;
+  heightCm: number;
+}
+
+function posKeyOf(x: number, y: number): string {
+  return `${x.toFixed(2)}_${y.toFixed(2)}`;
+}
+
+function groupBoxesBySku(alloc: BinAllocation): SkuBoxGroup[] {
+  const map = new Map<string, SkuBoxGroup>();
+  for (const b of alloc.boxes) {
+    const existing = map.get(b.skuId);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      map.set(b.skuId, {
+        skuId: b.skuId,
+        skuCode: b.skuCode,
+        name: b.name,
+        color: b.color,
+        count: 1,
+        weightKg: b.weightKg,
+        lengthCm: b.lengthCm,
+        widthCm: b.widthCm,
+        heightCm: b.heightCm,
+      });
+    }
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count);
+}
+
+function fillColor(pct: number): string {
+  if (pct >= 90) return '#f43f5e';
+  if (pct >= 70) return '#f59e0b';
+  if (pct > 0) return '#22d3ee';
+  return '#334155';
 }
 
 interface CanvasSnapshot {
@@ -104,12 +173,28 @@ interface MapEditorModalProps {
   config: WarehouseConfig;
   bins: BinSpec[];
   scenario: WarehouseScenario;
+  skus?: SKUItem[];
   floorColor?: string;
   onChangeFloorColor?: (color: string) => void;
   lang?: LangCode;
+  allocations?: BinAllocation[];
+  onPinCargo?: (binId: string, skuId: string, delta?: number) => void;
+  onSetCargoCountInBin?: (
+    binId: string,
+    skuId: string,
+    exactCount: number,
+    autoExpandBin?: boolean
+  ) => void;
+  onSetBinTotalBoxQuota?: (
+    binId: string,
+    targetTotalBoxes: number,
+    fallbackSkuId?: string
+  ) => void;
+  onPlaceCustomBoxInBin?: (input: CustomBoxPlacementInput) => void;
   onApplyMapEdits: (params: {
     configPatch: Partial<WarehouseConfig>;
     customBins: BinSpec[];
+    closeModal?: boolean;
   }) => void;
   onSaveCustomScenario: (customMap: WarehouseScenario) => void;
 }
@@ -173,6 +258,8 @@ function groupBinsToCanvasRacks(bins: BinSpec[]): CanvasRackNode[] {
       binLengthCm: base.binLengthCm,
       binWidthCm: base.binWidthCm,
       binHeightCm: base.binHeightCm,
+      srcX: base.xMeters,
+      srcY: base.yMeters,
     });
   }
   return nodes;
@@ -184,9 +271,15 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   config,
   bins,
   scenario,
+  skus = [],
   floorColor = '#071326',
   onChangeFloorColor,
   lang = 'ko',
+  allocations = [],
+  onPinCargo,
+  onSetCargoCountInBin,
+  onSetBinTotalBoxQuota,
+  onPlaceCustomBoxInBin,
   onApplyMapEdits,
   onSaveCustomScenario,
 }) => {
@@ -225,6 +318,29 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   } | null>(null);
   const [undoStack, setUndoStack] = useState<CanvasSnapshot[]>([]);
   const [ctxMenu, setCtxMenu] = useState<CanvasContextMenuState | null>(null);
+  const [showQty, setShowQty] = useState<boolean>(true);
+  const [showRouteLine, setShowRouteLine] = useState<boolean>(true);
+  const [routeBinIds, setRouteBinIds] = useState<string[]>(
+    config.customRouteBinIds ?? []
+  );
+  const [routeReturnToDepot, setRouteReturnToDepot] = useState<boolean>(
+    config.routeReturnToDepot ?? true
+  );
+  const [targetLevel, setTargetLevel] = useState<number>(1);
+  const [boxTab, setBoxTab] = useState<'existing' | 'custom'>('existing');
+  const [showAllSkus, setShowAllSkus] = useState<boolean>(false);
+  const [customBoxName, setCustomBoxName] = useState<string>(
+    isKo ? '맞춤 수납 박스' : 'Custom Storage Box'
+  );
+  const [customBoxL, setCustomBoxL] = useState<number>(40);
+  const [customBoxW, setCustomBoxW] = useState<number>(30);
+  const [customBoxH, setCustomBoxH] = useState<number>(24);
+  const [customBoxKg, setCustomBoxKg] = useState<number>(5);
+  const [customBoxQty, setCustomBoxQty] = useState<number>(1);
+  const [customBoxAbc, setCustomBoxAbc] = useState<ABCClass>('A');
+  const [customBoxColor, setCustomBoxColor] = useState<string>('#22d3ee');
+  const [customBoxFragile, setCustomBoxFragile] = useState<boolean>(false);
+  const [placedFlashBinId, setPlacedFlashBinId] = useState<string | null>(null);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -270,6 +386,8 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
     setUndoStack([]);
     setCtxMenu(null);
     setZoom(1);
+    setRouteBinIds(config.customRouteBinIds ?? []);
+    setRouteReturnToDepot(config.routeReturnToDepot ?? true);
   }, [open, config, bins, scenario.id, scenario.name]);
 
   const snapshotNow = useCallback(
@@ -336,6 +454,55 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         ? racks.find((r) => r.key === selectedKeys[0]) ?? null
         : null,
     [racks, selectedKeys]
+  );
+
+  const allocByPos = useMemo(() => {
+    const map = new Map<string, BinAllocation[]>();
+    for (const a of allocations) {
+      const key = posKeyOf(a.bin.xMeters, a.bin.yMeters);
+      const list = map.get(key) ?? [];
+      list.push(a);
+      map.set(key, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.bin.level - b.bin.level);
+    }
+    return map;
+  }, [allocations]);
+
+  const getRackAllocs = useCallback(
+    (rack: CanvasRackNode): BinAllocation[] => {
+      const lookupX = rack.srcX ?? rack.xMeters;
+      const lookupY = rack.srcY ?? rack.yMeters;
+      const list = allocByPos.get(posKeyOf(lookupX, lookupY)) ?? [];
+      return list.filter((a) => a.bin.level <= rack.levels);
+    },
+    [allocByPos]
+  );
+
+  useEffect(() => {
+    if (!primarySelectedRack) return;
+    if (targetLevel > primarySelectedRack.levels) {
+      setTargetLevel(Math.max(1, primarySelectedRack.levels));
+    }
+  }, [primarySelectedRack, targetLevel]);
+
+  const totalBoxesAll = useMemo(
+    () => allocations.reduce((acc, a) => acc + a.boxes.length, 0),
+    [allocations]
+  );
+
+  const selectedRackLevels = useMemo(
+    () =>
+      primarySelectedRack && selectedKeys.length === 1
+        ? getRackAllocs(primarySelectedRack)
+        : [],
+    [primarySelectedRack, selectedKeys.length, getRackAllocs]
+  );
+
+  const selectedRackTotalQty = selectedRackLevels.reduce(
+    (acc, a) => acc + a.boxes.length,
+    0
   );
 
   const isEveryday = persona === 'everyday';
@@ -605,8 +772,10 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
     racks.forEach((r, idx) => {
       const shelfPitchM =
         r.binHeightCm === 70 ? 0.8 : Math.max(0.45, r.binHeightCm / 100 + 0.14);
+      const existingAllocs = getRackAllocs(r);
       for (let l = 1; l <= r.levels; l++) {
-        let id = `A${r.aisle}-B${r.bay}-Z${l}`;
+        const matchedExisting = existingAllocs.find((a) => a.bin.level === l);
+        let id = matchedExisting ? matchedExisting.bin.id : `A${r.aisle}-B${r.bay}-Z${l}`;
         if (usedIds.has(id)) {
           id = `C${idx + 1}-A${r.aisle}-B${r.bay}-Z${l}`;
         }
@@ -635,6 +804,358 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
     return result;
   };
 
+  const resolveBinIdForRackLevel = (rack: CanvasRackNode, level: number): string => {
+    const existing = getRackAllocs(rack).find((a) => a.bin.level === level);
+    if (existing) return existing.bin.id;
+
+    const customBins = buildCustomBins();
+    const maxLvl = customBins.reduce((m, b) => Math.max(m, b.level), levels);
+    onApplyMapEdits({
+      configPatch: {
+        aisles,
+        baysPerAisle,
+        levels: maxLvl,
+        aisleSpacingM,
+        baySpacingM,
+        binLengthCm,
+        binWidthCm,
+        binHeightCm,
+        floorWidthM,
+        floorDepthM,
+        depotXMeters: depotX,
+        depotYMeters: depotY,
+        obstacles,
+        disabledBinIds: [],
+      },
+      customBins,
+      closeModal: false,
+    });
+    setRacks((prev) =>
+      prev.map((r) => ({ ...r, srcX: r.xMeters, srcY: r.yMeters }))
+    );
+    const created = customBins.find(
+      (b) =>
+        Math.abs(b.xMeters - rack.xMeters) < 0.05 &&
+        Math.abs(b.yMeters - rack.yMeters) < 0.05 &&
+        b.level === level
+    );
+    return created ? created.id : `A${rack.aisle}-B${rack.bay}-Z${level}`;
+  };
+
+  const triggerFlash = (binId: string) => {
+    setPlacedFlashBinId(binId);
+    window.setTimeout(() => setPlacedFlashBinId(null), 1100);
+  };
+
+  const handlePinSkuInRackLevel = (
+    rack: CanvasRackNode,
+    level: number,
+    skuId: string,
+    delta: number = 1
+  ) => {
+    if (!onPinCargo) return;
+    const binId = resolveBinIdForRackLevel(rack, level);
+    onPinCargo(binId, skuId, delta);
+    if (delta > 0) triggerFlash(binId);
+  };
+
+  const handleSetSkuCountInRackLevel = (
+    rack: CanvasRackNode,
+    level: number,
+    skuId: string,
+    exactCount: number
+  ) => {
+    const binId = resolveBinIdForRackLevel(rack, level);
+    if (onSetCargoCountInBin) {
+      onSetCargoCountInBin(binId, skuId, exactCount, true);
+    } else if (onPinCargo) {
+      const currentAlloc = getRackAllocs(rack).find(
+        (a) => a.bin.level === level
+      );
+      const currentCnt =
+        currentAlloc?.boxes.filter((b) => b.skuId === skuId).length ?? 0;
+      onPinCargo(binId, skuId, exactCount - currentCnt);
+    }
+    triggerFlash(binId);
+  };
+
+  const handleSetLevelTotalBoxQuota = (
+    rack: CanvasRackNode,
+    level: number,
+    targetTotal: number
+  ) => {
+    const binId = resolveBinIdForRackLevel(rack, level);
+    if (onSetBinTotalBoxQuota) {
+      onSetBinTotalBoxQuota(binId, targetTotal, skus[0]?.id);
+      triggerFlash(binId);
+    }
+  };
+
+  const handlePlaceCustomBoxInRackLevel = (
+    rack: CanvasRackNode,
+    level: number
+  ) => {
+    if (!onPlaceCustomBoxInBin) return;
+    const binId = resolveBinIdForRackLevel(rack, level);
+    onPlaceCustomBoxInBin({
+      binId,
+      name:
+        customBoxName.trim() ||
+        (isKo ? '맞춤 수납 박스' : 'Custom Storage Box'),
+      skuCode: `BOX-${customBoxL}x${customBoxW}x${customBoxH}`,
+      lengthCm: customBoxL,
+      widthCm: customBoxW,
+      heightCm: customBoxH,
+      weightKg: customBoxKg,
+      quantity: customBoxQty,
+      abcClass: customBoxAbc,
+      fragile: customBoxFragile,
+      color: customBoxColor,
+      autoExpandBin: true,
+    });
+    triggerFlash(binId);
+  };
+
+  const commitCustomRoute = useCallback(
+    (nextRouteIds: string[], nextReturnToDepot = routeReturnToDepot) => {
+      setRouteBinIds(nextRouteIds);
+      setRouteReturnToDepot(nextReturnToDepot);
+      const customBins = buildCustomBins();
+      const maxLvl = customBins.reduce((m, b) => Math.max(m, b.level), levels);
+      onApplyMapEdits({
+        configPatch: {
+          aisles,
+          baysPerAisle,
+          levels: maxLvl,
+          aisleSpacingM,
+          baySpacingM,
+          binLengthCm,
+          binWidthCm,
+          binHeightCm,
+          floorWidthM,
+          floorDepthM,
+          depotXMeters: depotX,
+          depotYMeters: depotY,
+          obstacles,
+          disabledBinIds: [],
+          customRouteBinIds: nextRouteIds,
+          routeReturnToDepot: nextReturnToDepot,
+        },
+        customBins,
+        closeModal: false,
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      aisles,
+      baysPerAisle,
+      levels,
+      aisleSpacingM,
+      baySpacingM,
+      binLengthCm,
+      binWidthCm,
+      binHeightCm,
+      floorWidthM,
+      floorDepthM,
+      depotX,
+      depotY,
+      obstacles,
+      racks,
+      routeReturnToDepot,
+      onApplyMapEdits,
+    ]
+  );
+
+  const handleApplyRoutePattern = (
+    pattern: 'tsp_shortest' | 's_shape_aisle' | 'golden_first' | 'all_occupied'
+  ) => {
+    const occupied = allocations.filter((a) => a.boxes.length > 0);
+    if (occupied.length === 0) return;
+
+    if (pattern === 's_shape_aisle') {
+      const sorted = [...occupied]
+        .sort((a, b) => {
+          if (a.bin.aisle !== b.bin.aisle) return a.bin.aisle - b.bin.aisle;
+          return a.bin.aisle % 2 === 1
+            ? a.bin.bay - b.bin.bay
+            : b.bin.bay - a.bin.bay;
+        })
+        .slice(0, 10);
+      commitCustomRoute(sorted.map((a) => a.bin.id));
+      return;
+    }
+
+    if (pattern === 'golden_first') {
+      const sorted = [...occupied]
+        .sort((a, b) => {
+          if (a.bin.isGoldenZone !== b.bin.isGoldenZone) {
+            return a.bin.isGoldenZone ? -1 : 1;
+          }
+          return b.dailyPickLoad - a.dailyPickLoad;
+        })
+        .slice(0, 8);
+      commitCustomRoute(sorted.map((a) => a.bin.id));
+      return;
+    }
+
+    if (pattern === 'all_occupied') {
+      const sorted = [...occupied]
+        .sort((a, b) => b.dailyPickLoad - a.dailyPickLoad)
+        .slice(0, 12);
+      commitCustomRoute(sorted.map((a) => a.bin.id));
+      return;
+    }
+
+    handleAutoOptimizeRouteOrder();
+  };
+
+  const toggleRackInRoute = (rack: CanvasRackNode, preferredLevel?: number) => {
+    const rackAllocs = getRackAllocs(rack);
+    const lv =
+      preferredLevel ??
+      rackAllocs.find((a) => a.boxes.length > 0)?.bin.level ??
+      Math.min(targetLevel, rack.levels);
+    const binId = resolveBinIdForRackLevel(rack, lv);
+    const existingIdx = routeBinIds.findIndex((id) => {
+      if (id === binId) return true;
+      return rackAllocs.some((a) => a.bin.id === id);
+    });
+    if (existingIdx !== -1) {
+      const next = routeBinIds.filter((_, i) => i !== existingIdx);
+      commitCustomRoute(next);
+    } else {
+      commitCustomRoute([...routeBinIds, binId]);
+    }
+  };
+
+  const handleAutoOptimizeRouteOrder = () => {
+    const allocMap = new Map(allocations.map((a) => [a.bin.id, a]));
+    let pool: BinAllocation[] = routeBinIds
+      .map((id) => allocMap.get(id))
+      .filter((a): a is BinAllocation => Boolean(a));
+    if (pool.length === 0) {
+      pool = [...allocations]
+        .filter((a) => a.boxes.length > 0)
+        .sort((a, b) => b.dailyPickLoad - a.dailyPickLoad)
+        .slice(0, 6);
+    }
+    if (pool.length <= 1) {
+      commitCustomRoute(pool.map((a) => a.bin.id));
+      return;
+    }
+    const corridorY = Math.min(depotY + 0.75, 0.85);
+    const remaining = [...pool];
+    const orderedIds: string[] = [];
+    let curX = depotX;
+    let curY = depotY;
+    let curZ = 0;
+    while (remaining.length > 0) {
+      let bestIdx = 0;
+      let bestCost = Infinity;
+      for (let i = 0; i < remaining.length; i++) {
+        const b = remaining[i].bin;
+        const dXY = computeAisleTravelDistanceM(
+          curX,
+          curY,
+          b.xMeters,
+          b.yMeters,
+          corridorY
+        );
+        const dZ = Math.abs(b.zMeters - curZ);
+        const cost = dXY + dZ * 1.6;
+        if (cost < bestCost) {
+          bestCost = cost;
+          bestIdx = i;
+        }
+      }
+      const nextStop = remaining.splice(bestIdx, 1)[0];
+      orderedIds.push(nextStop.bin.id);
+      curX = nextStop.bin.xMeters;
+      curY = nextStop.bin.yMeters;
+      curZ = nextStop.bin.zMeters;
+    }
+    commitCustomRoute(orderedIds);
+  };
+
+  const activeRouteStops = useMemo(() => {
+    const allocMap = new Map(allocations.map((a) => [a.bin.id, a]));
+    if (routeBinIds.length > 0) {
+      return routeBinIds
+        .map((id) => allocMap.get(id))
+        .filter((a): a is BinAllocation => Boolean(a));
+    }
+    return [...allocations]
+      .filter((a) => a.boxes.length > 0)
+      .sort((a, b) => b.dailyPickLoad - a.dailyPickLoad)
+      .slice(0, 5);
+  }, [allocations, routeBinIds]);
+
+  const routeMetrics = useMemo(() => {
+    const corridorY = Math.min(depotY + 0.75, 0.85);
+    let curX = depotX;
+    let curY = depotY;
+    let curZ = 0;
+    let totalDistM = 0;
+    let totalSec = 0;
+    const points: Array<{ x: number; y: number; binId?: string; step: number }> = [
+      { x: depotX, y: depotY, step: 0 },
+    ];
+    activeRouteStops.forEach((a, idx) => {
+      const dXY = computeAisleTravelDistanceM(
+        curX,
+        curY,
+        a.bin.xMeters,
+        a.bin.yMeters,
+        corridorY
+      );
+      const dZ = Math.abs(a.bin.zMeters - curZ);
+      totalDistM += dXY;
+      totalSec +=
+        config.equipmentMode === 'asrs_crane'
+          ? Math.max(dXY / 2.6, dZ / 1.35) + 1.4
+          : dXY / 1.9 + dZ / 0.55 + 2.2;
+      if (Math.abs(a.bin.xMeters - curX) >= 0.35 && curY > corridorY && a.bin.yMeters > corridorY) {
+        points.push({ x: curX, y: corridorY, step: -1 });
+        points.push({ x: a.bin.xMeters, y: corridorY, step: -1 });
+      } else {
+        points.push({ x: a.bin.xMeters, y: curY, step: -1 });
+      }
+      points.push({
+        x: a.bin.xMeters,
+        y: a.bin.yMeters,
+        binId: a.bin.id,
+        step: idx + 1,
+      });
+      curX = a.bin.xMeters;
+      curY = a.bin.yMeters;
+      curZ = a.bin.zMeters;
+    });
+    if (routeReturnToDepot && activeRouteStops.length > 0) {
+      const returnDist = computeAisleTravelDistanceM(
+        curX,
+        curY,
+        depotX,
+        depotY,
+        corridorY
+      );
+      totalDistM += returnDist;
+      totalSec +=
+        config.equipmentMode === 'asrs_crane'
+          ? returnDist / 2.6 + 0.8
+          : returnDist / 1.9 + 1.0;
+      if (Math.abs(depotX - curX) >= 0.35 && curY > corridorY) {
+        points.push({ x: curX, y: corridorY, step: -1 });
+        points.push({ x: depotX, y: corridorY, step: -1 });
+      }
+      points.push({ x: depotX, y: depotY, step: -2 });
+    }
+    return {
+      totalDistM: Number(totalDistM.toFixed(1)),
+      totalSec: Number(totalSec.toFixed(1)),
+      points,
+    };
+  }, [activeRouteStops, config.equipmentMode, depotX, depotY, routeReturnToDepot]);
+
   const handleApply = () => {
     const customBins = buildCustomBins();
     const maxLvl = customBins.reduce((m, b) => Math.max(m, b.level), levels);
@@ -654,6 +1175,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         depotYMeters: depotY,
         obstacles,
         disabledBinIds: [],
+        customRouteBinIds: routeBinIds,
       },
       customBins,
     });
@@ -677,6 +1199,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
       depotYMeters: depotY,
       obstacles,
       disabledBinIds: [],
+      customRouteBinIds: routeBinIds,
       mapTag: `${floorWidthM.toFixed(0)}×${floorDepthM.toFixed(0)}m · ${customBins.length} Bins`,
     };
     const customMap: WarehouseScenario = {
@@ -1384,6 +1907,933 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </div>
               )
             )}
+
+            {primarySelectedRack && selectedKeys.length === 1 && (
+              <div className="space-y-2.5 rounded-xl border border-emerald-500/50 bg-[var(--t-surface-alt)] p-3 text-[11px]">
+                <div className="flex items-center justify-between gap-1 font-semibold text-emerald-300">
+                  <span className="inline-flex items-center gap-1">
+                    <PackagePlus className="h-3.5 w-3.5" />
+                    {isKo
+                      ? `선반에 박스 집어넣기 (A${primarySelectedRack.aisle}-B${primarySelectedRack.bay})`
+                      : `Place Boxes in Rack (A${primarySelectedRack.aisle}-B${primarySelectedRack.bay})`}
+                  </span>
+                  <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold">
+                    {isKo
+                      ? `총 ${selectedRackTotalQty}개`
+                      : `${selectedRackTotalQty} pcs`}
+                  </span>
+                </div>
+
+                <div>
+                  <div className="mb-1 flex items-center justify-between text-[10px] text-[var(--t-muted)]">
+                    <span>
+                      {isKo ? '1. 박스를 넣을 선반 층(Z) 선택:' : '1. Choose Target Shelf Level (Z):'}
+                    </span>
+                    <span className="font-mono font-bold text-cyan-300">
+                      A{primarySelectedRack.aisle}-B{primarySelectedRack.bay}-Z{targetLevel}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-6 gap-1">
+                    {Array.from(
+                      { length: primarySelectedRack.levels },
+                      (_, i) => i + 1
+                    ).map((lv) => {
+                      const lvAlloc = selectedRackLevels.find(
+                        (a) => a.bin.level === lv
+                      );
+                      const lvCount = lvAlloc?.boxes.length ?? 0;
+                      const isActive = targetLevel === lv;
+                      return (
+                        <button
+                          key={lv}
+                          type="button"
+                          onClick={() => setTargetLevel(lv)}
+                          className={`flex flex-col items-center rounded-lg border py-1 text-[10px] font-bold transition ${
+                            isActive
+                              ? 'border-emerald-400 bg-emerald-500/25 text-emerald-200 ring-1 ring-emerald-400/50'
+                              : 'border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] hover:border-cyan-400'
+                          }`}
+                        >
+                          <span>Z{lv}층</span>
+                          <span className="font-mono text-[9px] font-normal text-amber-300">
+                            {lvCount}개
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {(onPinCargo || onPlaceCustomBoxInBin) && (
+                  <div className="space-y-2 rounded-lg border border-cyan-500/35 bg-[var(--t-surface)] p-2.5">
+                    <div className="flex items-center justify-between gap-1">
+                      <div className="flex overflow-hidden rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] text-[10px]">
+                        <button
+                          type="button"
+                          onClick={() => setBoxTab('existing')}
+                          className={`px-2.5 py-1 font-semibold ${
+                            boxTab === 'existing'
+                              ? 'bg-cyan-500 text-slate-950'
+                              : 'text-[var(--t-muted)] hover:text-white'
+                          }`}
+                        >
+                          {isKo ? '등록 품목 클릭 투입 (+1)' : 'Quick SKU (+1)'}
+                        </button>
+                        {onPlaceCustomBoxInBin && (
+                          <button
+                            type="button"
+                            onClick={() => setBoxTab('custom')}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 font-semibold ${
+                              boxTab === 'custom'
+                                ? 'bg-emerald-500 text-slate-950'
+                                : 'text-[var(--t-muted)] hover:text-white'
+                            }`}
+                          >
+                            <Ruler className="h-2.5 w-2.5" />
+                            {isKo ? '맞춤 사이즈 박스 넣기' : 'Custom Box Size'}
+                          </button>
+                        )}
+                      </div>
+                      {placedFlashBinId && (
+                        <span className="inline-flex items-center gap-0.5 rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                          <Check className="h-3 w-3" />
+                          {isKo ? `${placedFlashBinId} 투입!` : `Added!`}
+                        </span>
+                      )}
+                    </div>
+
+                    {boxTab === 'existing' && onPinCargo && (
+                      <div className="space-y-1.5">
+                        {(() => {
+                          const targetLvAlloc = selectedRackLevels.find(
+                            (a) => a.bin.level === targetLevel
+                          );
+                          const currentLvTotal =
+                            targetLvAlloc?.boxes.length ?? 0;
+                          return (
+                            <>
+                              {onSetBinTotalBoxQuota && (
+                                <div className="flex flex-wrap items-center justify-between gap-1 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2 py-1 text-[10px]">
+                                  <span className="font-semibold text-white">
+                                    {isKo
+                                      ? `Z${targetLevel}층 선반 총 박스 개수:`
+                                      : `Z${targetLevel} Total Box Count:`}
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    {[0, 1, 2, 4, 6, 8].map((q) => (
+                                      <button
+                                        key={q}
+                                        type="button"
+                                        onClick={() =>
+                                          handleSetLevelTotalBoxQuota(
+                                            primarySelectedRack,
+                                            targetLevel,
+                                            q
+                                          )
+                                        }
+                                        className={`rounded border px-1.5 py-0.5 font-mono font-bold transition ${
+                                          currentLvTotal === q
+                                            ? 'border-cyan-400 bg-cyan-500 text-slate-950'
+                                            : 'border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] hover:border-cyan-400'
+                                        }`}
+                                      >
+                                        {q}
+                                      </button>
+                                    ))}
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      value={currentLvTotal}
+                                      onChange={(e) =>
+                                        handleSetLevelTotalBoxQuota(
+                                          primarySelectedRack,
+                                          targetLevel,
+                                          Math.round(
+                                            safeNum(
+                                              e.target.value,
+                                              currentLvTotal,
+                                              0,
+                                              100
+                                            )
+                                          )
+                                        )
+                                      }
+                                      className="w-11 rounded border border-cyan-500/50 bg-[var(--t-surface)] px-1 py-0.5 text-center font-mono text-[11px] font-bold text-amber-300"
+                                      title={
+                                        isKo
+                                          ? '이 선반 층의 총 박스 개수를 숫자로 직접 입력'
+                                          : 'Enter exact total box count for this level'
+                                      }
+                                    />
+                                    <span className="text-[var(--t-muted)]">
+                                      {isKo ? '개' : 'pcs'}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              <div className="flex items-center justify-between text-[10px] text-[var(--t-muted)]">
+                                <span>
+                                  {isKo
+                                    ? `[Z${targetLevel}층] 품목별 박스 수량 직접 입력 (+/- 또는 숫자 입력):`
+                                    : `[Z${targetLevel}] Enter exact box quantity per SKU:`}
+                                </span>
+                                {skus.length > 6 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowAllSkus((v) => !v)}
+                                    className="font-semibold text-cyan-300 hover:underline"
+                                  >
+                                    {showAllSkus
+                                      ? isKo
+                                        ? '간략히'
+                                        : 'Show Less'
+                                      : isKo
+                                        ? `전체 품목(${skus.length})`
+                                        : `All (${skus.length})`}
+                                  </button>
+                                )}
+                              </div>
+
+                              <div className="max-h-48 space-y-1 overflow-y-auto pr-0.5">
+                                {(showAllSkus ? skus : skus.slice(0, 6)).map(
+                                  (sku) => {
+                                    const cntInLevel =
+                                      targetLvAlloc?.boxes.filter(
+                                        (b) => b.skuId === sku.id
+                                      ).length ?? 0;
+                                    return (
+                                      <div
+                                        key={sku.id}
+                                        className={`flex items-center justify-between gap-1.5 rounded-md border px-2 py-1 text-[10px] transition ${
+                                          cntInLevel > 0
+                                            ? 'border-emerald-500/50 bg-emerald-950/25'
+                                            : 'border-[var(--t-border)] bg-[var(--t-surface-alt)]'
+                                        }`}
+                                      >
+                                        <div
+                                          className="min-w-0 flex-1 cursor-pointer"
+                                          onClick={() =>
+                                            handleSetSkuCountInRackLevel(
+                                              primarySelectedRack,
+                                              targetLevel,
+                                              sku.id,
+                                              cntInLevel + 1
+                                            )
+                                          }
+                                          title={`${sku.name} (${sku.lengthCm}×${sku.widthCm}×${sku.heightCm}cm, ${sku.weightKg}kg)`}
+                                        >
+                                          <div className="flex items-center gap-1.5 truncate">
+                                            <span
+                                              className="h-2 w-2 shrink-0 rounded-full"
+                                              style={{
+                                                backgroundColor: sku.color,
+                                              }}
+                                            />
+                                            <span className="truncate font-semibold text-white">
+                                              {sku.name.split(' (')[0]}
+                                            </span>
+                                          </div>
+                                          <span className="pl-3.5 font-mono text-[9px] text-[var(--t-muted)]">
+                                            {sku.lengthCm}×{sku.widthCm}×
+                                            {sku.heightCm}cm · {sku.weightKg}kg
+                                          </span>
+                                        </div>
+
+                                        <div className="flex shrink-0 items-center gap-1">
+                                          <button
+                                            type="button"
+                                            disabled={cntInLevel <= 0}
+                                            onClick={() =>
+                                              handleSetSkuCountInRackLevel(
+                                                primarySelectedRack,
+                                                targetLevel,
+                                                sku.id,
+                                                Math.max(0, cntInLevel - 1)
+                                              )
+                                            }
+                                            className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-1.5 py-0.5 font-bold text-rose-300 hover:border-rose-400 disabled:opacity-35"
+                                          >
+                                            -
+                                          </button>
+                                          <input
+                                            type="number"
+                                            min={0}
+                                            max={100}
+                                            value={cntInLevel}
+                                            onChange={(e) =>
+                                              handleSetSkuCountInRackLevel(
+                                                primarySelectedRack,
+                                                targetLevel,
+                                                sku.id,
+                                                Math.round(
+                                                  safeNum(
+                                                    e.target.value,
+                                                    cntInLevel,
+                                                    0,
+                                                    100
+                                                  )
+                                                )
+                                              )
+                                            }
+                                            className="w-11 rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-1 py-0.5 text-center font-mono text-[11px] font-bold text-amber-300 focus:border-cyan-400 focus:outline-none"
+                                            title={
+                                              isKo
+                                                ? '이 선반 층에 넣을 박스 수량을 숫자로 직접 입력'
+                                                : 'Enter exact box quantity for this SKU in this level'
+                                            }
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleSetSkuCountInRackLevel(
+                                                primarySelectedRack,
+                                                targetLevel,
+                                                sku.id,
+                                                cntInLevel + 1
+                                              )
+                                            }
+                                            className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-1.5 py-0.5 font-bold text-emerald-300 hover:border-emerald-400"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+
+                    {boxTab === 'custom' && onPlaceCustomBoxInBin && (
+                      <div className="space-y-2 text-[10px]">
+                        <div className="grid grid-cols-3 gap-1">
+                          {[
+                            {
+                              label: isKo ? '소형 (25×20×15)' : 'Small 25×20×15',
+                              l: 25,
+                              w: 20,
+                              h: 15,
+                              kg: 2,
+                              name: isKo ? '소형 택배박스' : 'Small Carton',
+                            },
+                            {
+                              label: isKo ? '중형 (40×30×24)' : 'Med 40×30×24',
+                              l: 40,
+                              w: 30,
+                              h: 24,
+                              kg: 5,
+                              name: isKo ? '중형 수납박스' : 'Medium Box',
+                            },
+                            {
+                              label: isKo ? '대형 (60×40×35)' : 'Large 60×40×35',
+                              l: 60,
+                              w: 40,
+                              h: 35,
+                              kg: 10,
+                              name: isKo ? '대형 물류박스' : 'Large Crate',
+                            },
+                          ].map((preset) => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => {
+                                setCustomBoxL(preset.l);
+                                setCustomBoxW(preset.w);
+                                setCustomBoxH(preset.h);
+                                setCustomBoxKg(preset.kg);
+                                setCustomBoxName(preset.name);
+                              }}
+                              className="truncate rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1.5 py-1 font-medium hover:border-emerald-400"
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <div>
+                            <span className="text-[var(--t-muted)]">
+                              {isKo ? '가로 L(cm)' : 'L (cm)'}
+                            </span>
+                            <input
+                              type="number"
+                              min={5}
+                              max={260}
+                              value={customBoxL}
+                              onChange={(e) =>
+                                setCustomBoxL(
+                                  Math.round(
+                                    safeNum(e.target.value, customBoxL, 5, 260)
+                                  )
+                                )
+                              }
+                              className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1.5 py-1 font-mono text-white"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[var(--t-muted)]">
+                              {isKo ? '세로 W(cm)' : 'W (cm)'}
+                            </span>
+                            <input
+                              type="number"
+                              min={5}
+                              max={240}
+                              value={customBoxW}
+                              onChange={(e) =>
+                                setCustomBoxW(
+                                  Math.round(
+                                    safeNum(e.target.value, customBoxW, 5, 240)
+                                  )
+                                )
+                              }
+                              className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1.5 py-1 font-mono text-white"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[var(--t-muted)]">
+                              {isKo ? '높이 H(cm)' : 'H (cm)'}
+                            </span>
+                            <input
+                              type="number"
+                              min={5}
+                              max={220}
+                              value={customBoxH}
+                              onChange={(e) =>
+                                setCustomBoxH(
+                                  Math.round(
+                                    safeNum(e.target.value, customBoxH, 5, 220)
+                                  )
+                                )
+                              }
+                              className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1.5 py-1 font-mono text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-12 gap-1.5">
+                          <div className="col-span-5">
+                            <span className="text-[var(--t-muted)]">
+                              {isKo ? '박스 이름' : 'Box Name'}
+                            </span>
+                            <input
+                              type="text"
+                              value={customBoxName}
+                              onChange={(e) => setCustomBoxName(e.target.value)}
+                              className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1.5 py-1 text-white"
+                            />
+                          </div>
+                          <div className="col-span-3">
+                            <span className="text-[var(--t-muted)]">
+                              {isKo ? '무게(kg)' : 'Weight'}
+                            </span>
+                            <input
+                              type="number"
+                              step="0.5"
+                              min={0.1}
+                              max={500}
+                              value={customBoxKg}
+                              onChange={(e) =>
+                                setCustomBoxKg(
+                                  safeNum(e.target.value, customBoxKg, 0.1, 500)
+                                )
+                              }
+                              className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1.5 py-1 font-mono text-white"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-[var(--t-muted)]">
+                              {isKo ? '수량' : 'Qty'}
+                            </span>
+                            <input
+                              type="number"
+                              min={1}
+                              max={30}
+                              value={customBoxQty}
+                              onChange={(e) =>
+                                setCustomBoxQty(
+                                  Math.round(
+                                    safeNum(e.target.value, customBoxQty, 1, 30)
+                                  )
+                                )
+                              }
+                              className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1 py-1 text-center font-bold text-emerald-300"
+                            />
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-[var(--t-muted)]">ABC</span>
+                            <select
+                              value={customBoxAbc}
+                              onChange={(e) =>
+                                setCustomBoxAbc(e.target.value as ABCClass)
+                              }
+                              className="w-full rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1 py-1 text-white"
+                            >
+                              <option value="A">A</option>
+                              <option value="B">B</option>
+                              <option value="C">C</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1">
+                            {[
+                              '#22d3ee',
+                              '#34d399',
+                              '#f59e0b',
+                              '#fb7185',
+                              '#a78bfa',
+                            ].map((col) => (
+                              <button
+                                key={col}
+                                type="button"
+                                onClick={() => setCustomBoxColor(col)}
+                                className={`h-3.5 w-3.5 rounded-full border ${
+                                  customBoxColor === col
+                                    ? 'scale-110 border-white ring-1 ring-white'
+                                    : 'border-slate-600'
+                                }`}
+                                style={{ backgroundColor: col }}
+                              />
+                            ))}
+                          </div>
+                          <label className="inline-flex cursor-pointer items-center gap-1 text-[var(--t-muted)]">
+                            <input
+                              type="checkbox"
+                              checked={customBoxFragile}
+                              onChange={(e) =>
+                                setCustomBoxFragile(e.target.checked)
+                              }
+                            />
+                            {isKo ? '파손주의' : 'Fragile'}
+                          </label>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handlePlaceCustomBoxInRackLevel(
+                              primarySelectedRack,
+                              targetLevel
+                            )
+                          }
+                          className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-500 py-1.5 text-[11px] font-bold text-slate-950 shadow hover:bg-emerald-400"
+                        >
+                          <PackagePlus className="h-3.5 w-3.5" />
+                          {isKo
+                            ? `Z${targetLevel}층 선반에 ${customBoxL}×${customBoxW}×${customBoxH}cm 박스 ${customBoxQty}개 넣기`
+                            : `Place ${customBoxQty}× (${customBoxL}×${customBoxW}×${customBoxH}cm) Box in Z${targetLevel}`}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {selectedRackLevels.length === 0 ? (
+                  <p className="text-[10px] leading-relaxed text-[var(--t-muted)]">
+                    {isKo
+                      ? '새로 추가한 선반입니다. 위에서 품목이나 맞춤 박스를 클릭하면 선반이 즉시 생성되고 박스가 들어갑니다!'
+                      : 'New rack. Click any SKU or custom box above to immediately create the shelf bins and insert boxes!'}
+                  </p>
+                ) : (
+                  <div className="max-h-72 space-y-1.5 overflow-y-auto pr-0.5">
+                    {[...selectedRackLevels]
+                      .sort((a, b) => b.bin.level - a.bin.level)
+                      .map((alloc) => {
+                        const groups = groupBoxesBySku(alloc);
+                        const pct = alloc.cubicUtilizationPct;
+                        const isFocusedLv = alloc.bin.level === targetLevel;
+                        return (
+                          <div
+                            key={alloc.bin.id}
+                            onClick={() => setTargetLevel(alloc.bin.level)}
+                            className={`cursor-pointer rounded-lg border p-2 transition ${
+                              isFocusedLv
+                                ? 'border-emerald-400 bg-emerald-950/25 ring-1 ring-emerald-400/40'
+                                : alloc.safetyViolation
+                                  ? 'border-rose-500/50 bg-rose-950/30'
+                                  : alloc.bin.isGoldenZone
+                                    ? 'border-emerald-500/40 bg-emerald-950/20'
+                                    : 'border-[var(--t-border)] bg-[var(--t-surface)]'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-bold">
+                                Z{alloc.bin.level}
+                                <span className="ml-1 font-mono text-[9px] font-normal text-[var(--t-muted)]">
+                                  {alloc.bin.id} · {alloc.bin.zMeters}m
+                                </span>
+                                {alloc.bin.isGoldenZone && (
+                                  <span className="ml-1 text-[9px] text-emerald-300">
+                                    {isKo ? '골든존' : 'Golden'}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="rounded bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                                {isKo
+                                  ? `${alloc.boxes.length}개`
+                                  : `${alloc.boxes.length} pcs`}
+                              </span>
+                            </div>
+                            <div className="mt-1 h-1 overflow-hidden rounded-full bg-slate-800">
+                              <div
+                                className="h-full rounded-full"
+                                style={{
+                                  width: `${Math.min(100, pct)}%`,
+                                  backgroundColor: fillColor(pct),
+                                }}
+                              />
+                            </div>
+                            <div className="mt-0.5 flex justify-between text-[9px] text-[var(--t-muted)]">
+                              <span>
+                                {isKo ? '채움' : 'Fill'} {pct.toFixed(0)}%
+                              </span>
+                              <span>
+                                {alloc.currentWeightKg.toFixed(1)}/
+                                {alloc.bin.maxWeightKg}kg
+                              </span>
+                            </div>
+
+                            {groups.length === 0 ? (
+                              <div className="mt-1 text-[10px] text-[var(--t-muted)]">
+                                {isKo
+                                  ? '비어 있는 칸 (위에서 품목을 클릭해 넣으세요)'
+                                  : 'Empty (Click a SKU above to insert)'}
+                              </div>
+                            ) : (
+                              <div
+                                className="mt-1 space-y-0.5"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {groups.map((g) => (
+                                  <div
+                                    key={g.skuId}
+                                    className="flex items-center gap-1 text-[10px]"
+                                  >
+                                    <span
+                                      className="h-2 w-2 shrink-0 rounded-full"
+                                      style={{ backgroundColor: g.color }}
+                                    />
+                                    <span
+                                      className="min-w-0 flex-1 truncate"
+                                      title={`${g.name} (${g.skuCode}) · ${g.lengthCm}×${g.widthCm}×${g.heightCm}cm · ${g.weightKg}kg`}
+                                    >
+                                      {g.name.split(' (')[0]}
+                                    </span>
+                                    <span className="font-mono text-[9px] text-[var(--t-muted)]">
+                                      {g.lengthCm}×{g.widthCm}×{g.heightCm}
+                                    </span>
+                                    {onPinCargo && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          onSetCargoCountInBin
+                                            ? onSetCargoCountInBin(
+                                                alloc.bin.id,
+                                                g.skuId,
+                                                Math.max(0, g.count - 1),
+                                                true
+                                              )
+                                            : onPinCargo(alloc.bin.id, g.skuId, -1)
+                                        }
+                                        className="rounded border border-[var(--t-border)] p-0.5 text-rose-300 hover:border-rose-400"
+                                        title={isKo ? '1개 빼기' : 'Remove 1'}
+                                      >
+                                        <Minus className="h-2.5 w-2.5" />
+                                      </button>
+                                    )}
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      max={100}
+                                      value={g.count}
+                                      onChange={(e) => {
+                                        const nextVal = Math.round(
+                                          safeNum(e.target.value, g.count, 0, 100)
+                                        );
+                                        if (onSetCargoCountInBin) {
+                                          onSetCargoCountInBin(
+                                            alloc.bin.id,
+                                            g.skuId,
+                                            nextVal,
+                                            true
+                                          );
+                                        } else if (onPinCargo) {
+                                          onPinCargo(
+                                            alloc.bin.id,
+                                            g.skuId,
+                                            nextVal - g.count
+                                          );
+                                        }
+                                      }}
+                                      className="w-10 rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1 py-0.5 text-center font-mono text-[10px] font-bold text-amber-300 focus:border-cyan-400 focus:outline-none"
+                                      title={
+                                        isKo
+                                          ? '이 품목의 적재 수량을 숫자로 직접 변경'
+                                          : 'Edit exact SKU quantity in this shelf bin'
+                                      }
+                                    />
+                                    {onPinCargo && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          onSetCargoCountInBin
+                                            ? onSetCargoCountInBin(
+                                                alloc.bin.id,
+                                                g.skuId,
+                                                g.count + 1,
+                                                true
+                                              )
+                                            : onPinCargo(alloc.bin.id, g.skuId, 1)
+                                        }
+                                        className="rounded border border-[var(--t-border)] p-0.5 text-emerald-300 hover:border-emerald-400"
+                                        title={isKo ? '1개 추가' : 'Add 1'}
+                                      >
+                                        <Plus className="h-2.5 w-2.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {alloc.safetyViolation && (
+                              <div className="mt-1 text-[9px] font-semibold text-rose-300">
+                                {isKo
+                                  ? '⚠ 상층 중량물: 아래층으로 이동 권장'
+                                  : '⚠ Heavy item on upper level'}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2 rounded-xl border border-amber-500/45 bg-[var(--t-surface-alt)] p-3 text-[11px]">
+              <div className="flex items-center justify-between gap-1 font-semibold text-amber-300">
+                <span className="inline-flex items-center gap-1.5">
+                  <Route className="h-3.5 w-3.5" />
+                  {isKo
+                    ? '피킹 동선 에디터 (출입구 → 경유 선반)'
+                    : 'Pick Route Editor (Depot → Waypoints)'}
+                </span>
+                <span className="rounded bg-amber-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold">
+                  {routeMetrics.totalDistM}m · {routeMetrics.totalSec}s
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-1 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => handleApplyRoutePattern('tsp_shortest')}
+                  className="rounded border border-emerald-500/40 bg-emerald-500/15 px-2 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+                >
+                  {isKo ? '✨ 최단거리 TSP 동선' : '✨ Shortest TSP Route'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyRoutePattern('s_shape_aisle')}
+                  className="rounded border border-cyan-500/40 bg-cyan-500/15 px-2 py-1 font-semibold text-cyan-300 hover:bg-cyan-500/25"
+                >
+                  {isKo ? '〰 S자 통로 순회 동선' : '〰 S-Shape Aisle Tour'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyRoutePattern('golden_first')}
+                  className="rounded border border-amber-500/40 bg-amber-500/15 px-2 py-1 font-semibold text-amber-300 hover:bg-amber-500/25"
+                >
+                  {isKo ? '🎯 골든존 우선 동선' : '🎯 Golden Zone First'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyRoutePattern('all_occupied')}
+                  className="rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1 font-semibold text-[var(--t-text)] hover:border-cyan-400"
+                >
+                  {isKo ? '📦 적재 선반 전체 연결' : '📦 Connect All Loaded'}
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-1.5 text-[10px]">
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const addId = e.target.value;
+                    if (!addId) return;
+                    const baseIds =
+                      routeBinIds.length > 0
+                        ? routeBinIds
+                        : activeRouteStops.map((a) => a.bin.id);
+                    if (!baseIds.includes(addId)) {
+                      commitCustomRoute([...baseIds, addId]);
+                    }
+                  }}
+                  className="min-w-0 flex-1 rounded border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1 text-[10px]"
+                >
+                  <option value="">
+                    {isKo
+                      ? '+ 동선 경유 선반 목록에서 선택 추가...'
+                      : '+ Add shelf bin to route...'}
+                  </option>
+                  {allocations.map((a) => (
+                    <option key={a.bin.id} value={a.bin.id}>
+                      {a.bin.id} · Z{a.bin.level}층 ({a.boxes.length}개 적재)
+                    </option>
+                  ))}
+                </select>
+                <label className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-[10px] text-[var(--t-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={routeReturnToDepot}
+                    onChange={(e) =>
+                      commitCustomRoute(
+                        routeBinIds.length > 0
+                          ? routeBinIds
+                          : activeRouteStops.map((a) => a.bin.id),
+                        e.target.checked
+                      )
+                    }
+                    className="accent-emerald-400"
+                  />
+                  {isKo ? '출입구 복귀' : 'Return Depot'}
+                </label>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setTool((prev) =>
+                      prev === 'route_edit' ? 'select' : 'route_edit'
+                    )
+                  }
+                  className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 font-semibold ${
+                    tool === 'route_edit'
+                      ? 'border-amber-400 bg-amber-500 text-slate-950'
+                      : 'border-[var(--t-border)] bg-[var(--t-surface)] text-amber-300 hover:border-amber-400'
+                  }`}
+                >
+                  <Route className="h-3 w-3" />
+                  {isKo
+                    ? tool === 'route_edit'
+                      ? '동선 클릭 편집 중 (클릭해 종료)'
+                      : '선반 클릭으로 동선 그리기'
+                    : tool === 'route_edit'
+                      ? 'Editing Route (Click to Exit)'
+                      : 'Click Racks to Draw Route'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAutoOptimizeRouteOrder}
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/15 px-2.5 py-1 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  {isKo ? '최단 동선 자동 정렬' : 'Auto Shortest Order'}
+                </button>
+                {routeBinIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => commitCustomRoute([])}
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-500/40 bg-rose-500/15 px-2 py-1 font-semibold text-rose-300 hover:bg-rose-500/25"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    {isKo ? '자동 추천 동선으로 초기화' : 'Reset to Auto'}
+                  </button>
+                )}
+              </div>
+
+              <div className="max-h-44 space-y-1 overflow-y-auto pr-0.5">
+                {activeRouteStops.length === 0 ? (
+                  <div className="rounded border border-dashed border-[var(--t-border)] p-2 text-center text-[10px] text-[var(--t-muted)]">
+                    {isKo
+                      ? '경유 선반이 없습니다. 선반을 우클릭하거나 [동선 편집] 모드로 클릭해 추가하세요.'
+                      : 'No waypoints yet. Click racks in Route Editor mode to add.'}
+                  </div>
+                ) : (
+                  activeRouteStops.map((stop, idx) => (
+                    <div
+                      key={`${stop.bin.id}-${idx}`}
+                      className="flex items-center justify-between gap-1.5 rounded-lg border border-[var(--t-border)] bg-[var(--t-surface)] px-2 py-1 text-[10px]"
+                    >
+                      <div className="flex min-w-0 items-center gap-1.5">
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500 font-mono text-[9px] font-bold text-slate-950">
+                          {idx + 1}
+                        </span>
+                        <span className="font-mono font-bold text-cyan-300">
+                          {stop.bin.id}
+                        </span>
+                        <span className="truncate text-[var(--t-muted)]">
+                          ({stop.boxes[0]?.name.split(' (')[0] ?? (isKo ? '빈 선반' : 'Empty')})
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-0.5">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            const baseIds = activeRouteStops.map(
+                              (a) => a.bin.id
+                            );
+                            const next = [...baseIds];
+                            [next[idx - 1], next[idx]] = [
+                              next[idx],
+                              next[idx - 1],
+                            ];
+                            commitCustomRoute(next);
+                          }}
+                          className="rounded border border-[var(--t-border)] p-0.5 text-[var(--t-muted)] hover:border-cyan-400 hover:text-white disabled:opacity-30"
+                          title={isKo ? '순서 위로' : 'Move Up'}
+                        >
+                          <ArrowUp className="h-2.5 w-2.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === activeRouteStops.length - 1}
+                          onClick={() => {
+                            const baseIds = activeRouteStops.map(
+                              (a) => a.bin.id
+                            );
+                            const next = [...baseIds];
+                            [next[idx + 1], next[idx]] = [
+                              next[idx],
+                              next[idx + 1],
+                            ];
+                            commitCustomRoute(next);
+                          }}
+                          className="rounded border border-[var(--t-border)] p-0.5 text-[var(--t-muted)] hover:border-cyan-400 hover:text-white disabled:opacity-30"
+                          title={isKo ? '순서 아래로' : 'Move Down'}
+                        >
+                          <ArrowDown className="h-2.5 w-2.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const baseIds = activeRouteStops.map(
+                              (a) => a.bin.id
+                            );
+                            commitCustomRoute(
+                              baseIds.filter((_, i) => i !== idx)
+                            );
+                          }}
+                          className="rounded border border-[var(--t-border)] p-0.5 text-rose-300 hover:border-rose-400"
+                          title={isKo ? '경유지에서 제거' : 'Remove Stop'}
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col overflow-hidden rounded-xl border border-[var(--t-border)] bg-[var(--t-surface-alt)] lg:col-span-8">
@@ -1392,6 +2842,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 {(
                   [
                     ['select', isKo ? '선택 / 드래그' : 'Drag / Select', MousePointer2],
+                    ['route_edit', isKo ? '동선 에디터' : 'Route Editor', Route],
                     ['add_rack', isKo ? `+선반 (Z${levels})` : `+Rack (Z${levels})`, PlusSquare],
                     ['add_low', isKo ? '+낮은 선반' : '+Low Shelf', PlusSquare],
                     ['add_obstacle', isKo ? '+기둥 / 벽' : '+Pillar / Wall', Ban],
@@ -1416,6 +2867,44 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
               </div>
 
               <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setShowRouteLine((v) => !v)}
+                  className={`inline-flex items-center gap-1 rounded border px-1.5 py-1 text-[10px] font-semibold ${
+                    showRouteLine
+                      ? 'border-emerald-400 bg-emerald-500/20 text-emerald-200'
+                      : 'border-[var(--t-border)] text-[var(--t-muted)]'
+                  }`}
+                  title={
+                    isKo
+                      ? '2D 캔버스에서 피킹 이동 동선 라인 및 경유 순서 번호 켜기/끄기'
+                      : 'Toggle pick route path & stop numbers on 2D canvas'
+                  }
+                >
+                  <Route className="h-3 w-3" />
+                  {isKo
+                    ? `동선 표시 ${showRouteLine ? 'ON' : 'OFF'}`
+                    : `Route ${showRouteLine ? 'ON' : 'OFF'}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowQty((v) => !v)}
+                  className={`inline-flex items-center gap-1 rounded border px-1.5 py-1 text-[10px] font-semibold ${
+                    showQty
+                      ? 'border-amber-400 bg-amber-500/20 text-amber-200'
+                      : 'border-[var(--t-border)] text-[var(--t-muted)]'
+                  }`}
+                  title={
+                    isKo
+                      ? '선반별 박스 수량 배지와 층별 채움 표시 켜기/끄기'
+                      : 'Toggle box quantity badges & level fill strips'
+                  }
+                >
+                  <Package className="h-3 w-3" />
+                  {isKo
+                    ? `수량 표시 ${showQty ? 'ON' : 'OFF'}`
+                    : `Qty ${showQty ? 'ON' : 'OFF'}`}
+                </button>
                 <select
                   value={snapStepM}
                   onChange={(e) => setSnapStepM(Number(e.target.value))}
@@ -1451,16 +2940,52 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 </button>
                 <button
                   type="button"
+                  onClick={() => {
+                    const container = svgRef.current?.parentElement;
+                    if (!container) {
+                      setZoom(1);
+                      return;
+                    }
+                    const availW = Math.max(360, container.clientWidth - 28);
+                    const availH = Math.max(280, container.clientHeight - 28);
+                    const spanX = Math.max(8, maxWorldX - minWorldX);
+                    const spanY = Math.max(7, maxWorldY - minWorldY);
+                    const idealZoom = Math.min(
+                      availW / (spanX * 40),
+                      availH / (spanY * 40)
+                    );
+                    setZoom(
+                      Number(Math.max(0.55, Math.min(2.2, idealZoom)).toFixed(2))
+                    );
+                  }}
+                  className="rounded border border-cyan-500/45 bg-cyan-500/15 px-1.5 py-1 text-[10px] font-semibold text-cyan-300 hover:bg-cyan-500/25"
+                  title={isKo ? '2D 화면에 꽉 차게 자동 줌 맞춤' : 'Auto-Fit 2D Zoom'}
+                >
+                  {isKo ? '화면맞춤' : 'Fit'}
+                </button>
+                <button
+                  type="button"
                   onClick={() => setZoom(1)}
                   className="rounded border border-[var(--t-border)] p-1 text-[var(--t-muted)]"
-                  title="Reset Zoom"
+                  title="Reset Zoom (100%)"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
 
-            <div className="relative flex-1 overflow-auto bg-[#06101f] p-3">
+            <div
+              className="relative flex-1 overflow-auto bg-[#06101f] p-3"
+              onWheel={(e) => {
+                if (e.ctrlKey || e.metaKey || e.altKey) {
+                  e.preventDefault();
+                  const delta = e.deltaY < 0 ? 0.12 : -0.12;
+                  setZoom((z) =>
+                    Number(Math.max(0.5, Math.min(2.4, z + delta)).toFixed(2))
+                  );
+                }
+              }}
+            >
               <svg
                 ref={svgRef}
                 width={svgW}
@@ -1525,7 +3050,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   fontFamily="monospace"
                 >
                   SPACE: {floorWidthM}m × {floorDepthM}m · {racks.length} stacks (
-                  {totalBins} bins) · Drag edges to resize
+                  {totalBins} bins){showQty ? ` · ${totalBoxesAll} boxes` : ''} · Drag edges to resize
                 </text>
 
                 <g
@@ -1693,6 +3218,25 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                   const ry = toScreenY(rack.yMeters + lM / 2);
                   const rw = wM * basePxPerM;
                   const rh = lM * basePxPerM;
+                  const rackAllocs = getRackAllocs(rack);
+                  const rackQty = rackAllocs.reduce(
+                    (acc, a) => acc + a.boxes.length,
+                    0
+                  );
+                  const levelByNum = new Map(
+                    rackAllocs.map((a) => [a.bin.level, a])
+                  );
+                  const stripSeg =
+                    rack.levels > 0 ? Math.max(2, (rh - 8) / rack.levels) : 0;
+                  const tooltip = [
+                    `A${rack.aisle}-B${rack.bay} · ${isKo ? '총' : 'Total'} ${rackQty}${isKo ? '개' : ' pcs'}`,
+                    ...[...rackAllocs]
+                      .sort((a, b) => b.bin.level - a.bin.level)
+                      .map(
+                        (a) =>
+                          `Z${a.bin.level}: ${a.boxes.length}${isKo ? '개' : ' pcs'} (${a.cubicUtilizationPct.toFixed(0)}%)`
+                      ),
+                  ].join('\n');
                   return (
                     <g
                       key={rack.key}
@@ -1709,6 +3253,11 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                           setSelectedKeys((prev) =>
                             prev.filter((k) => k !== rack.key)
                           );
+                          return;
+                        }
+                        if (tool === 'route_edit') {
+                          setSelectedKeys([rack.key]);
+                          toggleRackInRoute(rack);
                           return;
                         }
                         let activeSelection = selectedKeys;
@@ -1800,9 +3349,92 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                       >
                         {rack.binLengthCm}×{rack.binWidthCm}
                       </text>
+                      <title>{tooltip}</title>
+                      {showQty && rackAllocs.length > 0 && rh >= 20 && (
+                        <g pointerEvents="none">
+                          {Array.from({ length: rack.levels }, (_, i) => i + 1).map(
+                            (lv) => {
+                              const a = levelByNum.get(lv);
+                              return (
+                                <rect
+                                  key={lv}
+                                  x={rx + 3}
+                                  y={ry + rh - 4 - lv * stripSeg + 0.6}
+                                  width={4}
+                                  height={Math.max(1.5, stripSeg - 1.2)}
+                                  rx={1}
+                                  fill={a ? fillColor(a.cubicUtilizationPct) : '#1e293b'}
+                                  opacity={a && a.boxes.length > 0 ? 0.95 : 0.5}
+                                />
+                              );
+                            }
+                          )}
+                        </g>
+                      )}
+                      {showQty && rackQty > 0 && (
+                        <g pointerEvents="none">
+                          <circle
+                            cx={rx + rw - 1}
+                            cy={ry + 1}
+                            r={rackQty > 99 ? 11 : 9}
+                            fill="#f59e0b"
+                            stroke="#0f172a"
+                            strokeWidth={1.5}
+                          />
+                          <text
+                            x={rx + rw - 1}
+                            y={ry + 4.5}
+                            textAnchor="middle"
+                            fill="#0f172a"
+                            fontSize="9"
+                            fontWeight="bold"
+                          >
+                            {rackQty > 999 ? '999+' : rackQty}
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })}
+
+                {showRouteLine && routeMetrics.points.length > 1 && (
+                  <g pointerEvents="none">
+                    <polyline
+                      points={routeMetrics.points
+                        .map((pt) => `${toScreenX(pt.x)},${toScreenY(pt.y)}`)
+                        .join(' ')}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth={2.6}
+                      strokeDasharray="6,4"
+                      opacity={0.9}
+                    />
+                    {routeMetrics.points
+                      .filter((pt) => pt.step > 0)
+                      .map((pt) => (
+                        <g key={`wp-${pt.step}-${pt.x}-${pt.y}`}>
+                          <circle
+                            cx={toScreenX(pt.x) - 14}
+                            cy={toScreenY(pt.y) - 12}
+                            r={9}
+                            fill="#10b981"
+                            stroke="#062019"
+                            strokeWidth={1.6}
+                          />
+                          <text
+                            x={toScreenX(pt.x) - 14}
+                            y={toScreenY(pt.y) - 8.5}
+                            textAnchor="middle"
+                            fill="#022c22"
+                            fontSize="9"
+                            fontWeight="bold"
+                          >
+                            #{pt.step}
+                          </text>
+                        </g>
+                      ))}
+                  </g>
+                )}
 
                 {marqueeRect && (
                   <rect
@@ -1855,20 +3487,104 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
       {ctxMenu && (
         <div
           style={{
-            left: `${Math.min(ctxMenu.clientX, window.innerWidth - 245)}px`,
-            top: `${Math.min(ctxMenu.clientY, window.innerHeight - 310)}px`,
+            left: `${Math.min(ctxMenu.clientX, window.innerWidth - 285)}px`,
+            top: `${Math.min(ctxMenu.clientY, window.innerHeight - 450)}px`,
           }}
-          className="fixed z-[60] w-56 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface)] p-1.5 text-xs text-[var(--t-text)] shadow-2xl"
+          className="fixed z-[60] w-68 rounded-xl border border-[var(--t-border)] bg-[var(--t-surface)] p-2 text-xs text-[var(--t-text)] shadow-2xl"
           onMouseDown={(e) => e.stopPropagation()}
         >
           {ctxRack ? (
             <>
-              <div className="border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
-                Rack @ ({ctxRack.xMeters}m, {ctxRack.yMeters}m)
+              <div className="flex items-center justify-between border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
+                <span>
+                  {isKo
+                    ? `선반 A${ctxRack.aisle}-B${ctxRack.bay}`
+                    : `Rack A${ctxRack.aisle}-B${ctxRack.bay}`}
+                </span>
+                <span className="font-mono text-[10px] text-[var(--t-muted)]">
+                  ({ctxRack.xMeters}m, {ctxRack.yMeters}m)
+                </span>
               </div>
+
+              {onSetBinTotalBoxQuota && (
+                <div className="border-b border-[var(--t-border)] px-2 py-1.5">
+                  <div className="mb-1 flex items-center justify-between text-[10px]">
+                    <span className="font-semibold text-cyan-300">
+                      {isKo
+                        ? `Z${Math.min(targetLevel, ctxRack.levels)}층 총 박스 개수:`
+                        : `Z${Math.min(targetLevel, ctxRack.levels)} Total Boxes:`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[0, 1, 2, 4, 6, 8].map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => {
+                          const lv = Math.min(targetLevel, ctxRack.levels);
+                          handleSetLevelTotalBoxQuota(ctxRack, lv, q);
+                          setSelectedKeys([ctxRack.key]);
+                        }}
+                        className="flex-1 rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] py-0.5 font-mono text-[10px] font-bold hover:border-cyan-400"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {onPinCargo && skus.length > 0 && (
+                <div className="border-b border-[var(--t-border)] px-2 py-1.5">
+                  <div className="mb-1 flex items-center justify-between text-[10px]">
+                    <span className="font-semibold text-emerald-300">
+                      {isKo
+                        ? `박스 바로 넣기 (Z${Math.min(targetLevel, ctxRack.levels)}층):`
+                        : `Quick Insert Box (Z${Math.min(targetLevel, ctxRack.levels)}):`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    {skus.slice(0, 4).map((sku) => (
+                      <button
+                        key={sku.id}
+                        type="button"
+                        onClick={() => {
+                          const lv = Math.min(targetLevel, ctxRack.levels);
+                          handlePinSkuInRackLevel(ctxRack, lv, sku.id, 1);
+                          setSelectedKeys([ctxRack.key]);
+                          setCtxMenu(null);
+                        }}
+                        className="flex items-center gap-1 truncate rounded border border-[var(--t-border)] bg-[var(--t-surface-alt)] px-1.5 py-1 text-left text-[10px] hover:border-emerald-400"
+                        title={sku.name}
+                      >
+                        <span
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: sku.color }}
+                        />
+                        <span className="truncate">+ {sku.name.split(' (')[0]}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={() => {
+                  toggleRackInRoute(ctxRack);
+                  setCtxMenu(null);
+                }}
+                className="mt-1 flex w-full items-center gap-2 rounded-lg border border-amber-500/35 bg-amber-500/10 px-2 py-1.5 text-left font-semibold text-amber-300 hover:bg-amber-500/20"
+              >
+                <Route className="h-3.5 w-3.5" />
+                {isKo
+                  ? '피킹 동선 경유지 추가 / 해제'
+                  : 'Add / Remove Pick Route Waypoint'}
+              </button>
+
               <div className="px-2 py-1.5">
                 <div className="mb-1 text-[10px] text-[var(--t-muted)]">
-                  Set Z-Levels:
+                  {isKo ? '선반 단수(층수) 변경:' : 'Set Z-Levels:'}
                 </div>
                 <div className="grid grid-cols-6 gap-1">
                   {[1, 2, 3, 4, 5, 6].map((lv) => (
@@ -1915,7 +3631,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <RotateCw className="h-3.5 w-3.5 text-cyan-400" />
-                Rotate 90° (Swap L ↔ W)
+                {isKo ? '선반 90° 회전 (가로 ↔ 세로)' : 'Rotate 90° (Swap L ↔ W)'}
               </button>
               <button
                 type="button"
@@ -1933,7 +3649,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Copy className="h-3.5 w-3.5 text-emerald-400" />
-                Duplicate Rack Nearby
+                {isKo ? '옆에 선반 복제하기' : 'Duplicate Rack Nearby'}
               </button>
               <button
                 type="button"
@@ -1946,7 +3662,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Ban className="h-3.5 w-3.5 text-amber-400" />
-                Convert to Pillar / Block
+                {isKo ? '기둥 / 장애물로 변환' : 'Convert to Pillar / Block'}
               </button>
               <button
                 type="button"
@@ -1961,13 +3677,15 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-rose-400 hover:bg-rose-950/40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                Delete This Rack
+                {isKo ? '이 선반 삭제' : 'Delete This Rack'}
               </button>
             </>
           ) : ctxObstacle ? (
             <>
               <div className="border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
-                Obstacle @ ({ctxObstacle.xMeters}m, {ctxObstacle.yMeters}m)
+                {isKo
+                  ? `기둥 / 장애물 (${ctxObstacle.xMeters}m, ${ctxObstacle.yMeters}m)`
+                  : `Obstacle @ (${ctxObstacle.xMeters}m, ${ctxObstacle.yMeters}m)`}
               </div>
               <button
                 type="button"
@@ -1982,7 +3700,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <PlusSquare className="h-3.5 w-3.5 text-cyan-400" />
-                Convert to Rack Stack
+                {isKo ? '선반 스택으로 변환' : 'Convert to Rack Stack'}
               </button>
               <button
                 type="button"
@@ -1996,13 +3714,15 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-rose-400 hover:bg-rose-950/40"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                Delete Obstacle
+                {isKo ? '기둥 / 장애물 삭제' : 'Delete Obstacle'}
               </button>
             </>
           ) : (
             <>
               <div className="border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
-                Floor @ ({ctxMenu.worldX}m, {ctxMenu.worldY}m)
+                {isKo
+                  ? `바닥 위치 (${ctxMenu.worldX}m, ${ctxMenu.worldY}m)`
+                  : `Floor @ (${ctxMenu.worldX}m, {ctxMenu.worldY}m)`}
               </div>
               <button
                 type="button"
@@ -2013,7 +3733,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="mt-1 flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <PlusSquare className="h-3.5 w-3.5 text-cyan-400" />
-                Add Rack Stack Here (Z1–{levels})
+                {isKo
+                  ? `여기에 선반 추가 (Z1–${levels}단)`
+                  : `Add Rack Stack Here (Z1–${levels})`}
               </button>
               <button
                 type="button"
@@ -2024,7 +3746,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <PlusSquare className="h-3.5 w-3.5 text-emerald-400" />
-                Add Low Shelf Here (Z1–2)
+                {isKo
+                  ? '여기에 낮은 선반 추가 (Z1–2단)'
+                  : 'Add Low Shelf Here (Z1–2)'}
               </button>
               <button
                 type="button"
@@ -2035,7 +3759,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Ban className="h-3.5 w-3.5 text-amber-400" />
-                Add Pillar / Wall Here
+                {isKo ? '여기에 기둥 / 벽 추가' : 'Add Pillar / Wall Here'}
               </button>
               <button
                 type="button"
@@ -2048,7 +3772,22 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
                 className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left hover:bg-[var(--t-surface-alt)]"
               >
                 <Navigation className="h-3.5 w-3.5 text-sky-400" />
-                Move I/O Depot / Entry Here
+                {isKo
+                  ? '★ 출입구(피킹 출발지) 여기로 이동'
+                  : 'Move I/O Depot / Entry Here'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  handleAutoOptimizeRouteOrder();
+                  setCtxMenu(null);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-emerald-300 hover:bg-[var(--t-surface-alt)]"
+              >
+                <Route className="h-3.5 w-3.5" />
+                {isKo
+                  ? '최단 피킹 동선 자동 재정렬'
+                  : 'Auto-Sort Shortest Pick Route'}
               </button>
             </>
           )}

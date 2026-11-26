@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildExactBinSkuPins,
   buildTransferredSkuPins,
   checkShelfPairOverlap3D,
   computeAisleTravelDistanceM,
@@ -453,4 +454,62 @@ test('3D shelf AABB physics solver prevents 3D shelf overlap during resizing, dr
       );
     }
   }
+});
+
+test('Exact box count per shelf bin pins all SKU placements and prevents unpinned overflow', () => {
+  const bins = generateWarehouseBins(sampleConfig);
+  const initial = runOptimized3DSlotting(bins, sampleSkus, sampleConfig);
+  const targetBinId = 'A1-B1-Z2';
+
+  const { nextPins, totalPinnedForSku } = buildExactBinSkuPins(
+    [],
+    initial.allocations,
+    targetBinId,
+    'sku-fast-a',
+    5
+  );
+
+  const updatedSkus = sampleSkus.map((s) =>
+    s.id === 'sku-fast-a' ? { ...s, quantity: totalPinnedForSku } : s
+  );
+
+  const afterExactSet = runOptimized3DSlotting(
+    bins,
+    updatedSkus,
+    sampleConfig,
+    nextPins
+  );
+  const targetAlloc = afterExactSet.allocations.find(
+    (a) => a.bin.id === targetBinId
+  )!;
+  assert.equal(
+    targetAlloc.boxes.filter((b) => b.skuId === 'sku-fast-a').length,
+    5,
+    'Target bin should contain exact 5 boxes of sku-fast-a'
+  );
+
+  const zeroResult = buildExactBinSkuPins(
+    nextPins,
+    afterExactSet.allocations,
+    targetBinId,
+    'sku-fast-a',
+    0
+  );
+  const afterZeroSkus = sampleSkus.map((s) =>
+    s.id === 'sku-fast-a' ? { ...s, quantity: zeroResult.totalPinnedForSku } : s
+  );
+  const afterZeroSet = runOptimized3DSlotting(
+    bins,
+    afterZeroSkus,
+    sampleConfig,
+    zeroResult.nextPins
+  );
+  const targetAllocAfterZero = afterZeroSet.allocations.find(
+    (a) => a.bin.id === targetBinId
+  )!;
+  assert.equal(
+    targetAllocAfterZero.boxes.filter((b) => b.skuId === 'sku-fast-a').length,
+    0,
+    'Target bin should contain 0 boxes of sku-fast-a after setting count to 0'
+  );
 });

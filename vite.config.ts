@@ -25,6 +25,9 @@ export default defineConfig({
           }
           if (id.includes('/src/data/')) return 'templates-data';
           if (id.includes('/src/utils/threeContentBuilder')) return 'three-builder';
+          if (id.includes('/src/components/Warehouse3DViewport')) {
+            return 'viewport-3d';
+          }
           if (
             id.includes('/src/components/ViewportContextMenu') ||
             id.includes('/src/components/EverydayHomeView') ||

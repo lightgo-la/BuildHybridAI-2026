@@ -12,20 +12,28 @@ import {
   Camera,
   Compass,
   Copy,
+  Download,
+  ExternalLink,
   Flame,
   Home,
   Keyboard,
   Layers,
+  Lock,
+  Map as MapIcon,
+  Maximize2,
+  Minimize2,
   Move,
   Play,
   Plus,
   Redo2,
   RotateCcw,
   RotateCw,
+  Route,
   Sparkles,
   Sun,
   Trash2,
   Undo2,
+  Unlock,
 } from 'lucide-react';
 import { DESIGN_THEMES } from './data/designThemes';
 import { SAMPLE_SCENARIOS } from './data/sampleScenarios';
@@ -69,6 +77,7 @@ import type {
 import { useWarehouseShortcuts } from './hooks/useWarehouseShortcuts';
 import { useWarehouseTransforms } from './hooks/useWarehouseTransforms';
 import { getEffectiveInteriorProps } from './utils/threeContentBuilder';
+import { generateWarehouseSVG } from './utils/cadExporter';
 import {
   exportSkusToCSV,
   exportSlottingResultToCSV,
@@ -306,6 +315,31 @@ export function App() {
   const [activeLayout, setActiveLayout] = useState<'optimized_3d' | 'baseline_2d'>(
     'optimized_3d'
   );
+  const [alwaysOptimizedLock, setAlwaysOptimizedLock] = useState<boolean>(() => {
+    try {
+      const saved = window.localStorage.getItem('cubislot_always_opt_lock_v1');
+      return saved === null ? true : saved === 'true';
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        'cubislot_always_opt_lock_v1',
+        String(alwaysOptimizedLock)
+      );
+    } catch {
+    }
+    if (alwaysOptimizedLock && activeLayout !== 'optimized_3d') {
+      setActiveLayout('optimized_3d');
+    }
+  }, [alwaysOptimizedLock, activeLayout]);
+
+  const [main2DPlanMode, setMain2DPlanMode] = useState<
+    'off' | 'split' | 'full_2d'
+  >('split');
+  const [windowMaximized, setWindowMaximized] = useState<boolean>(false);
   const [lang, setLang] = useState<LangCode>(loadLang);
   const [appView, setAppView] = useState<'workspace' | 'home'>('workspace');
   const [viewLayer, setViewLayer] = useState<ViewLayerMode>('slotting');
@@ -688,6 +722,8 @@ export function App() {
     handleAddBin,
     handleDeleteBin,
     handlePinCargo,
+    handleSetCargoCountInBin,
+    handleSetBinTotalBoxQuota,
     handlePlaceCustomBoxInBin,
     handleUpdateBoxDimensions,
     handleResizeSingleBin,
@@ -894,6 +930,15 @@ export function App() {
             onChangeEquipmentMode={setEquipmentMode}
             onOpenTemplateGallery={() => setTemplateGalleryOpen(true)}
             onToggleActiveLayout={() => {
+              if (alwaysOptimizedLock) {
+                setActiveLayout('optimized_3d');
+                showToast(
+                  lang === 'ko'
+                    ? '🔒 [항상 최적화 잠금]이 켜져 있어 3D 최적화 화면을 유지합니다. (해제 후 비교 가능)'
+                    : '🔒 Always-Optimized Lock is ON. Keeping 3D Optimized layout.'
+                );
+                return;
+              }
               const next =
                 activeLayout === 'optimized_3d'
                   ? 'baseline_2d'
@@ -1124,6 +1169,8 @@ export function App() {
                 onSelectBin={handleSelectBin}
                 onSelectCargo={setSelectedCargo}
                 onPinCargo={handlePinCargo}
+                onSetCargoCountInBin={handleSetCargoCountInBin}
+                onSetBinTotalBoxQuota={handleSetBinTotalBoxQuota}
                 onPlaceCustomBoxInBin={handlePlaceCustomBoxInBin}
                 onUpdateBoxDimensions={handleUpdateBoxDimensions}
                 onResizeSingleBin={handleResizeSingleBin}
@@ -1153,15 +1200,26 @@ export function App() {
         </section>
 
         <section
-          className="relative flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950"
-          style={{ minHeight: `${designSettings.viewportMinHeightPx}px` }}
+          className={`relative flex flex-col overflow-hidden rounded-xl border border-slate-800 bg-slate-950 ${
+            windowMaximized ? 'fixed inset-2 z-40 shadow-2xl' : ''
+          }`}
+          style={{
+            minHeight: windowMaximized
+              ? '95vh'
+              : `${designSettings.viewportMinHeightPx}px`,
+          }}
         >
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/90 px-3 py-2 text-[11px]">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex overflow-hidden rounded-lg border border-slate-700 bg-slate-950">
                 <button
                   type="button"
-                  onClick={() => setActiveLayout('baseline_2d')}
+                  onClick={() => {
+                    if (alwaysOptimizedLock) {
+                      setAlwaysOptimizedLock(false);
+                    }
+                    setActiveLayout('baseline_2d');
+                  }}
                   className={`px-2.5 py-1 ${
                     activeLayout === 'baseline_2d'
                       ? 'bg-rose-500/20 font-semibold text-rose-300'
@@ -1182,6 +1240,108 @@ export function App() {
                   {t(lang, 'after3d')}
                 </button>
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !alwaysOptimizedLock;
+                  setAlwaysOptimizedLock(next);
+                  if (next) setActiveLayout('optimized_3d');
+                  showToast(
+                    next
+                      ? lang === 'ko'
+                        ? '🔒 항상 최적화 창 고정 ON: 모든 변경 시 항상 최적 배치 창으로 유지됩니다.'
+                        : '🔒 Always-Optimized Lock ON'
+                      : lang === 'ko'
+                        ? '🔓 항상 최적화 잠금 해제됨'
+                        : '🔓 Always-Optimized Lock OFF'
+                  );
+                }}
+                className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold transition ${
+                  alwaysOptimizedLock
+                    ? 'border-emerald-400 bg-emerald-500/25 text-emerald-200'
+                    : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'
+                }`}
+                title={
+                  lang === 'ko'
+                    ? '화면이 항상 3D 최적화 상태로 유지되도록 고정합니다'
+                    : 'Keep viewport locked to 3D Optimized layout at all times'
+                }
+              >
+                {alwaysOptimizedLock ? (
+                  <Lock className="h-3 w-3 text-emerald-300" />
+                ) : (
+                  <Unlock className="h-3 w-3" />
+                )}
+                {lang === 'ko'
+                  ? `항상 최적화 고정 ${alwaysOptimizedLock ? 'ON' : 'OFF'}`
+                  : `Always Optimized ${alwaysOptimizedLock ? 'ON' : 'OFF'}`}
+              </button>
+
+              <div className="flex overflow-hidden rounded-lg border border-cyan-500/40 bg-slate-950 text-[10px]">
+                {(
+                  [
+                    ['off', lang === 'ko' ? '3D 단독' : '3D Only'],
+                    ['split', lang === 'ko' ? '3D + 2D 배치도' : '3D + 2D Plan'],
+                    ['full_2d', lang === 'ko' ? '2D 배치도 전체' : '2D Plan Full'],
+                  ] as const
+                ).map(([m, label]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMain2DPlanMode(m)}
+                    className={`inline-flex items-center gap-1 px-2 py-1 font-semibold transition ${
+                      main2DPlanMode === m
+                        ? 'bg-cyan-500 text-slate-950'
+                        : 'text-cyan-300 hover:bg-slate-900'
+                    }`}
+                    title={
+                      lang === 'ko'
+                        ? '메인 바탕화면에서 2D 배치도와 동선을 실시간으로 함께 봅니다'
+                        : 'View 2D Layout & Pick Route directly on the main screen'
+                    }
+                  >
+                    <MapIcon className="h-2.5 w-2.5" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !windowMaximized;
+                  setWindowMaximized(next);
+                  if (!document.fullscreenElement && next) {
+                    document.documentElement.requestFullscreen?.().catch(() => {});
+                  } else if (document.fullscreenElement && !next) {
+                    document.exitFullscreen?.().catch(() => {});
+                  }
+                }}
+                className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold ${
+                  windowMaximized
+                    ? 'border-amber-400 bg-amber-500/25 text-amber-200'
+                    : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-cyan-400'
+                }`}
+                title={
+                  lang === 'ko'
+                    ? '현재 최적화 화면 창을 모니터 전체 화면에 맞게 최대화합니다'
+                    : 'Maximize Optimization Viewport to Full Window'
+                }
+              >
+                {windowMaximized ? (
+                  <Minimize2 className="h-3 w-3 text-amber-300" />
+                ) : (
+                  <Maximize2 className="h-3 w-3 text-cyan-300" />
+                )}
+                {lang === 'ko'
+                  ? windowMaximized
+                    ? '최적화 창 축소'
+                    : '최적화 창 최대화'
+                  : windowMaximized
+                    ? 'Restore Window'
+                    : 'Maximize Window'}
+              </button>
 
               <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950/90 px-1.5 py-0.5 text-[10px]">
                 <span className="font-semibold text-slate-400">
@@ -2824,64 +2984,438 @@ export function App() {
               </div>
             )}
 
-            <Warehouse3DViewport
-              allocations={shownResult.allocations}
-              pickRoute={shownResult.pickRoute}
-              config={config}
-              scenarioName={activeScenario.name}
-              viewLayer={viewLayer}
-              selectedBinId={selectedBinId}
-              selectedPropId={selectedPropId}
-              selectedObstacleId={selectedObstacleId}
-              selectedDepot={selectedDepot}
-              selectedCargo={selectedCargo}
-              levelFilter={levelFilter}
-              theme={activeTheme}
-              sceneBg={sceneBg}
-              onSelectBin={handleSelectBin}
-              onSelectProp={setSelectedPropId}
-              onSelectObstacle={setSelectedObstacleId}
-              onSelectDepot={setSelectedDepot}
-              onSelectCargo={setSelectedCargo}
-              onContextAction={setContextMenu}
-              dragMoveMode={dragMoveMode}
-              dragScope={dragScope}
-              onMoveSingleBin={handleMoveSingleBin}
-              onMoveRackColumn={handleMoveRackColumn}
-              onMoveWholeTemplate={handleTranslateWholeTemplate}
-              onMoveInteriorProp={(propId, nx, ny) =>
-                handleUpdateInteriorProp(propId, { xMeters: nx, yMeters: ny })
-              }
-              onMoveObstacle={(obsId, nx, ny) =>
-                handleUpdateObstacle(obsId, { xMeters: nx, yMeters: ny })
-              }
-              onMoveDepot={handleMoveDepot}
-              onMoveSingleCargoToBin={handleMoveSingleCargoToBin}
-              onMoveSingleCargoToFloor={handleMoveSingleCargoToFloor}
-              cameraPreset={cameraPreset}
-              cameraResetTick={cameraResetTick}
-              cameraFocusTick={cameraFocusTick}
-              autoZoomEnabled={autoZoomEnabled}
-              onToggleAutoZoom={() =>
-                setAutoZoomEnabled((prev) => {
-                  const next = !prev;
-                  showToast(
-                    next
-                      ? lang === 'ko'
-                        ? '✨ 스마트 카메라 자동줌 켜짐: 물체 클릭 시 자동 확대 · 빈 바닥 클릭 시 전체 복귀'
-                        : '✨ Smart Auto-Zoom ON'
-                      : lang === 'ko'
-                        ? '수동 카메라 줌 모드로 전환되었습니다'
-                        : 'Smart Auto-Zoom OFF'
-                  );
-                  return next;
-                })
-              }
-              onEnableAnimateRoute={() => setAnimateRoute(true)}
-              onChangeCameraPreset={setCameraPreset}
-              animateRoute={animateRoute}
-              lang={lang}
-            />
+            {main2DPlanMode !== 'full_2d' && (
+              <Warehouse3DViewport
+                allocations={shownResult.allocations}
+                pickRoute={shownResult.pickRoute}
+                config={config}
+                scenarioName={activeScenario.name}
+                viewLayer={viewLayer}
+                selectedBinId={selectedBinId}
+                selectedPropId={selectedPropId}
+                selectedObstacleId={selectedObstacleId}
+                selectedDepot={selectedDepot}
+                selectedCargo={selectedCargo}
+                levelFilter={levelFilter}
+                theme={activeTheme}
+                sceneBg={sceneBg}
+                onSelectBin={handleSelectBin}
+                onSelectProp={setSelectedPropId}
+                onSelectObstacle={setSelectedObstacleId}
+                onSelectDepot={setSelectedDepot}
+                onSelectCargo={setSelectedCargo}
+                onContextAction={setContextMenu}
+                dragMoveMode={dragMoveMode}
+                dragScope={dragScope}
+                onMoveSingleBin={handleMoveSingleBin}
+                onMoveRackColumn={handleMoveRackColumn}
+                onMoveWholeTemplate={handleTranslateWholeTemplate}
+                onMoveInteriorProp={(propId, nx, ny) =>
+                  handleUpdateInteriorProp(propId, { xMeters: nx, yMeters: ny })
+                }
+                onMoveObstacle={(obsId, nx, ny) =>
+                  handleUpdateObstacle(obsId, { xMeters: nx, yMeters: ny })
+                }
+                onMoveDepot={handleMoveDepot}
+                onMoveSingleCargoToBin={handleMoveSingleCargoToBin}
+                onMoveSingleCargoToFloor={handleMoveSingleCargoToFloor}
+                cameraPreset={cameraPreset}
+                cameraResetTick={cameraResetTick}
+                cameraFocusTick={cameraFocusTick}
+                autoZoomEnabled={autoZoomEnabled}
+                onToggleAutoZoom={() =>
+                  setAutoZoomEnabled((prev) => {
+                    const next = !prev;
+                    showToast(
+                      next
+                        ? lang === 'ko'
+                          ? '✨ 스마트 카메라 자동줌 켜짐: 물체 클릭 시 자동 확대 · 빈 바닥 클릭 시 전체 복귀'
+                          : '✨ Smart Auto-Zoom ON'
+                        : lang === 'ko'
+                          ? '수동 카메라 줌 모드로 전환되었습니다'
+                          : 'Smart Auto-Zoom OFF'
+                    );
+                    return next;
+                  })
+                }
+                onEnableAnimateRoute={() => setAnimateRoute(true)}
+                onChangeCameraPreset={setCameraPreset}
+                animateRoute={animateRoute}
+                lang={lang}
+              />
+            )}
+
+            {main2DPlanMode !== 'off' && (
+              <div
+                className={`flex flex-col border-t border-cyan-500/35 bg-[#06101f] ${
+                  main2DPlanMode === 'full_2d'
+                    ? 'flex-1 min-h-[540px]'
+                    : 'h-72 shrink-0'
+                }`}
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/95 px-3 py-1.5 text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <MapIcon className="h-3.5 w-3.5 text-cyan-400" />
+                    <span className="font-bold text-cyan-200">
+                      {lang === 'ko'
+                        ? `메인 바탕화면 2D 실시간 배치도 & 피킹 동선 (${activeScenario.name})`
+                        : `Main Screen Live 2D Floor Plan & Pick Route (${activeScenario.name})`}
+                    </span>
+                    <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
+                      {lang === 'ko'
+                        ? `선반 클릭 시 박스 투입 · 우클릭 시 동선 경유지 지정`
+                        : `Left-click bin to inspect · Right-click to toggle route stop`}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => setMapEditorOpen(true)}
+                      className="inline-flex items-center gap-1 rounded border border-cyan-500/50 bg-cyan-500/20 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/30"
+                    >
+                      <Route className="h-3 w-3" />
+                      {lang === 'ko' ? '2D 자유맵 & 동선 에디터 열기' : 'Open 2D & Route Editor'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const svgMarkup = generateWarehouseSVG(
+                          shownResult,
+                          config,
+                          activeScenario.name,
+                          {
+                            includeCartons: true,
+                            includePickRoute: true,
+                            includeLabels: true,
+                            includeElevation: true,
+                            planLevelFilter: levelFilter,
+                          }
+                        );
+                        const win = window.open('', '_blank', 'width=1280,height=860');
+                        if (win) {
+                          win.document.write(
+                            `<!doctype html><html><head><meta charset="utf-8"/><title>2D 배치도 - ${activeScenario.name}</title><style>body{margin:0;background:#071326;color:#e2e8f0;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}header{padding:10px 16px;background:#0f172a;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center}main{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px}svg{max-width:100%;height:auto}</style></head><body><header><strong>${activeScenario.name} — 2D 배치도 & 피킹 동선 (바탕화면 독립 창)</strong><button onclick="window.print()" style="background:#22d3ee;color:#082f49;border:0;padding:6px 12px;border-radius:6px;font-weight:bold;cursor:pointer">인쇄 / PDF 저장</button></header><main>${svgMarkup}</main></body></html>`
+                          );
+                          win.document.close();
+                        }
+                      }}
+                      className="inline-flex items-center gap-1 rounded border border-amber-500/50 bg-amber-500/20 px-2 py-0.5 font-semibold text-amber-200 hover:bg-amber-500/30"
+                      title={
+                        lang === 'ko'
+                          ? '바탕화면에 별도 독립 창으로 2D 배치도를 띄워 항상 보거나 인쇄합니다'
+                          : 'Pop out 2D layout blueprint in a standalone desktop window'
+                      }
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {lang === 'ko' ? '바탕화면 독립 창으로 띄우기' : 'Pop-out Desktop Window'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const svgMarkup = generateWarehouseSVG(
+                          shownResult,
+                          config,
+                          activeScenario.name,
+                          {
+                            includeCartons: true,
+                            includePickRoute: true,
+                            includeLabels: true,
+                            includeElevation: true,
+                            planLevelFilter: levelFilter,
+                          }
+                        );
+                        const blob = new Blob([svgMarkup], {
+                          type: 'image/svg+xml;charset=utf-8',
+                        });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${activeScenario.name.replace(/[^a-zA-Z0-9가-힣_-]+/g, '_')}_2D_배치도.svg`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      className="inline-flex items-center gap-1 rounded border border-emerald-500/50 bg-emerald-500/20 px-2 py-0.5 font-semibold text-emerald-200 hover:bg-emerald-500/30"
+                    >
+                      <Download className="h-3 w-3" />
+                      {lang === 'ko' ? '2D 배치도 파일 저장(.SVG)' : 'Save 2D Layout (.SVG)'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-auto p-2">
+                  {(() => {
+                    const byPos = new Map<string, BinAllocation[]>();
+                    for (const a of shownResult.allocations) {
+                      if (levelFilter !== 'all' && a.bin.level !== levelFilter) {
+                        continue;
+                      }
+                      const key = `${a.bin.xMeters.toFixed(2)}_${a.bin.yMeters.toFixed(2)}`;
+                      const list = byPos.get(key) ?? [];
+                      list.push(a);
+                      byPos.set(key, list);
+                    }
+                    const depotX = activeDepotX;
+                    const depotY = activeDepotZ;
+                    const floorW =
+                      config.floorWidthM ??
+                      Math.max(10, config.aisles * (config.aisleSpacingM ?? 3.4) + 2);
+                    const floorD =
+                      config.floorDepthM ??
+                      Math.max(8, config.baysPerAisle * (config.baySpacingM ?? 1.45) + 3.5);
+                    const pxPerM = main2DPlanMode === 'full_2d' ? 44 : 28;
+                    const minWX = -1.5;
+                    const minWY = -1.5;
+                    const maxWX = Math.max(
+                      floorW - 1.5,
+                      ...shownResult.allocations.map((a) => a.bin.xMeters + 1.8),
+                      depotX + 2
+                    );
+                    const maxWY = Math.max(
+                      floorD - 1.5,
+                      ...shownResult.allocations.map((a) => a.bin.yMeters + 1.8),
+                      depotY + 2
+                    );
+                    const wPx = Math.max(460, Math.round((maxWX - minWX) * pxPerM));
+                    const hPx = Math.max(210, Math.round((maxWY - minWY) * pxPerM));
+                    const sx = (wx: number) => (wx - minWX) * pxPerM;
+                    const sy = (wy: number) => (maxWY - wy) * pxPerM;
+
+                    const corridorY = Math.min(depotY + 0.75, 0.85);
+                    const routePts: Array<{ x: number; y: number }> = [
+                      { x: depotX, y: depotY },
+                    ];
+                    let cx = depotX;
+                    let cy = depotY;
+                    for (const wp of shownResult.pickRoute) {
+                      if (
+                        Math.abs(wp.xMeters - cx) >= 0.35 &&
+                        cy > corridorY &&
+                        wp.yMeters > corridorY
+                      ) {
+                        routePts.push({ x: cx, y: corridorY });
+                        routePts.push({ x: wp.xMeters, y: corridorY });
+                      } else {
+                        routePts.push({ x: wp.xMeters, y: cy });
+                      }
+                      routePts.push({ x: wp.xMeters, y: wp.yMeters });
+                      cx = wp.xMeters;
+                      cy = wp.yMeters;
+                    }
+
+                    return (
+                      <svg
+                        width={wPx}
+                        height={hPx}
+                        viewBox={`0 0 ${wPx} ${hPx}`}
+                        className="mx-auto block rounded border border-sky-500/30 bg-[#071326] select-none"
+                      >
+                        <rect
+                          x={sx(-1.0)}
+                          y={sy(-1.0 + floorD)}
+                          width={floorW * pxPerM}
+                          height={floorD * pxPerM}
+                          fill={
+                            sceneBg.useThemeDefault
+                              ? activeTheme.scene.floor
+                              : sceneBg.floorColor
+                          }
+                          fillOpacity={0.22}
+                          stroke="#38bdf8"
+                          strokeDasharray="5,4"
+                          strokeWidth={1.2}
+                        />
+                        <g>
+                          <rect
+                            x={sx(depotX - 1.1)}
+                            y={sy(depotY + 0.45)}
+                            width={2.2 * pxPerM}
+                            height={0.9 * pxPerM}
+                            rx={4}
+                            fill="rgba(2, 132, 199, 0.4)"
+                            stroke="#38bdf8"
+                            strokeWidth={1.6}
+                          />
+                          <text
+                            x={sx(depotX)}
+                            y={sy(depotY) + 3}
+                            textAnchor="middle"
+                            fill="#e0f2fe"
+                            fontSize="9"
+                            fontWeight="bold"
+                          >
+                            ★ DEPOT
+                          </text>
+                        </g>
+
+                        {(config.obstacles ?? []).map((obs) => (
+                          <g key={obs.id}>
+                            <rect
+                              x={sx(obs.xMeters - 0.35)}
+                              y={sy(obs.yMeters + 0.35)}
+                              width={0.7 * pxPerM}
+                              height={0.7 * pxPerM}
+                              fill="rgba(234,179,8,0.35)"
+                              stroke="#facc15"
+                              strokeWidth={1.4}
+                            />
+                          </g>
+                        ))}
+
+                        {[...byPos.entries()].map(([posKey, stack]) => {
+                          const topBin = stack[0].bin;
+                          const totalBoxes = stack.reduce(
+                            (s, a) => s + a.boxes.length,
+                            0
+                          );
+                          const isSelectedStack = stack.some(
+                            (a) => a.bin.id === selectedBinId
+                          );
+                          const targetAlloc =
+                            stack.find((a) => a.bin.isGoldenZone) ?? stack[0];
+                          const wM = topBin.binWidthCm / 100;
+                          const lM = topBin.binLengthCm / 100;
+                          const rx = sx(topBin.xMeters - wM / 2);
+                          const ry = sy(topBin.yMeters + lM / 2);
+                          const rw = wM * pxPerM;
+                          const rh = lM * pxPerM;
+                          const stopIdx = shownResult.pickRoute.findIndex((wp) =>
+                            stack.some((a) => a.bin.id === wp.binId)
+                          );
+                          return (
+                            <g
+                              key={posKey}
+                              className="cursor-pointer"
+                              onClick={() => {
+                                handleSelectBin(targetAlloc);
+                                setCameraFocusTick((n) => n + 1);
+                              }}
+                              onContextMenu={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const curRoute =
+                                  config.customRouteBinIds &&
+                                  config.customRouteBinIds.length > 0
+                                    ? [...config.customRouteBinIds]
+                                    : shownResult.pickRoute.map((w) => w.binId);
+                                const existingIdx = curRoute.findIndex((id) =>
+                                  stack.some((a) => a.bin.id === id)
+                                );
+                                const nextRoute =
+                                  existingIdx !== -1
+                                    ? curRoute.filter((_, i) => i !== existingIdx)
+                                    : [...curRoute, targetAlloc.bin.id];
+                                pushWorkspaceUndo();
+                                setConfigPatch((prev) => ({
+                                  ...prev,
+                                  customRouteBinIds: nextRoute,
+                                }));
+                                showToast(
+                                  existingIdx !== -1
+                                    ? lang === 'ko'
+                                      ? `선반 [${targetAlloc.bin.id}] 동선 경유지에서 제외됨`
+                                      : `Removed [${targetAlloc.bin.id}] from Pick Route`
+                                    : lang === 'ko'
+                                      ? `선반 [${targetAlloc.bin.id}] 피킹 동선 경유지 #${nextRoute.length}번으로 추가됨`
+                                      : `Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`
+                                );
+                              }}
+                            >
+                              <rect
+                                x={rx}
+                                y={ry}
+                                width={rw}
+                                height={rh}
+                                rx={3}
+                                fill={
+                                  totalBoxes > 0
+                                    ? 'rgba(34, 211, 238, 0.28)'
+                                    : 'rgba(51, 65, 85, 0.35)'
+                                }
+                                stroke={
+                                  isSelectedStack
+                                    ? '#facc15'
+                                    : stopIdx !== -1
+                                      ? '#10b981'
+                                      : '#22d3ee'
+                                }
+                                strokeWidth={isSelectedStack ? 2.4 : 1.3}
+                              />
+                              <text
+                                x={rx + rw / 2}
+                                y={ry + rh / 2 + 3}
+                                textAnchor="middle"
+                                fill="#f8fafc"
+                                fontSize="9"
+                                fontWeight="bold"
+                              >
+                                A{topBin.aisle}-B{topBin.bay}
+                              </text>
+                              {totalBoxes > 0 && (
+                                <g>
+                                  <circle
+                                    cx={rx + rw - 1}
+                                    cy={ry + 1}
+                                    r={7.5}
+                                    fill="#f59e0b"
+                                    stroke="#0f172a"
+                                    strokeWidth={1.2}
+                                  />
+                                  <text
+                                    x={rx + rw - 1}
+                                    y={ry + 3.8}
+                                    textAnchor="middle"
+                                    fill="#0f172a"
+                                    fontSize="8"
+                                    fontWeight="bold"
+                                  >
+                                    {totalBoxes}
+                                  </text>
+                                </g>
+                              )}
+                              {stopIdx !== -1 && (
+                                <g>
+                                  <circle
+                                    cx={rx + 2}
+                                    cy={ry + 2}
+                                    r={7.5}
+                                    fill="#10b981"
+                                    stroke="#022c22"
+                                    strokeWidth={1.2}
+                                  />
+                                  <text
+                                    x={rx + 2}
+                                    y={ry + 4.8}
+                                    textAnchor="middle"
+                                    fill="#022c22"
+                                    fontSize="8"
+                                    fontWeight="bold"
+                                  >
+                                    #{stopIdx + 1}
+                                  </text>
+                                </g>
+                              )}
+                            </g>
+                          );
+                        })}
+
+                        {animateRoute && routePts.length > 1 && (
+                          <polyline
+                            points={routePts
+                              .map((p) => `${sx(p.x)},${sy(p.y)}`)
+                              .join(' ')}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth={2.2}
+                            strokeDasharray="5,3"
+                            pointerEvents="none"
+                          />
+                        )}
+                      </svg>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
 
             <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/90 p-1.5 text-[10px] backdrop-blur">
               <button
@@ -3152,6 +3686,8 @@ export function App() {
         onPinSkuToBin={(binId, skuId, delta = 1) =>
           handlePinCargo(binId, skuId, delta)
         }
+        onSetCargoCountInBin={handleSetCargoCountInBin}
+        onSetBinTotalBoxQuota={handleSetBinTotalBoxQuota}
         onPlaceCustomBoxInBin={handlePlaceCustomBoxInBin}
         onResizeSingleBin={handleResizeSingleBin}
         onChangeFloorColor={handleChangeFloorColor}
@@ -3330,6 +3866,7 @@ export function App() {
             config={config}
             bins={bins}
             scenario={activeScenario}
+            skus={skus}
             floorColor={
               sceneBg.useThemeDefault
                 ? activeTheme.scene.floor
@@ -3337,7 +3874,12 @@ export function App() {
             }
             onChangeFloorColor={handleChangeFloorColor}
             lang={lang}
-            onApplyMapEdits={({ configPatch: nextPatch, customBins }) => {
+            allocations={shownResult.allocations}
+            onPinCargo={handlePinCargo}
+            onSetCargoCountInBin={handleSetCargoCountInBin}
+            onSetBinTotalBoxQuota={handleSetBinTotalBoxQuota}
+            onPlaceCustomBoxInBin={handlePlaceCustomBoxInBin}
+            onApplyMapEdits={({ configPatch: nextPatch, customBins, closeModal = true }) => {
               pushWorkspaceUndo();
               setConfigPatch((prev) => ({ ...prev, ...nextPatch }));
               setCustomBinsOverride(customBins);
@@ -3345,6 +3887,7 @@ export function App() {
               setExtraBins([]);
               setSelectedBinId(null);
               setCameraResetTick((t) => t + 1);
+              if (closeModal) setMapEditorOpen(false);
             }}
             onSaveCustomScenario={handleSaveCustomScenario}
           />

@@ -187,6 +187,8 @@ export interface WarehouseConfig {
   floorDepthM?: number;
   obstacles?: WarehouseObstacle[];
   disabledBinIds?: string[];
+  customRouteBinIds?: string[];
+  routeReturnToDepot?: boolean;
   interiorProps?: InteriorProp[];
   roomEnclosure?: RoomEnclosureStyle;
   wallColor?: string;

@@ -38,6 +38,17 @@ interface BinInspectorPanelProps {
   onSelectBin?: (alloc: BinAllocation) => void;
   onSelectCargo?: (cargo: SelectedCargoBox | null) => void;
   onPinCargo?: (binId: string, skuId: string, delta: number) => void;
+  onSetCargoCountInBin?: (
+    binId: string,
+    skuId: string,
+    exactCount: number,
+    autoExpandBin?: boolean
+  ) => void;
+  onSetBinTotalBoxQuota?: (
+    binId: string,
+    targetTotalBoxes: number,
+    fallbackSkuId?: string
+  ) => void;
   onPlaceCustomBoxInBin?: (input: CustomBoxPlacementInput) => void;
   onUpdateBoxDimensions?: (
     skuId: string,
@@ -95,6 +106,8 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
   onSelectBin,
   onSelectCargo,
   onPinCargo,
+  onSetCargoCountInBin,
+  onSetBinTotalBoxQuota,
   onPlaceCustomBoxInBin,
   onUpdateBoxDimensions,
   onResizeSingleBin,
@@ -973,27 +986,27 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
       </div>
 
       {onPinCargo && skus.length > 0 && (
-        <div className="rounded-xl border border-slate-800 bg-slate-950/75 p-2.5 text-[11px]">
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="inline-flex items-center gap-1 font-semibold text-cyan-300">
-              <Pin className="h-3 w-3" />
+        <div className="space-y-2 rounded-xl border border-cyan-500/40 bg-slate-950/85 p-2.5 text-[11px]">
+          <div className="flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1 font-bold text-cyan-300">
+              <Pin className="h-3.5 w-3.5" />
               {isKo
-                ? '등록된 품목 바로 추가 (+1)'
-                : 'Quick Place Existing SKU (+1)'}
+                ? `선반(${selectedBin.bin.id}) 박스 개수 & 품목별 수량 직접 입력`
+                : `Set Exact Box Count & SKU Qty in [${selectedBin.bin.id}]`}
             </span>
             <div className="flex items-center gap-2">
               {skus.length > 6 && (
                 <button
                   type="button"
                   onClick={() => setShowAllExistingSkus((v) => !v)}
-                  className="text-[10px] text-cyan-300 hover:underline"
+                  className="text-[10px] font-semibold text-cyan-300 hover:underline"
                 >
                   {showAllExistingSkus
                     ? isKo
                       ? '간략히'
                       : 'Less'
                     : isKo
-                      ? `전체(${skus.length})`
+                      ? `전체 품목(${skus.length})`
                       : `All(${skus.length})`}
                 </button>
               )}
@@ -1009,29 +1022,160 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
               )}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-1">
-            {(showAllExistingSkus ? skus : skus.slice(0, 6)).map((sku) => (
-              <button
-                key={sku.id}
-                type="button"
-                onClick={() => onPinCargo(selectedBin.bin.id, sku.id, 1)}
-                className="flex flex-col rounded-md border border-slate-800 bg-slate-900/90 px-2 py-1 text-left text-[10px] text-slate-200 hover:border-cyan-400 hover:text-white"
-                title={`${sku.name} (${sku.lengthCm}×${sku.widthCm}×${sku.heightCm}cm, ${sku.weightKg}kg)`}
-              >
-                <div className="flex items-center gap-1.5 truncate">
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: sku.color }}
-                  />
-                  <span className="truncate font-medium">
-                    + {sku.name.split(' (')[0]}
-                  </span>
+
+          {onSetBinTotalBoxQuota && (
+            <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-lg border border-slate-800 bg-slate-900/90 px-2 py-1.5 text-[10px]">
+              <span className="font-semibold text-slate-200">
+                {isKo ? '이 선반 총 박스 개수:' : 'Shelf Total Box Count:'}
+              </span>
+              <div className="flex items-center gap-1">
+                {[0, 1, 2, 4, 6, 8, 12].map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() =>
+                      onSetBinTotalBoxQuota(
+                        selectedBin.bin.id,
+                        q,
+                        skus[0]?.id
+                      )
+                    }
+                    className={`rounded border px-1.5 py-0.5 font-mono font-bold transition ${
+                      selectedBin.boxes.length === q
+                        ? 'border-cyan-400 bg-cyan-500 text-slate-950'
+                        : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-cyan-400'
+                    }`}
+                  >
+                    {q}
+                  </button>
+                ))}
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={selectedBin.boxes.length}
+                  onChange={(e) =>
+                    onSetBinTotalBoxQuota(
+                      selectedBin.bin.id,
+                      clampNum(e.target.value, selectedBin.boxes.length, 0, 100),
+                      skus[0]?.id
+                    )
+                  }
+                  className="w-12 rounded border border-cyan-500/50 bg-slate-950 px-1 py-0.5 text-center font-mono text-xs font-bold text-amber-300"
+                  title={
+                    isKo
+                      ? '이 선반 칸의 총 박스 개수를 숫자로 직접 입력합니다'
+                      : 'Enter exact total box count for this shelf bin'
+                  }
+                />
+                <span className="text-slate-400">{isKo ? '개' : 'pcs'}</span>
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-56 space-y-1 overflow-y-auto pr-0.5">
+            {(showAllExistingSkus ? skus : skus.slice(0, 6)).map((sku) => {
+              const countInBin = selectedBin.boxes.filter(
+                (b) => b.skuId === sku.id
+              ).length;
+              return (
+                <div
+                  key={sku.id}
+                  className={`flex items-center justify-between gap-1.5 rounded-lg border px-2 py-1 text-[10px] transition ${
+                    countInBin > 0
+                      ? 'border-emerald-500/50 bg-emerald-950/25'
+                      : 'border-slate-800 bg-slate-900/90'
+                  }`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ backgroundColor: sku.color }}
+                      />
+                      <span
+                        className="truncate font-semibold text-white"
+                        title={`${sku.name} (${sku.lengthCm}×${sku.widthCm}×${sku.heightCm}cm, ${sku.weightKg}kg)`}
+                      >
+                        {sku.name.split(' (')[0]}
+                      </span>
+                    </div>
+                    <span className="pl-3.5 font-mono text-[9px] text-slate-400">
+                      {sku.lengthCm}×{sku.widthCm}×{sku.heightCm}cm · {sku.weightKg}kg
+                    </span>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onSetCargoCountInBin
+                          ? onSetCargoCountInBin(
+                              selectedBin.bin.id,
+                              sku.id,
+                              Math.max(0, countInBin - 1)
+                            )
+                          : onPinCargo(selectedBin.bin.id, sku.id, -1)
+                      }
+                      disabled={countInBin <= 0}
+                      className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-bold text-rose-300 hover:border-rose-400 disabled:opacity-35"
+                      title={isKo ? '1개 빼기' : 'Remove 1'}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={countInBin}
+                      onChange={(e) => {
+                        const nextCnt = clampNum(
+                          e.target.value,
+                          countInBin,
+                          0,
+                          100
+                        );
+                        if (onSetCargoCountInBin) {
+                          onSetCargoCountInBin(
+                            selectedBin.bin.id,
+                            sku.id,
+                            nextCnt
+                          );
+                        } else {
+                          onPinCargo(
+                            selectedBin.bin.id,
+                            sku.id,
+                            nextCnt - countInBin
+                          );
+                        }
+                      }}
+                      className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-[11px] font-bold text-amber-300 focus:border-cyan-400 focus:outline-none"
+                      title={
+                        isKo
+                          ? '이 품목을 이 선반에 몇 개 넣을지 숫자로 직접 입력'
+                          : 'Enter exact quantity of this SKU in this shelf bin'
+                      }
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onSetCargoCountInBin
+                          ? onSetCargoCountInBin(
+                              selectedBin.bin.id,
+                              sku.id,
+                              countInBin + 1
+                            )
+                          : onPinCargo(selectedBin.bin.id, sku.id, 1)
+                      }
+                      className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-bold text-emerald-300 hover:border-emerald-400"
+                      title={isKo ? '1개 추가' : 'Add 1'}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-                <span className="pl-3.5 font-mono text-[9px] text-slate-400">
-                  {sku.lengthCm}×{sku.widthCm}×{sku.heightCm}cm · {sku.weightKg}kg
-                </span>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
