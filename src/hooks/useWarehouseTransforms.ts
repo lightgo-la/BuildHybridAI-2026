@@ -1,6 +1,9 @@
 import { type Dispatch, type SetStateAction, useCallback } from 'react';
 import { INTERIOR_PROP_CATALOG } from '../components/InteriorStudioModal';
-import { buildTransferredSkuPins } from '../engine/slottingEngine';
+import {
+  buildTransferredSkuPins,
+  resolveShelfCollisions3D,
+} from '../engine/slottingEngine';
 import type { LangCode } from '../i18n/translations';
 import type {
   ABCClass,
@@ -560,39 +563,43 @@ export function useWarehouseTransforms({
             Number(((nextLevel - 1) * 0.82 + 0.05).toFixed(2))
           : target.zMeters;
 
-      const nextBins = bins.map((b) => {
-        if (b.id !== binId) return b;
-        return {
-          ...b,
-          xMeters: Number(newX.toFixed(2)),
-          yMeters: Number(newY.toFixed(2)),
-          zMeters: nextZ,
-          level: nextLevel,
-          maxWeightKg:
-            newLevel !== undefined
-              ? maxWeights[nextLevel - 1] ?? b.maxWeightKg
-              : b.maxWeightKg,
-          isGoldenZone:
-            nextZ >= config.goldenZoneMinM && nextZ <= config.goldenZoneMaxM,
-          aisle: newAisle,
-          bay: newBay,
-        };
-      });
+      const nextBins = resolveShelfCollisions3D(
+        bins.map((b) => {
+          if (b.id !== binId) return b;
+          return {
+            ...b,
+            xMeters: Number(newX.toFixed(2)),
+            yMeters: Number(newY.toFixed(2)),
+            zMeters: nextZ,
+            level: nextLevel,
+            maxWeightKg:
+              newLevel !== undefined
+                ? maxWeights[nextLevel - 1] ?? b.maxWeightKg
+                : b.maxWeightKg,
+            isGoldenZone:
+              nextZ >= config.goldenZoneMinM && nextZ <= config.goldenZoneMaxM,
+            aisle: newAisle,
+            bay: newBay,
+          };
+        }),
+        config,
+        [binId]
+      );
+      const resolvedTarget = nextBins.find((b) => b.id === binId);
+      const finalX = resolvedTarget ? resolvedTarget.xMeters : newX;
+      const finalY = resolvedTarget ? resolvedTarget.yMeters : newY;
       setCustomBinsOverride(nextBins);
       setExtraBins([]);
       setRemovedBinIds([]);
       showToast(
         lang === 'ko'
-          ? `낱개 선반 칸 [${binId}] 위치 이동: (${newX.toFixed(2)}m, ${newY.toFixed(2)}m, Z${nextLevel}층)`
-          : `Moved single bin [${binId}] to (${newX.toFixed(2)}m, ${newY.toFixed(2)}m, Z${nextLevel})`
+          ? `낱개 선반 칸 [${binId}] 물리 배치: (${finalX.toFixed(2)}m, ${finalY.toFixed(2)}m, Z${nextLevel}층)`
+          : `Placed single bin [${binId}] at (${finalX.toFixed(2)}m, ${finalY.toFixed(2)}m, Z${nextLevel})`
       );
     },
     [
       bins,
-      config.aisleSpacingM,
-      config.baySpacingM,
-      config.goldenZoneMaxM,
-      config.goldenZoneMinM,
+      config,
       lang,
       pushWorkspaceUndo,
       setCustomBinsOverride,
@@ -619,11 +626,13 @@ export function useWarehouseTransforms({
           Math.abs(b.xMeters - newX) < 0.35 &&
           Math.abs(b.yMeters - newY) < 0.35
       );
-      const nextBins = bins.map((b) => {
+      const movedColumnIds: string[] = [];
+      const rawBins = bins.map((b) => {
         if (
           Math.abs(b.xMeters - oldX) < 0.05 &&
           Math.abs(b.yMeters - oldY) < 0.05
         ) {
+          movedColumnIds.push(b.id);
           return {
             ...b,
             xMeters: newX,
@@ -647,14 +656,14 @@ export function useWarehouseTransforms({
         }
         return b;
       });
+      const nextBins = resolveShelfCollisions3D(rawBins, config, movedColumnIds);
       setCustomBinsOverride(nextBins);
       setExtraBins([]);
       setRemovedBinIds([]);
     },
     [
       bins,
-      config.aisleSpacingM,
-      config.baySpacingM,
+      config,
       pushWorkspaceUndo,
       setCustomBinsOverride,
       setExtraBins,
@@ -726,16 +735,19 @@ export function useWarehouseTransforms({
       ny: Number((cy + (x - cx)).toFixed(2)),
     });
 
-    const nextBins = bins.map((b) => {
-      const { nx, ny } = rot(b.xMeters, b.yMeters);
-      return {
-        ...b,
-        xMeters: nx,
-        yMeters: ny,
-        binLengthCm: b.binWidthCm,
-        binWidthCm: b.binLengthCm,
-      };
-    });
+    const nextBins = resolveShelfCollisions3D(
+      bins.map((b) => {
+        const { nx, ny } = rot(b.xMeters, b.yMeters);
+        return {
+          ...b,
+          xMeters: nx,
+          yMeters: ny,
+          binLengthCm: b.binWidthCm,
+          binWidthCm: b.binLengthCm,
+        };
+      }),
+      config
+    );
     setCustomBinsOverride(nextBins);
     setExtraBins([]);
     setRemovedBinIds([]);
@@ -790,10 +802,13 @@ export function useWarehouseTransforms({
         ny: Number((cy + (y - cy) * factor).toFixed(2)),
       });
 
-      const nextBins = bins.map((b) => {
-        const { nx, ny } = sc(b.xMeters, b.yMeters);
-        return { ...b, xMeters: nx, yMeters: ny };
-      });
+      const nextBins = resolveShelfCollisions3D(
+        bins.map((b) => {
+          const { nx, ny } = sc(b.xMeters, b.yMeters);
+          return { ...b, xMeters: nx, yMeters: ny };
+        }),
+        config
+      );
       setCustomBinsOverride(nextBins);
       setExtraBins([]);
       setRemovedBinIds([]);
@@ -1160,11 +1175,15 @@ export function useWarehouseTransforms({
         };
       });
 
-      const finalBins = adjustColumnZLevelsForTallBins(
-        updatedBins,
-        config.goldenZoneMinM,
-        config.goldenZoneMaxM,
-        patch.binHeightCm !== undefined
+      const finalBins = resolveShelfCollisions3D(
+        adjustColumnZLevelsForTallBins(
+          updatedBins,
+          config.goldenZoneMinM,
+          config.goldenZoneMaxM,
+          patch.binHeightCm !== undefined
+        ),
+        config,
+        scope === 'single' ? [binId] : []
       );
 
       if (scope === 'all') {
@@ -1188,8 +1207,7 @@ export function useWarehouseTransforms({
     },
     [
       bins,
-      config.goldenZoneMaxM,
-      config.goldenZoneMinM,
+      config,
       pushWorkspaceUndo,
       setConfigPatch,
       setCustomBinsOverride,

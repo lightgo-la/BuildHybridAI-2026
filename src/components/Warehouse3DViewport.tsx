@@ -116,6 +116,9 @@ interface Warehouse3DViewportProps {
   cameraPreset: 'iso' | 'top' | 'elevation' | 'closeup';
   cameraResetTick?: number;
   cameraFocusTick?: number;
+  autoZoomEnabled?: boolean;
+  onToggleAutoZoom?: () => void;
+  onEnableAnimateRoute?: () => void;
   onChangeCameraPreset?: (preset: 'iso' | 'top' | 'elevation' | 'closeup') => void;
   animateRoute: boolean;
   lang?: LangCode;
@@ -198,6 +201,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   cameraPreset,
   cameraResetTick = 0,
   cameraFocusTick = 0,
+  autoZoomEnabled = true,
+  onToggleAutoZoom,
+  onEnableAnimateRoute,
   onChangeCameraPreset,
   animateRoute,
   lang = 'ko',
@@ -213,11 +219,19 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   const [dragFitStatus, setDragFitStatus] = useState<
     'fit' | 'swap' | 'hazard' | null
   >(null);
-  const [zoomMode, setZoomMode] = useState<
-    'cursor' | 'focus_select' | 'orbit_center'
-  >('cursor');
-  const zoomModeRef = useRef(zoomMode);
-  zoomModeRef.current = zoomMode;
+  const [wheelZoomStyle, setWheelZoomStyle] = useState<'cursor' | 'center'>(
+    'cursor'
+  );
+  const wheelZoomStyleRef = useRef(wheelZoomStyle);
+  wheelZoomStyleRef.current = wheelZoomStyle;
+  const [followPickerCam, setFollowPickerCam] = useState<boolean>(false);
+  const followPickerCamRef = useRef<boolean>(false);
+  followPickerCamRef.current = followPickerCam;
+  const goldenCycleIdxRef = useRef<number>(0);
+  const priorityCycleIdxRef = useRef<number>(0);
+  const hadSelectionRef = useRef<boolean>(false);
+  const prevLayoutSigRef = useRef<string>('');
+  const prevLevelFilterRef = useRef<number | 'all'>(levelFilter);
   const [zoomPercent, setZoomPercent] = useState<number>(100);
   const [routeSpeed, setRouteSpeed] = useState<number>(1);
   const routeSpeedRef = useRef<number>(1);
@@ -392,11 +406,15 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     controls.zoomSpeed = 1.15;
     controls.panSpeed = 1.05;
     controls.screenSpacePanning = true;
-    controls.zoomToCursor = zoomModeRef.current !== 'orbit_center';
+    controls.zoomToCursor = wheelZoomStyleRef.current === 'cursor';
     controlsRef.current = controls;
 
     const onCancelAutoGlide = () => {
       cameraGoalRef.current = null;
+      if (followPickerCamRef.current) {
+        followPickerCamRef.current = false;
+        setFollowPickerCam(false);
+      }
     };
     controls.addEventListener('start', onCancelAutoGlide);
     renderer.domElement.addEventListener('wheel', onCancelAutoGlide, {
@@ -497,6 +515,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       binId?: string;
       binZ?: number;
       binH?: number;
+      binW?: number;
+      binL?: number;
       sourceBinId?: string;
       sourceAlloc?: BinAllocation;
       targetBinId?: string;
@@ -768,12 +788,16 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
               const isSingleBin = dragScopeRef.current === 'single_bin';
               const binH = alloc.bin.binHeightCm / 100;
+              const binW = alloc.bin.binWidthCm / 100;
+              const binL = alloc.bin.binLengthCm / 100;
               dragGhostMat.color.set(isSingleBin ? '#38bdf8' : '#22d3ee');
               active3DDrag = {
                 kind: isSingleBin ? 'single_bin' : 'rack',
                 binId: alloc.bin.id,
                 binZ: alloc.bin.zMeters,
                 binH,
+                binW,
+                binL,
                 oldX: alloc.bin.xMeters,
                 oldY: alloc.bin.yMeters,
                 newX: alloc.bin.xMeters,
@@ -933,12 +957,68 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             active3DDrag.depotObject
           ) {
             active3DDrag.depotObject.position.set(snapX, 0, snapZ);
-          } else if (active3DDrag.kind === 'single_bin') {
-            const centerZ =
-              (active3DDrag.binZ ?? 0.05) + (active3DDrag.binH ?? 0.7) / 2;
-            dragGhost.position.set(snapX, centerZ, snapZ);
-          } else {
-            dragGhost.position.set(snapX, 1.8, snapZ);
+          } else if (active3DDrag.kind === 'single_bin' || active3DDrag.kind === 'rack') {
+            const dragW = active3DDrag.binW ?? 0.95;
+            const dragL = active3DDrag.binL ?? 1.25;
+            const dragH = active3DDrag.binH ?? 0.72;
+            const dragZ = active3DDrag.binZ ?? 0.05;
+            let hasCollision = false;
+
+            for (const otherAlloc of hitMeshesRef.current.values()) {
+              const ob = otherAlloc.bin;
+              if (active3DDrag.kind === 'single_bin') {
+                if (ob.id === active3DDrag.binId) continue;
+              } else {
+                if (
+                  Math.abs(ob.xMeters - active3DDrag.oldX) < 0.14 &&
+                  Math.abs(ob.yMeters - active3DDrag.oldY) < 0.14
+                ) {
+                  continue;
+                }
+              }
+              const otherW = ob.binWidthCm / 100;
+              const otherL = ob.binLengthCm / 100;
+              const otherH = ob.binHeightCm / 100;
+              const xyOverlap =
+                Math.abs(ob.xMeters - snapX) < (dragW + otherW) / 2 + 0.08 &&
+                Math.abs(ob.yMeters - snapZ) < (dragL + otherL) / 2 + 0.08;
+              if (!xyOverlap) continue;
+
+              if (active3DDrag.kind === 'rack') {
+                hasCollision = true;
+                break;
+              }
+              const zOverlap =
+                dragZ < ob.zMeters + otherH + 0.08 &&
+                dragZ + dragH + 0.08 > ob.zMeters;
+              if (zOverlap) {
+                hasCollision = true;
+                break;
+              }
+            }
+
+            if (!hasCollision) {
+              for (const obs of obstacleHitMeshesRef.current.values()) {
+                const pillarHalf = 0.36;
+                if (
+                  Math.abs(obs.xMeters - snapX) < dragW / 2 + pillarHalf + 0.08 &&
+                  Math.abs(obs.yMeters - snapZ) < dragL / 2 + pillarHalf + 0.08
+                ) {
+                  hasCollision = true;
+                  break;
+                }
+              }
+            }
+
+            dragGhostMat.color.set(hasCollision ? '#f59e0b' : '#10b981');
+            setDragFitStatus(hasCollision ? 'swap' : 'fit');
+
+            if (active3DDrag.kind === 'single_bin') {
+              const centerZ = dragZ + dragH / 2;
+              dragGhost.position.set(snapX, centerZ, snapZ);
+            } else {
+              dragGhost.position.set(snapX, 1.8, snapZ);
+            }
           }
         }
         return;
@@ -1308,11 +1388,14 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       }
 
       if (!focusPoint && raycaster.ray.intersectPlane(floorPlane, floorHitVec)) {
-        focusPoint = new THREE.Vector3(floorHitVec.x, 0.8, floorHitVec.z);
-        focusDist = Math.max(
-          2.2,
-          camera.position.distanceTo(controls.target) * 0.52
-        );
+        const curDist = camera.position.distanceTo(controls.target);
+        if (curDist < baseCameraDistRef.current * 0.58) {
+          focusPoint = new THREE.Vector3(floorHitVec.x * 0.35 + controls.target.x * 0.65, 1.35, floorHitVec.z * 0.35 + controls.target.z * 0.65);
+          focusDist = baseCameraDistRef.current;
+        } else {
+          focusPoint = new THREE.Vector3(floorHitVec.x, 0.8, floorHitVec.z);
+          focusDist = Math.max(2.2, curDist * 0.52);
+        }
       }
 
       if (focusPoint) {
@@ -1361,14 +1444,31 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         const pos = routeCurveRef.current.getPointAt(t);
         pickerMarkerRef.current.position.copy(pos);
         pickerMarkerRef.current.visible = true;
+
+        if (followPickerCamRef.current) {
+          const aheadT = (t + 0.035) % 1;
+          const aheadPos = routeCurveRef.current.getPointAt(aheadT);
+          const followTarget = new THREE.Vector3(
+            aheadPos.x,
+            Math.max(0.95, pos.y + 0.25),
+            aheadPos.z
+          );
+          const followCamPos = new THREE.Vector3(
+            pos.x + 2.45,
+            Math.max(2.35, pos.y + 1.55),
+            pos.z + 2.65
+          );
+          camera.position.lerp(followCamPos, 0.085);
+          controls.target.lerp(followTarget, 0.11);
+        }
       } else if (pickerMarkerRef.current) {
         pickerMarkerRef.current.visible = false;
       }
 
-      if (cameraGoalRef.current) {
+      if (cameraGoalRef.current && !followPickerCamRef.current) {
         const goal = cameraGoalRef.current;
-        camera.position.lerp(goal.position, 0.15);
-        controls.target.lerp(goal.target, 0.17);
+        camera.position.lerp(goal.position, 0.16);
+        controls.target.lerp(goal.target, 0.18);
         if (
           camera.position.distanceTo(goal.position) < 0.025 &&
           controls.target.distanceTo(goal.target) < 0.025
@@ -1531,63 +1631,116 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
   useEffect(() => {
     if (controlsRef.current) {
-      controlsRef.current.zoomToCursor = zoomMode !== 'orbit_center';
+      controlsRef.current.zoomToCursor = wheelZoomStyle === 'cursor';
     }
-  }, [zoomMode]);
+  }, [wheelZoomStyle]);
 
-  useEffect(() => {
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-    if (!camera || !controls) return;
+  const maxTopY = React.useMemo(() => {
+    let top = Math.max(2.6, config.levels * 0.85);
+    for (const a of allocations) {
+      const binTop = a.bin.zMeters + a.bin.binHeightCm / 100;
+      if (binTop > top) top = binTop;
+    }
+    return top;
+  }, [allocations, config.levels]);
 
-    const scaleOffset = Math.max(bounds.width * 0.58, bounds.depth * 0.58, 5.5);
-    const defaultTargetY = Math.max(1.4, config.levels * 0.36);
-    const defaultIsoPos = new THREE.Vector3(
-      centerX + scaleOffset + 2.0,
-      Math.max(6.8, config.levels * 1.45),
-      centerZ + scaleOffset + 2.2
-    );
-    const defaultIsoTarget = new THREE.Vector3(centerX, defaultTargetY, centerZ);
-    baseCameraDistRef.current = Math.max(
-      4,
-      defaultIsoPos.distanceTo(defaultIsoTarget)
-    );
+  const computeSmartFitCameraGoal = React.useCallback(
+    (presetOverride?: 'iso' | 'top' | 'elevation' | 'closeup') => {
+      const camera = cameraRef.current;
+      const activePreset = presetOverride ?? cameraPreset;
+      const aspect = camera ? Math.max(0.65, camera.aspect) : 1.5;
+      const vFovRad = THREE.MathUtils.degToRad(camera ? camera.fov : 45);
+      const halfTan = Math.tan(vFovRad / 2);
+      const aspectBoost = aspect < 1.25 ? 1.25 / aspect : 1;
 
-    const goalPos = defaultIsoPos.clone();
-    const goalTarget = defaultIsoTarget.clone();
+      const maxSpanXZ = Math.max(bounds.width, bounds.depth, 8);
+      const fitDistIso = Math.max(
+        6.2,
+        ((maxSpanXZ * 0.56) / halfTan) * 0.62 * aspectBoost,
+        maxTopY * 1.75
+      );
+      const defaultTargetY = Math.max(1.25, maxTopY * 0.42);
 
-    if (cameraPreset === 'top') {
-      goalPos.set(centerX, Math.max(15, scaleOffset * 2.2), centerZ + 0.08);
-      goalTarget.set(centerX, 0, centerZ);
-    } else if (cameraPreset === 'elevation') {
-      goalPos.set(
-        centerX + scaleOffset + 4.5,
-        Math.max(2.0, config.levels * 0.42),
+      const defaultIsoPos = new THREE.Vector3(
+        centerX + fitDistIso * 0.68,
+        Math.max(5.8, maxTopY * 1.22 + fitDistIso * 0.38),
+        centerZ + fitDistIso * 0.72
+      );
+      const defaultIsoTarget = new THREE.Vector3(
+        centerX,
+        defaultTargetY,
         centerZ
       );
-      goalTarget.set(centerX, Math.max(1.6, config.levels * 0.4), centerZ);
-    } else if (cameraPreset === 'closeup') {
-      goalPos.set(
-        centerX + Math.min(scaleOffset * 0.48, 3.8),
-        1.72,
-        centerZ + Math.min(scaleOffset * 0.52, 4.1)
-      );
-      goalTarget.set(centerX, 1.32, centerZ);
-    }
 
-    cameraGoalRef.current = {
-      position: goalPos,
-      target: goalTarget,
-    };
-    const nextDist = Math.max(0.65, goalPos.distanceTo(goalTarget));
-    setZoomPercent(
-      Math.round(
-        Math.max(
-          25,
-          Math.min(350, (baseCameraDistRef.current / nextDist) * 100)
-        )
-      )
-    );
+      const baseDist = Math.max(4, defaultIsoPos.distanceTo(defaultIsoTarget));
+      const goalPos = defaultIsoPos.clone();
+      const goalTarget = defaultIsoTarget.clone();
+
+      if (activePreset === 'top') {
+        const effSpan = Math.max(bounds.width / aspect, bounds.depth, 8);
+        const topHeight = Math.max(13.5, (effSpan * 0.58) / halfTan);
+        goalPos.set(centerX, topHeight, centerZ + 0.08);
+        goalTarget.set(centerX, 0, centerZ);
+      } else if (activePreset === 'elevation') {
+        const elevSpan = Math.max(bounds.depth / aspect, maxTopY * 1.45, 6);
+        const elevDist = Math.max(8.5, (elevSpan * 0.64) / halfTan);
+        goalPos.set(
+          centerX + elevDist,
+          Math.max(1.8, maxTopY * 0.48),
+          centerZ
+        );
+        goalTarget.set(centerX, Math.max(1.5, maxTopY * 0.45), centerZ);
+      } else if (activePreset === 'closeup') {
+        const gzCenterY = (config.goldenZoneMinM + config.goldenZoneMaxM) / 2;
+        const goldenSample =
+          allocations.find((a) => a.bin.isGoldenZone && a.boxes.length > 0) ??
+          allocations.find((a) => a.bin.isGoldenZone) ??
+          null;
+        const focusX = goldenSample ? goldenSample.bin.xMeters : centerX;
+        const focusZ = goldenSample ? goldenSample.bin.yMeters : centerZ;
+        goalTarget.set(focusX, Math.max(1.15, gzCenterY), focusZ);
+        goalPos.set(
+          focusX + 2.45,
+          Math.max(1.65, gzCenterY + 0.45),
+          focusZ + 2.55
+        );
+      }
+
+      return { position: goalPos, target: goalTarget, baseDist };
+    },
+    [
+      allocations,
+      bounds.depth,
+      bounds.width,
+      cameraPreset,
+      centerX,
+      centerZ,
+      config.goldenZoneMaxM,
+      config.goldenZoneMinM,
+      maxTopY,
+    ]
+  );
+
+  const applySmartOverviewCamera = React.useCallback(
+    (presetOverride?: 'iso' | 'top' | 'elevation' | 'closeup') => {
+      if (followPickerCamRef.current) {
+        followPickerCamRef.current = false;
+        setFollowPickerCam(false);
+      }
+      const { position, target, baseDist } =
+        computeSmartFitCameraGoal(presetOverride);
+      baseCameraDistRef.current = baseDist;
+      cameraGoalRef.current = { position, target };
+      const nextDist = Math.max(0.65, position.distanceTo(target));
+      setZoomPercent(
+        Math.round(Math.max(25, Math.min(350, (baseDist / nextDist) * 100)))
+      );
+    },
+    [computeSmartFitCameraGoal]
+  );
+
+  useEffect(() => {
+    applySmartOverviewCamera(cameraPreset);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cameraPreset, cameraResetTick]);
 
@@ -1595,6 +1748,11 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     const camera = cameraRef.current;
     const controls = controlsRef.current;
     if (!camera || !controls) return;
+
+    if (followPickerCamRef.current) {
+      followPickerCamRef.current = false;
+      setFollowPickerCam(false);
+    }
 
     const clampedPct = Math.max(25, Math.min(350, Math.round(nextPct)));
     const targetDist = Math.max(
@@ -1621,13 +1779,125 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     setZoomPercent(clampedPct);
   }, []);
 
+  const computeUnobstructedFocusGoal = React.useCallback(
+    (
+      focusTarget: THREE.Vector3,
+      objectDiagM: number,
+      anchorXY?: { x: number; z: number }
+    ) => {
+      const camera = cameraRef.current;
+      const controls = controlsRef.current;
+      const vFovRad = THREE.MathUtils.degToRad(camera ? camera.fov : 45);
+      const aspect = camera ? Math.max(0.65, camera.aspect) : 1.5;
+      const aspectScale = aspect < 1.2 ? 1.2 / aspect : 1;
+
+      const focusDist = Math.max(
+        1.55,
+        Math.min(
+          14,
+          (objectDiagM / (2 * Math.tan(vFovRad / 2))) * 1.48 * aspectScale
+        )
+      );
+
+      const curDir =
+        camera && controls
+          ? camera.position.clone().sub(controls.target)
+          : new THREE.Vector3(1, 0.55, 1);
+      if (curDir.lengthSq() < 0.001) curDir.set(1, 0.55, 1);
+      const curHoriz = new THREE.Vector2(curDir.x, curDir.z);
+      if (curHoriz.lengthSq() < 0.001) curHoriz.set(1, 1);
+      curHoriz.normalize();
+
+      if (!anchorXY) {
+        const viewDir = new THREE.Vector3(
+          curHoriz.x,
+          0.48,
+          curHoriz.y
+        ).normalize();
+        const nextPos = focusTarget.clone().addScaledVector(viewDir, focusDist);
+        nextPos.y = Math.max(focusTarget.y + 0.4, nextPos.y);
+        return { target: focusTarget, position: nextPos };
+      }
+
+      const candidates: Array<[number, number]> = [
+        [1, 0.36],
+        [-1, 0.36],
+        [1, -0.36],
+        [-1, -0.36],
+        [0.42, -1],
+        [-0.42, -1],
+        [0.42, 1],
+        [-0.42, 1],
+      ];
+
+      let bestVec = new THREE.Vector2(curHoriz.x, curHoriz.y);
+      let bestScore = -Infinity;
+
+      for (const [cx, cz] of candidates) {
+        const dir2d = new THREE.Vector2(cx, cz).normalize();
+        const camX = anchorXY.x + dir2d.x * focusDist * 0.88;
+        const camZ = anchorXY.z + dir2d.y * focusDist * 0.88;
+        const midX = (anchorXY.x + camX) * 0.5;
+        const midZ = (anchorXY.z + camZ) * 0.5;
+
+        let penalty = 0;
+        for (const other of allocations) {
+          const ob = other.bin;
+          if (
+            Math.abs(ob.xMeters - anchorXY.x) < 0.16 &&
+            Math.abs(ob.yMeters - anchorXY.z) < 0.16
+          ) {
+            continue;
+          }
+          const halfW = ob.binWidthCm / 200 + 0.22;
+          const halfL = ob.binLengthCm / 200 + 0.22;
+          if (
+            Math.abs(camX - ob.xMeters) < halfW &&
+            Math.abs(camZ - ob.yMeters) < halfL
+          ) {
+            penalty += 12;
+          } else if (
+            Math.abs(midX - ob.xMeters) < halfW &&
+            Math.abs(midZ - ob.yMeters) < halfL
+          ) {
+            penalty += 8;
+          }
+        }
+
+        const alignBonus = dir2d.dot(curHoriz) * 2.5;
+        const aisleSideBonus = Math.abs(dir2d.x) > 0.75 ? 1.2 : 0;
+        const score = alignBonus + aisleSideBonus - penalty;
+        if (score > bestScore) {
+          bestScore = score;
+          bestVec = dir2d;
+        }
+      }
+
+      const finalDir = new THREE.Vector3(
+        bestVec.x,
+        0.42,
+        bestVec.y
+      ).normalize();
+      const nextPos = focusTarget.clone().addScaledVector(finalDir, focusDist);
+      nextPos.y = Math.max(focusTarget.y + 0.38, 0.65, nextPos.y);
+      return { target: focusTarget, position: nextPos };
+    },
+    [allocations]
+  );
+
   const handleFocusSelectedObject = React.useCallback(() => {
     const camera = cameraRef.current;
     const controls = controlsRef.current;
     if (!camera || !controls) return;
 
+    if (followPickerCamRef.current) {
+      followPickerCamRef.current = false;
+      setFollowPickerCam(false);
+    }
+
     let focusTarget: THREE.Vector3 | null = null;
-    let focusDist = 3.1;
+    let objectDiagM = 1.9;
+    let anchorXY: { x: number; z: number } | undefined;
 
     if (selectedBinId) {
       const selAlloc = allocations.find((a) => a.bin.id === selectedBinId);
@@ -1636,6 +1906,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         const binW_m = bin.binWidthCm / 100;
         const binH_m = bin.binHeightCm / 100;
         const binL_m = bin.binLengthCm / 100;
+        anchorXY = { x: bin.xMeters, z: bin.yMeters };
 
         if (selectedCargo && selectedCargo.binId === bin.id) {
           const targetBox =
@@ -1651,7 +1922,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               bin.zMeters + targetBox.zCm / 100 + hM / 2,
               bin.yMeters - binL_m / 2 + targetBox.xCm / 100 + lM / 2
             );
-            focusDist = 1.9;
+            objectDiagM = Math.max(0.85, Math.hypot(wM, hM, lM) * 1.45);
           }
         }
 
@@ -1661,7 +1932,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             bin.zMeters + binH_m / 2,
             bin.yMeters
           );
-          focusDist = 2.95;
+          objectDiagM = Math.max(1.55, Math.hypot(binW_m, binH_m, binL_m));
         }
       }
     }
@@ -1681,7 +1952,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           0.95,
           foundProp.yMeters
         );
-        focusDist = 3.3;
+        objectDiagM = 2.15 * Math.max(0.8, foundProp.scale || 1);
       }
     }
 
@@ -1695,13 +1966,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           1.35,
           foundObs.yMeters
         );
-        focusDist = 3.4;
+        objectDiagM = 2.25;
       }
     }
 
     if (!focusTarget && selectedDepot) {
       focusTarget = new THREE.Vector3(depotX, 0.55, depotZ);
-      focusDist = 3.5;
+      objectDiagM = 2.4;
     }
 
     if (!focusTarget) {
@@ -1714,29 +1985,28 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           goldenAlloc.bin.zMeters + goldenAlloc.bin.binHeightCm / 200,
           goldenAlloc.bin.yMeters
         );
-        focusDist = 3.6;
+        anchorXY = {
+          x: goldenAlloc.bin.xMeters,
+          z: goldenAlloc.bin.yMeters,
+        };
+        objectDiagM = 2.2;
       } else {
         focusTarget = new THREE.Vector3(centerX, 1.35, centerZ);
-        focusDist = 4.5;
+        objectDiagM = 2.8;
       }
     }
 
-    const viewDir = camera.position.clone().sub(controls.target);
-    if (viewDir.lengthSq() < 0.001) {
-      viewDir.set(1, 0.55, 1);
-    }
-    viewDir.normalize();
-    const nextPos = focusTarget.clone().addScaledVector(viewDir, focusDist);
-    nextPos.y = Math.max(focusTarget.y + 0.35, nextPos.y);
-    cameraGoalRef.current = {
-      target: focusTarget,
-      position: nextPos,
-    };
+    cameraGoalRef.current = computeUnobstructedFocusGoal(
+      focusTarget,
+      objectDiagM,
+      anchorXY
+    );
   }, [
     allocations,
     bounds,
     centerX,
     centerZ,
+    computeUnobstructedFocusGoal,
     config,
     depotX,
     depotZ,
@@ -1755,19 +2025,24 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   }, [cameraFocusTick, handleFocusSelectedObject]);
 
   useEffect(() => {
-    if (
-      zoomMode === 'focus_select' &&
-      !dragMoveMode &&
-      (selectedBinId ||
+    const hasSelection = Boolean(
+      selectedBinId ||
         selectedCargo ||
         selectedPropId ||
         selectedObstacleId ||
-        selectedDepot)
-    ) {
-      handleFocusSelectedObject();
+        selectedDepot
+    );
+
+    if (autoZoomEnabled && !dragMoveMode) {
+      if (hasSelection) {
+        handleFocusSelectedObject();
+      } else if (hadSelectionRef.current) {
+        applySmartOverviewCamera();
+      }
     }
+    hadSelectionRef.current = hasSelection;
   }, [
-    zoomMode,
+    autoZoomEnabled,
     dragMoveMode,
     selectedBinId,
     selectedCargo,
@@ -1775,6 +2050,79 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     selectedObstacleId,
     selectedDepot,
     handleFocusSelectedObject,
+    applySmartOverviewCamera,
+  ]);
+
+  useEffect(() => {
+    const sig = `${Math.round(bounds.width * 2)}_${Math.round(
+      bounds.depth * 2
+    )}_${Math.round(maxTopY * 2)}_${allocations.length}`;
+    if (
+      prevLayoutSigRef.current &&
+      prevLayoutSigRef.current !== sig &&
+      autoZoomEnabled &&
+      !dragMoveMode &&
+      !selectedBinId &&
+      !selectedCargo &&
+      !selectedPropId &&
+      !selectedObstacleId &&
+      !selectedDepot
+    ) {
+      applySmartOverviewCamera();
+    }
+    prevLayoutSigRef.current = sig;
+  }, [
+    allocations.length,
+    applySmartOverviewCamera,
+    autoZoomEnabled,
+    bounds.depth,
+    bounds.width,
+    dragMoveMode,
+    maxTopY,
+    selectedBinId,
+    selectedCargo,
+    selectedDepot,
+    selectedObstacleId,
+    selectedPropId,
+  ]);
+
+  useEffect(() => {
+    if (prevLevelFilterRef.current === levelFilter) return;
+    prevLevelFilterRef.current = levelFilter;
+    if (!autoZoomEnabled || dragMoveMode) return;
+
+    if (levelFilter === 'all') {
+      applySmartOverviewCamera();
+      return;
+    }
+
+    const levelBins = allocations.filter((a) => a.bin.level === levelFilter);
+    if (levelBins.length === 0) return;
+
+    const avgY =
+      levelBins.reduce(
+        (sum, a) => sum + a.bin.zMeters + a.bin.binHeightCm / 200,
+        0
+      ) / levelBins.length;
+    const { position } = computeSmartFitCameraGoal('iso');
+    const levelTarget = new THREE.Vector3(centerX, avgY, centerZ);
+    const dir = position.clone().sub(new THREE.Vector3(centerX, avgY, centerZ));
+    if (dir.lengthSq() < 0.001) dir.set(1, 0.55, 1);
+    dir.normalize();
+    const closerDist = Math.max(5.2, position.distanceTo(levelTarget) * 0.78);
+    cameraGoalRef.current = {
+      target: levelTarget,
+      position: levelTarget.clone().addScaledVector(dir, closerDist),
+    };
+  }, [
+    allocations,
+    applySmartOverviewCamera,
+    autoZoomEnabled,
+    centerX,
+    centerZ,
+    computeSmartFitCameraGoal,
+    dragMoveMode,
+    levelFilter,
   ]);
 
   useEffect(() => {
@@ -2444,22 +2792,116 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   ]);
 
   const handleFitAllCamera = React.useCallback(() => {
-    const scaleOffset = Math.max(bounds.width * 0.58, bounds.depth * 0.58, 5.5);
-    const defaultTargetY = Math.max(1.4, config.levels * 0.36);
-    const goalPos = new THREE.Vector3(
-      centerX + scaleOffset + 2.0,
-      Math.max(6.8, config.levels * 1.45),
-      centerZ + scaleOffset + 2.2
-    );
-    const goalTarget = new THREE.Vector3(centerX, defaultTargetY, centerZ);
-    baseCameraDistRef.current = Math.max(4, goalPos.distanceTo(goalTarget));
-    cameraGoalRef.current = {
-      position: goalPos,
-      target: goalTarget,
-    };
-    setZoomPercent(100);
+    applySmartOverviewCamera('iso');
     onChangeCameraPreset?.('iso');
-  }, [bounds.width, bounds.depth, config.levels, centerX, centerZ, onChangeCameraPreset]);
+  }, [applySmartOverviewCamera, onChangeCameraPreset]);
+
+  const handleCycleGoldenZoneZoom = React.useCallback(() => {
+    const candidates = allocations.filter(
+      (a) => a.bin.isGoldenZone && a.boxes.length > 0
+    );
+    const pool =
+      candidates.length > 0
+        ? candidates
+        : allocations.filter((a) => a.bin.isGoldenZone);
+    if (pool.length === 0) {
+      applySmartOverviewCamera('closeup');
+      return;
+    }
+    const nextAlloc = pool[goldenCycleIdxRef.current % pool.length];
+    goldenCycleIdxRef.current += 1;
+    onSelectProp?.(null);
+    onSelectObstacle?.(null);
+    onSelectDepot?.(false);
+    onSelectCargo?.(null);
+    onSelectBin(nextAlloc);
+    const target = new THREE.Vector3(
+      nextAlloc.bin.xMeters,
+      nextAlloc.bin.zMeters + nextAlloc.bin.binHeightCm / 200,
+      nextAlloc.bin.yMeters
+    );
+    const diag = Math.hypot(
+      nextAlloc.bin.binWidthCm / 100,
+      nextAlloc.bin.binHeightCm / 100,
+      nextAlloc.bin.binLengthCm / 100
+    );
+    cameraGoalRef.current = computeUnobstructedFocusGoal(target, diag, {
+      x: nextAlloc.bin.xMeters,
+      z: nextAlloc.bin.yMeters,
+    });
+  }, [
+    allocations,
+    applySmartOverviewCamera,
+    computeUnobstructedFocusGoal,
+    onSelectBin,
+    onSelectCargo,
+    onSelectDepot,
+    onSelectObstacle,
+    onSelectProp,
+  ]);
+
+  const priorityBins = React.useMemo(() => {
+    const warnings = allocations.filter(
+      (a) => a.safetyViolation || a.cubicUtilizationPct >= 82
+    );
+    if (warnings.length > 0) return warnings;
+    return [...allocations]
+      .filter((a) => a.boxes.length > 0)
+      .sort((a, b) => b.dailyPickLoad - a.dailyPickLoad)
+      .slice(0, 6);
+  }, [allocations]);
+
+  const handleCyclePriorityBinZoom = React.useCallback(() => {
+    if (priorityBins.length === 0) {
+      handleFitAllCamera();
+      return;
+    }
+    const nextAlloc =
+      priorityBins[priorityCycleIdxRef.current % priorityBins.length];
+    priorityCycleIdxRef.current += 1;
+    onSelectProp?.(null);
+    onSelectObstacle?.(null);
+    onSelectDepot?.(false);
+    onSelectCargo?.(null);
+    onSelectBin(nextAlloc);
+    const target = new THREE.Vector3(
+      nextAlloc.bin.xMeters,
+      nextAlloc.bin.zMeters + nextAlloc.bin.binHeightCm / 200,
+      nextAlloc.bin.yMeters
+    );
+    const diag = Math.hypot(
+      nextAlloc.bin.binWidthCm / 100,
+      nextAlloc.bin.binHeightCm / 100,
+      nextAlloc.bin.binLengthCm / 100
+    );
+    cameraGoalRef.current = computeUnobstructedFocusGoal(target, diag, {
+      x: nextAlloc.bin.xMeters,
+      z: nextAlloc.bin.yMeters,
+    });
+  }, [
+    computeUnobstructedFocusGoal,
+    handleFitAllCamera,
+    onSelectBin,
+    onSelectCargo,
+    onSelectDepot,
+    onSelectObstacle,
+    onSelectProp,
+    priorityBins,
+  ]);
+
+  const handleToggleFollowPickerCam = React.useCallback(() => {
+    setFollowPickerCam((prev) => {
+      const next = !prev;
+      followPickerCamRef.current = next;
+      if (next) {
+        cameraGoalRef.current = null;
+        if (!animateRoute) {
+          onEnableAnimateRoute?.();
+        }
+      }
+      return next;
+    });
+  }, [animateRoute, onEnableAnimateRoute]);
 
   const handleCapture3DSnapshotPng = React.useCallback(() => {
     const renderer = rendererRef.current;
@@ -2510,7 +2952,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     ctx.fillStyle = '#cbd5e1';
     ctx.font = '13px "Malgun Gothic", "Segoe UI", sans-serif';
     ctx.fillText(
-      `선반규격: ${config.binLengthCm ?? 120}×${config.binWidthCm ?? 90}×${config.binHeightCm ?? 70}cm  |  골든존: ${config.goldenZoneMinM}m~${config.goldenZoneMaxM}m  |  적재박스: ${totalBoxes}개 (${occupiedCount}/${allocations.length}칸 사용 · 평균채움 ${avgCubic}%)  |  안전위반: ${hazards}건  |  줌: ${zoomPercent}% (${zoomMode})`,
+      `선반규격: ${config.binLengthCm ?? 120}×${config.binWidthCm ?? 90}×${config.binHeightCm ?? 70}cm  |  골든존: ${config.goldenZoneMinM}m~${config.goldenZoneMaxM}m  |  적재박스: ${totalBoxes}개 (${occupiedCount}/${allocations.length}칸 사용 · 평균채움 ${avgCubic}%)  |  안전위반: ${hazards}건  |  줌: ${zoomPercent}% (${autoZoomEnabled ? '자동줌 ON' : wheelZoomStyle})`,
       20,
       50
     );
@@ -2538,14 +2980,17 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     a.click();
   }, [
     allocations,
+    autoZoomEnabled,
     config,
     pickRoute.length,
     scenarioName,
     sceneBg.floorColor,
     theme.accent,
-    zoomMode,
+    wheelZoomStyle,
     zoomPercent,
   ]);
+
+  const hasWarningBins = allocations.some((a) => a.safetyViolation);
 
   return (
     <div className="relative h-full w-full">
@@ -2562,79 +3007,149 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               ? '3D 드래그 이동 켜짐: 마우스로 선반 기둥을 끌어 위치를 옮기세요 · 우클릭 메뉴'
               : 'Drag Move Mode ON: Drag any 3D rack column across the floor · Right-click for menu'
             : lang === 'ko'
-              ? '마우스 드래그: 3D 회전 · 휠: 커서 기준 확대/축소 · 더블클릭: 해당 지점 확대 · 클릭: 상세 · 우클릭: 메뉴'
-              : 'Drag to orbit · Scroll to zoom · Double-click to zoom in · Click to inspect · Right-click for menu'
+              ? '클릭: 해당 물체 스마트 자동줌 · 빈바닥 클릭(Esc): 전체 시점 자동복귀 · 더블클릭: 즉시 확대 · 휠: 커서 줌'
+              : 'Click: Smart Auto-Zoom · Click empty floor (Esc): Auto-Pullback · Double-click: Instant Zoom · Wheel: Cursor Zoom'
         }
       />
 
       {!hoveredBin && !hoveredOtherLabel && (
-        <div className="pointer-events-none absolute left-3 top-3 z-10 rounded-lg border border-slate-800/80 bg-slate-950/80 px-2.5 py-1.5 text-[10px] text-slate-200 backdrop-blur">
-          {lang === 'ko'
-            ? '🖱️ 클릭: 선택/치수변경 · 더블클릭: 해당 위치 줌인 · 휠: 줌 · 드래그: 위치이동 · 빈공간 드래그: 3D회전 · 우클릭: 만능메뉴'
-            : '🖱️ Click: Select/Resize · Double-Click: Zoom In · Wheel: Zoom · Drag object: Move · Right-Click: Menu'}
+        <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 rounded-lg border border-slate-800/80 bg-slate-950/85 px-2.5 py-1.5 text-[10px] text-slate-200 backdrop-blur">
+          {followPickerCam ? (
+            <span className="font-bold text-amber-300">
+              {lang === 'ko'
+                ? '🚀 피킹 동선 실시간 자동추적 중 (마우스 드래그·휠 조작 시 수동 시점으로 즉시 전환)'
+                : '🚀 Following 3D Picker Live (Drag or scroll to resume manual control)'}
+            </span>
+          ) : autoZoomEnabled ? (
+            <span>
+              {lang === 'ko'
+                ? '✨ 스마트 자동줌 ON: 선반·박스·가구 클릭 → 통로 정면 자동 확대 · 빈 바닥 클릭(Esc) → 전체 자동 복귀 · 휠: 커서 줌'
+                : '✨ Smart Auto-Zoom ON: Click object → Auto-Zoom In · Click empty floor (Esc) → Auto-Pullback · Wheel: Zoom'}
+            </span>
+          ) : (
+            <span>
+              {lang === 'ko'
+                ? '🖱️ 수동 줌 모드: 더블클릭 또는 [F]키로 확대 · [A]키로 스마트 자동줌 켜기 · 휠: 줌 · 우클릭: 메뉴'
+                : '🖱️ Manual Zoom: Double-click or [F] to focus · Press [A] to enable Smart Auto-Zoom'}
+            </span>
+          )}
         </div>
       )}
 
-      <div className="absolute bottom-3 right-3 z-20 flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-700/90 bg-slate-950/90 px-2.5 py-1.5 text-[10px] text-slate-200 shadow-2xl backdrop-blur">
-        <div
-          className="flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-900"
+      <div className="absolute bottom-3 right-3 z-20 flex flex-wrap items-center gap-1.5 rounded-xl border border-slate-700/90 bg-slate-950/92 px-2.5 py-1.5 text-[10px] text-slate-200 shadow-2xl backdrop-blur">
+        <button
+          type="button"
+          onClick={() => onToggleAutoZoom?.()}
+          className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-bold transition ${
+            autoZoomEnabled
+              ? 'border-emerald-400 bg-emerald-400 text-slate-950 shadow-sm shadow-emerald-500/30'
+              : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-emerald-400 hover:text-emerald-300'
+          }`}
           title={
             lang === 'ko'
-              ? '카메라 줌 모드 선택: 커서 기준 줌(마우스 포인터 위치 확대) / 선택 자동줌(물체 클릭 시 자동 클로즈업) / 중앙 고정줌'
-              : 'Camera Zoom Mode: Cursor Zoom / Auto-Focus on Select / Center Orbit Zoom'
+              ? '스마트 자동줌 스위치 (단축키 A): 켜두면 물체 클릭 시 가림 없는 통로 각도로 자동 확대하고, 빈 바닥 클릭 시 전체 화면으로 자동 복귀하며, 창고 크기 변경 시 화면에 딱 맞게 자동 조절합니다'
+              : 'Toggle Smart Auto-Zoom (Shortcut A): Auto-zooms to clicked objects, auto-pulls back on empty click, and auto-fits layout changes'
           }
         >
+          {autoZoomEnabled
+            ? lang === 'ko'
+              ? '✨ 자동줌 ON'
+              : '✨ Auto-Zoom ON'
+            : lang === 'ko'
+              ? '자동줌 OFF'
+              : 'Auto-Zoom OFF'}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleCycleGoldenZoneZoom}
+          className="inline-flex items-center gap-1 rounded-md border border-emerald-500/45 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+          title={
+            lang === 'ko'
+              ? '허리 높이 골든존 핵심 선반들을 클릭할 때마다 순서대로 자동 클로즈업합니다'
+              : 'Click repeatedly to auto-zoom through active Golden Zone shelves'
+          }
+        >
+          {lang === 'ko' ? '🎯 골든존 줌' : '🎯 Golden Zoom'}
+        </button>
+
+        {priorityBins.length > 0 && (
           <button
             type="button"
-            onClick={() => setZoomMode('cursor')}
-            className={`px-1.5 py-0.5 font-semibold transition ${
-              zoomMode === 'cursor'
-                ? 'bg-cyan-500 text-slate-950'
-                : 'text-slate-300 hover:bg-slate-800'
+            onClick={handleCyclePriorityBinZoom}
+            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-semibold transition ${
+              hasWarningBins
+                ? 'border-rose-500/50 bg-rose-500/20 text-rose-200 hover:bg-rose-500/30'
+                : 'border-amber-500/45 bg-amber-500/15 text-amber-200 hover:bg-amber-500/25'
             }`}
             title={
               lang === 'ko'
-                ? '마우스 커서가 가리키는 위치를 향해 휠 확대/축소 (더블클릭 시 해당 물체 클로즈업)'
-                : 'Zoom toward mouse cursor position (Double-click object to focus)'
+                ? hasWarningBins
+                  ? '안전위반 또는 과밀 선반을 순서대로 1클릭 자동 클로즈업 점검합니다'
+                  : '피킹 빈도가 가장 높은 핵심 선반들을 순서대로 1클릭 자동 클로즈업합니다'
+                : 'Cycle & auto-zoom through priority / warning shelves'
             }
           >
-            {lang === 'ko' ? '🎯 커서줌' : '🎯 Cursor'}
+            {hasWarningBins
+              ? lang === 'ko'
+                ? `⚠ 위험선반 줌 (${priorityBins.length})`
+                : `⚠ Alerts (${priorityBins.length})`
+              : lang === 'ko'
+                ? `🔥 핵심선반 줌`
+                : `🔥 Top Bins`}
           </button>
+        )}
+
+        {pickRoute.length > 0 && (
           <button
             type="button"
-            onClick={() => setZoomMode('focus_select')}
-            className={`border-l border-slate-700 px-1.5 py-0.5 font-semibold transition ${
-              zoomMode === 'focus_select'
-                ? 'bg-emerald-400 text-slate-950'
-                : 'text-emerald-300 hover:bg-slate-800'
+            onClick={handleToggleFollowPickerCam}
+            className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-semibold transition ${
+              followPickerCam
+                ? 'border-amber-400 bg-amber-400 text-slate-950 font-bold'
+                : 'border-amber-500/45 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'
             }`}
             title={
               lang === 'ko'
-                ? '선반·박스·가구 클릭 시 해당 물체 앞으로 카메라가 부드럽게 자동 확대 이동합니다'
-                : 'Automatically glide and zoom camera to any clicked bin, box, or prop'
+                ? '3D 피킹 동선을 따라 움직이는 작업자 시점을 실시간으로 자동 추적합니다'
+                : 'Automatically follow the live 3D picker along the warehouse route'
             }
           >
-            {lang === 'ko' ? '🔍 선택자동줌' : '🔍 Auto-Focus'}
+            {followPickerCam
+              ? lang === 'ko'
+                ? '🚀 동선추적 중'
+                : '🚀 Following'
+              : lang === 'ko'
+                ? '🚀 동선 추적줌'
+                : '🚀 Follow Tour'}
           </button>
-          <button
-            type="button"
-            onClick={() => setZoomMode('orbit_center')}
-            className={`border-l border-slate-700 px-1.5 py-0.5 font-semibold transition ${
-              zoomMode === 'orbit_center'
-                ? 'bg-amber-400 text-slate-950'
-                : 'text-slate-400 hover:bg-slate-800'
-            }`}
-            title={
-              lang === 'ko'
-                ? '화면 회전 중심점 기준으로 일정하게 확대/축소'
-                : 'Zoom toward orbit center point'
-            }
-          >
-            {lang === 'ko' ? '🧭 중앙줌' : '🧭 Center'}
-          </button>
-        </div>
+        )}
 
         <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900/90 px-1.5 py-0.5">
+          <button
+            type="button"
+            onClick={() =>
+              setWheelZoomStyle((prev) =>
+                prev === 'cursor' ? 'center' : 'cursor'
+              )
+            }
+            className="rounded border border-slate-700 bg-slate-800 px-1.5 py-0.5 font-semibold text-cyan-300 hover:border-cyan-400"
+            title={
+              lang === 'ko'
+                ? wheelZoomStyle === 'cursor'
+                  ? '현재 마우스 휠 기준: 포인터 위치로 확대 (클릭 시 화면 중앙 기준으로 전환)'
+                  : '현재 마우스 휠 기준: 화면 중앙 확대 (클릭 시 마우스 포인터 기준으로 전환)'
+                : 'Switch mouse wheel zoom anchor (Cursor vs Orbit Center)'
+            }
+          >
+            {wheelZoomStyle === 'cursor'
+              ? lang === 'ko'
+                ? '🎯휠:커서'
+                : '🎯Cursor'
+              : lang === 'ko'
+                ? '🧭휠:중앙'
+                : '🧭Center'}
+          </button>
           <button
             type="button"
             onClick={() => applyZoomPercent(zoomPercent - 25)}
@@ -2650,7 +3165,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             step={5}
             value={zoomPercent}
             onChange={(e) => applyZoomPercent(Number(e.target.value))}
-            className="h-1.5 w-20 cursor-pointer accent-cyan-400"
+            className="h-1.5 w-16 cursor-pointer accent-cyan-400"
             title={
               lang === 'ko'
                 ? `현재 줌 배율: ${zoomPercent}% (드래그하여 25%~350% 조절)`
@@ -2667,9 +3182,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => applyZoomPercent(100)}
+            onClick={() => applyZoomPercent(zoomPercent >= 160 ? 100 : 180)}
             className="min-w-[38px] rounded bg-slate-800 px-1 py-0.5 text-center font-mono text-[10px] font-bold text-cyan-300 hover:bg-slate-700"
-            title={lang === 'ko' ? '클릭하여 100% 기본 배율 복원' : 'Click to reset to 100% zoom'}
+            title={
+              lang === 'ko'
+                ? '클릭할 때마다 100%(기본) ↔ 180%(확대) 배율 즉시 전환'
+                : 'Click to toggle 100% ↔ 180% quick zoom'
+            }
           >
             {zoomPercent}%
           </button>
@@ -2678,26 +3197,26 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         <button
           type="button"
           onClick={handleFocusSelectedObject}
-          className="inline-flex items-center gap-1 rounded-md border border-emerald-500/45 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+          className="inline-flex items-center gap-1 rounded-md border border-cyan-500/45 bg-cyan-500/15 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/25"
           title={
             lang === 'ko'
-              ? '현재 선택된 박스·선반·가구·기둥 클로즈업 확대 (단축키 F 또는 물체 더블클릭)'
+              ? '현재 선택된 박스·선반·가구·기둥 즉시 클로즈업 (단축키 F 또는 물체 더블클릭)'
               : 'Focus & Zoom in on Selected Object (Shortcut: F or Double-click)'
           }
         >
-          {lang === 'ko' ? '🔍 선택 확대 (F)' : '🔍 Focus (F)'}
+          {lang === 'ko' ? '🔍 선택줌 (F)' : '🔍 Focus (F)'}
         </button>
         <button
           type="button"
           onClick={handleFitAllCamera}
-          className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-semibold text-slate-300 hover:border-cyan-400 hover:text-cyan-200"
+          className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 font-semibold text-slate-200 hover:border-cyan-400 hover:text-cyan-200"
           title={
             lang === 'ko'
-              ? '전체 공간 한눈에 맞춤 초기화 (단축키 R)'
-              : 'Fit entire space in view (Shortcut: R)'
+              ? '창고 전체가 한눈에 들어오도록 자동 맞춤 초기화 (단축키 R)'
+              : 'Auto-fit entire warehouse in view (Shortcut: R)'
           }
         >
-          {lang === 'ko' ? '⛶ 전체 맞춤 (R)' : '⛶ Fit All (R)'}
+          {lang === 'ko' ? '⛶ 전체맞춤 (R)' : '⛶ Fit All (R)'}
         </button>
         <button
           type="button"
@@ -2709,7 +3228,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               : 'Save current 3D view + Setting/KPI summary banner as a high-res PNG image'
           }
         >
-          {lang === 'ko' ? '📸 3D+셋팅 PNG저장' : '📸 Save PNG'}
+          {lang === 'ko' ? '📸 PNG저장' : '📸 PNG'}
         </button>
 
         {animateRoute && pickRoute.length > 0 && (

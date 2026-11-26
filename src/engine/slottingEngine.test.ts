@@ -2,10 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildTransferredSkuPins,
+  checkShelfPairOverlap3D,
   computeAisleTravelDistanceM,
   computeCycleTimeSec,
   computeZLevelBreakdown,
   generateWarehouseBins,
+  resolveShelfCollisions3D,
   runBaseline2DSlotting,
   runOptimized3DSlotting,
 } from './slottingEngine.ts';
@@ -398,4 +400,57 @@ test('100-SKU x 100-Bin high-volume stress test places 100% of items with 0 safe
   assert.ok(
     optRes.kpis.goldenZoneHitRatePct > baseRes.kpis.goldenZoneHitRatePct
   );
+});
+
+test('3D shelf AABB physics solver prevents 3D shelf overlap during resizing, dragging, and pillar collision', () => {
+  const crowdedConfig: WarehouseConfig = {
+    ...sampleConfig,
+    aisles: 3,
+    baysPerAisle: 4,
+    levels: 3,
+    aisleSpacingM: 1.2,
+    baySpacingM: 0.9,
+    binLengthCm: 210,
+    binWidthCm: 170,
+    binHeightCm: 115,
+    obstacles: [
+      {
+        id: 'obs-center',
+        label: 'Central Pillar',
+        aisle: 1,
+        bay: 1,
+        xMeters: 0,
+        yMeters: 3.25,
+      },
+    ],
+  };
+
+  const rawBins = generateWarehouseBins(crowdedConfig);
+  const collidedBins = rawBins.map((b, idx) =>
+    idx === 3
+      ? {
+          ...b,
+          xMeters: rawBins[0].xMeters,
+          yMeters: rawBins[0].yMeters,
+          zMeters: rawBins[0].zMeters,
+        }
+      : b
+  );
+
+  const resolved = resolveShelfCollisions3D(
+    collidedBins,
+    crowdedConfig,
+    [collidedBins[3].id]
+  );
+
+  for (let i = 0; i < resolved.length; i++) {
+    for (let j = i + 1; j < resolved.length; j++) {
+      const check = checkShelfPairOverlap3D(resolved[i], resolved[j], 0.04);
+      assert.equal(
+        check.overlaps,
+        false,
+        `Shelves ${resolved[i].id} and ${resolved[j].id} must not overlap in 3D space (dx=${check.overlapX.toFixed(3)}, dy=${check.overlapY.toFixed(3)}, dz=${check.overlapZ.toFixed(3)})`
+      );
+    }
+  }
 });

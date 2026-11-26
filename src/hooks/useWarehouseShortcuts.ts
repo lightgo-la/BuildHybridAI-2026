@@ -60,6 +60,8 @@ interface UseWarehouseShortcutsParams {
   >;
   setCameraResetTick: Dispatch<SetStateAction<number>>;
   setCameraFocusTick?: Dispatch<SetStateAction<number>>;
+  setAutoZoomEnabled?: Dispatch<SetStateAction<boolean>>;
+  onClearAllSelection?: () => void;
   setActiveLayout: Dispatch<SetStateAction<'optimized_3d' | 'baseline_2d'>>;
   setDragMoveMode: Dispatch<SetStateAction<boolean>>;
   setInteriorInitialTab: Dispatch<SetStateAction<'interior' | 'shortcuts'>>;
@@ -105,6 +107,8 @@ export function useWarehouseShortcuts({
   setCameraPreset,
   setCameraResetTick,
   setCameraFocusTick,
+  setAutoZoomEnabled,
+  onClearAllSelection,
   setActiveLayout,
   setDragMoveMode,
   setInteriorInitialTab,
@@ -156,26 +160,59 @@ export function useWarehouseShortcuts({
       const key = e.key;
       if (key === '1') {
         setCameraPreset('iso');
+        setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[1] 3D 입체뷰 전환' : '[1] 3D Isometric View'
+          lang === 'ko' ? '[1] 3D 입체뷰 자동 맞춤 전환' : '[1] 3D Isometric Auto-Fit'
         );
       } else if (key === '2') {
         setCameraPreset('top');
+        setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[2] 2D 평면뷰 전환' : '[2] 2D Top-Down View'
+          lang === 'ko' ? '[2] 2D 평면뷰 자동 맞춤 전환' : '[2] 2D Top-Down Auto-Fit'
         );
       } else if (key === '3') {
         setCameraPreset('elevation');
+        setCameraResetTick((n) => n + 1);
         showToast(
-          lang === 'ko' ? '[3] Z축 정면뷰 전환' : '[3] Z-Elevation View'
+          lang === 'ko' ? '[3] Z축 정면뷰 자동 맞춤 전환' : '[3] Z-Elevation Auto-Fit'
         );
       } else if (key === '4') {
         setCameraPreset('closeup');
+        setCameraResetTick((n) => n + 1);
         showToast(
           lang === 'ko'
             ? '[4] 눈높이 골든존 근접뷰 전환'
             : '[4] Eye-Level Closeup View'
         );
+      } else if (key === 'a' || key === 'A') {
+        setAutoZoomEnabled?.((prev) => {
+          const next = !prev;
+          showToast(
+            next
+              ? lang === 'ko'
+                ? '[A] ✨ 스마트 카메라 자동줌: 켜짐 (클릭 시 자동 확대 · 빈공간 클릭 시 전체 복귀)'
+                : '[A] ✨ Smart Camera Auto-Zoom: ON'
+              : lang === 'ko'
+                ? '[A] 수동 카메라 줌 모드 전환 (자동줌 꺼짐)'
+                : '[A] Smart Camera Auto-Zoom: OFF'
+          );
+          return next;
+        });
+      } else if (key === 'Escape') {
+        if (
+          selectedBin ||
+          selectedCargo ||
+          selectedProp ||
+          selectedObstacle ||
+          selectedDepot
+        ) {
+          onClearAllSelection?.();
+          showToast(
+            lang === 'ko'
+              ? '[Esc] 선택 해제 및 전체 화면 시점 복귀'
+              : '[Esc] Cleared selection & restored overview'
+          );
+        }
       } else if (key === 'f' || key === 'F') {
         setCameraFocusTick?.((n) => n + 1);
         showToast(
@@ -397,6 +434,8 @@ export function useWarehouseShortcuts({
     setCameraPreset,
     setCameraResetTick,
     setCameraFocusTick,
+    setAutoZoomEnabled,
+    onClearAllSelection,
     setDragMoveMode,
     setInteriorInitialTab,
     setInteriorModalOpen,

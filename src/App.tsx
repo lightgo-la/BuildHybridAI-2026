@@ -34,6 +34,7 @@ import { type LangCode, t } from './i18n/translations';
 import {
   computeZLevelBreakdown,
   generateWarehouseBins,
+  resolveShelfCollisions3D,
   runBaseline2DSlotting,
   runOptimized3DSlotting,
 } from './engine/slottingEngine';
@@ -314,6 +315,24 @@ export function App() {
   >('iso');
   const [cameraResetTick, setCameraResetTick] = useState(0);
   const [cameraFocusTick, setCameraFocusTick] = useState(0);
+  const [autoZoomEnabled, setAutoZoomEnabled] = useState<boolean>(() => {
+    try {
+      const saved = window.localStorage.getItem('cubislot_auto_zoom_v1');
+      return saved === null ? true : saved === 'true';
+    } catch {
+      return true;
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        'cubislot_auto_zoom_v1',
+        String(autoZoomEnabled)
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [autoZoomEnabled]);
   const [animateRoute, setAnimateRoute] = useState(true);
   const [dragMoveMode, setDragMoveMode] = useState(false);
   const [dragScope, setDragScope] = useState<DragScope>('single_cargo');
@@ -539,7 +558,7 @@ export function App() {
         });
       }
     }
-    return merged;
+    return resolveShelfCollisions3D(merged, config);
   }, [config, customBinsOverride, extraBins, removedBinIds]);
 
   const baselineResult = useMemo(
@@ -746,6 +765,14 @@ export function App() {
     setCameraPreset,
     setCameraResetTick,
     setCameraFocusTick,
+    setAutoZoomEnabled,
+    onClearAllSelection: () => {
+      setSelectedBinId(null);
+      setSelectedCargo(null);
+      setSelectedPropId(null);
+      setSelectedObstacleId(null);
+      setSelectedDepot(false);
+    },
     setActiveLayout,
     setDragMoveMode,
     setInteriorInitialTab,
@@ -2834,6 +2861,23 @@ export function App() {
               cameraPreset={cameraPreset}
               cameraResetTick={cameraResetTick}
               cameraFocusTick={cameraFocusTick}
+              autoZoomEnabled={autoZoomEnabled}
+              onToggleAutoZoom={() =>
+                setAutoZoomEnabled((prev) => {
+                  const next = !prev;
+                  showToast(
+                    next
+                      ? lang === 'ko'
+                        ? '✨ 스마트 카메라 자동줌 켜짐: 물체 클릭 시 자동 확대 · 빈 바닥 클릭 시 전체 복귀'
+                        : '✨ Smart Auto-Zoom ON'
+                      : lang === 'ko'
+                        ? '수동 카메라 줌 모드로 전환되었습니다'
+                        : 'Smart Auto-Zoom OFF'
+                  );
+                  return next;
+                })
+              }
+              onEnableAnimateRoute={() => setAnimateRoute(true)}
               onChangeCameraPreset={setCameraPreset}
               animateRoute={animateRoute}
               lang={lang}
@@ -2842,43 +2886,70 @@ export function App() {
             <div className="absolute bottom-3 left-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/90 p-1.5 text-[10px] backdrop-blur">
               <button
                 type="button"
-                onClick={() => setCameraPreset('iso')}
+                onClick={() => {
+                  setCameraPreset('iso');
+                  setCameraResetTick((t) => t + 1);
+                }}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
                   cameraPreset === 'iso'
-                    ? 'bg-slate-800 text-cyan-300'
+                    ? 'bg-slate-800 text-cyan-300 font-semibold'
                     : 'text-slate-400 hover:text-white'
                 }`}
+                title={
+                  lang === 'ko'
+                    ? '전체 창고 3D 입체뷰 자동 맞춤 (단축키 1)'
+                    : '3D Isometric Auto-Fit (Shortcut: 1)'
+                }
               >
                 <Compass className="h-3 w-3" />
                 {lang === 'ko' ? '3D 입체뷰' : '3D Iso'}
               </button>
               <button
                 type="button"
-                onClick={() => setCameraPreset('top')}
+                onClick={() => {
+                  setCameraPreset('top');
+                  setCameraResetTick((t) => t + 1);
+                }}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
                   cameraPreset === 'top'
-                    ? 'bg-slate-800 text-cyan-300'
+                    ? 'bg-slate-800 text-cyan-300 font-semibold'
                     : 'text-slate-400 hover:text-white'
                 }`}
+                title={
+                  lang === 'ko'
+                    ? '위에서 내려다보는 2D 평면뷰 자동 맞춤 (단축키 2)'
+                    : '2D Top-Down Auto-Fit (Shortcut: 2)'
+                }
               >
                 <Camera className="h-3 w-3" />
                 {lang === 'ko' ? '2D 평면뷰' : '2D Top'}
               </button>
               <button
                 type="button"
-                onClick={() => setCameraPreset('elevation')}
+                onClick={() => {
+                  setCameraPreset('elevation');
+                  setCameraResetTick((t) => t + 1);
+                }}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
                   cameraPreset === 'elevation'
-                    ? 'bg-slate-800 text-cyan-300'
+                    ? 'bg-slate-800 text-cyan-300 font-semibold'
                     : 'text-slate-400 hover:text-white'
                 }`}
+                title={
+                  lang === 'ko'
+                    ? '선반 층별 높이를 한눈에 보는 Z축 정면뷰 자동 맞춤 (단축키 3)'
+                    : 'Z-Elevation Auto-Fit (Shortcut: 3)'
+                }
               >
                 <RotateCcw className="h-3 w-3" />
                 {lang === 'ko' ? 'Z축 정면뷰' : 'Z-Elevation'}
               </button>
               <button
                 type="button"
-                onClick={() => setCameraPreset('closeup')}
+                onClick={() => {
+                  setCameraPreset('closeup');
+                  setCameraResetTick((t) => t + 1);
+                }}
                 className={`inline-flex items-center gap-1 rounded px-2 py-1 ${
                   cameraPreset === 'closeup'
                     ? 'bg-slate-800 text-emerald-300 font-semibold'

@@ -23,11 +23,19 @@ const DEFAULT_BAY_SPACING_M = 1.45;
 
 export function generateWarehouseBins(config: WarehouseConfig): BinSpec[] {
   const bins: BinSpec[] = [];
-  const aisleSpacingM = config.aisleSpacingM ?? DEFAULT_AISLE_SPACING_M;
-  const baySpacingM = config.baySpacingM ?? DEFAULT_BAY_SPACING_M;
   const binLengthCm = config.binLengthCm ?? DEFAULT_BIN_L_CM;
   const binWidthCm = config.binWidthCm ?? DEFAULT_BIN_W_CM;
   const binHeightCm = config.binHeightCm ?? DEFAULT_BIN_H_CM;
+  const minSafeAisleSpacingM = Number((binWidthCm / 100 + 0.24).toFixed(2));
+  const minSafeBaySpacingM = Number((binLengthCm / 100 + 0.14).toFixed(2));
+  const aisleSpacingM = Math.max(
+    config.aisleSpacingM ?? DEFAULT_AISLE_SPACING_M,
+    minSafeAisleSpacingM
+  );
+  const baySpacingM = Math.max(
+    config.baySpacingM ?? DEFAULT_BAY_SPACING_M,
+    minSafeBaySpacingM
+  );
 
   for (let a = 1; a <= config.aisles; a++) {
     for (let b = 1; b <= config.baysPerAisle; b++) {
@@ -60,6 +68,295 @@ export function generateWarehouseBins(config: WarehouseConfig): BinSpec[] {
     }
   }
   return bins;
+}
+
+export function checkShelfPairOverlap3D(
+  a: BinSpec,
+  b: BinSpec,
+  clearanceM = 0.06
+): {
+  overlaps: boolean;
+  overlapX: number;
+  overlapY: number;
+  overlapZ: number;
+} {
+  if (a.id === b.id) {
+    return { overlaps: false, overlapX: 0, overlapY: 0, overlapZ: 0 };
+  }
+  const halfXA = a.binWidthCm / 200;
+  const halfXB = b.binWidthCm / 200;
+  const halfYA = a.binLengthCm / 200;
+  const halfYB = b.binLengthCm / 200;
+  const minZA = a.zMeters;
+  const maxZA = a.zMeters + a.binHeightCm / 100;
+  const minZB = b.zMeters;
+  const maxZB = b.zMeters + b.binHeightCm / 100;
+
+  const overlapX =
+    halfXA + halfXB + clearanceM - Math.abs(b.xMeters - a.xMeters);
+  const overlapY =
+    halfYA + halfYB + clearanceM - Math.abs(b.yMeters - a.yMeters);
+  const overlapZ =
+    Math.min(maxZA + clearanceM * 0.5, maxZB + clearanceM * 0.5) -
+    Math.max(minZA - clearanceM * 0.5, minZB - clearanceM * 0.5);
+
+  return {
+    overlaps: overlapX > 0.002 && overlapY > 0.002 && overlapZ > 0.002,
+    overlapX,
+    overlapY,
+    overlapZ,
+  };
+}
+
+export function resolveShelfCollisions3D(
+  inputBins: BinSpec[],
+  config: WarehouseConfig,
+  movedBinIds: string[] = []
+): BinSpec[] {
+  if (inputBins.length <= 1) return inputBins;
+
+  const movedSet = new Set(movedBinIds);
+  const working = inputBins.map((b) => ({ ...b }));
+  const clearanceXY = 0.08;
+  const clearanceZ = 0.08;
+
+  // Phase 1: Group bins that belong to the same vertical rack column (distinct Z levels at same X-Y center)
+  // If a moved single bin lands on the exact same (X, Y) and same level as an existing bin, separate it horizontally
+  const colGroups: Array<{
+    key: string;
+    cx: number;
+    cy: number;
+    halfX: number;
+    halfY: number;
+    isMovedGroup: boolean;
+    memberIndices: number[];
+  }> = [];
+
+  for (let i = 0; i < working.length; i++) {
+    const b = working[i];
+    const bHalfX = b.binWidthCm / 200;
+    const bHalfY = b.binLengthCm / 200;
+    const isMoved = movedSet.has(b.id);
+
+    let matchedGroup: (typeof colGroups)[number] | undefined;
+    for (const g of colGroups) {
+      if (Math.hypot(g.cx - b.xMeters, g.cy - b.yMeters) < 0.14) {
+        const hasSameLevelConflict = g.memberIndices.some(
+          (idx) => working[idx].level === b.level
+        );
+        if (!hasSameLevelConflict) {
+          matchedGroup = g;
+          break;
+        }
+      }
+    }
+
+    if (matchedGroup) {
+      matchedGroup.memberIndices.push(i);
+      matchedGroup.halfX = Math.max(matchedGroup.halfX, bHalfX);
+      matchedGroup.halfY = Math.max(matchedGroup.halfY, bHalfY);
+      if (isMoved) matchedGroup.isMovedGroup = true;
+    } else {
+      colGroups.push({
+        key: `${b.id}_${i}`,
+        cx: b.xMeters,
+        cy: b.yMeters,
+        halfX: bHalfX,
+        halfY: bHalfY,
+        isMovedGroup: isMoved,
+        memberIndices: [i],
+      });
+    }
+  }
+
+  // Phase 2: Iterative 2D Rigid-Body AABB Minimum Translation Vector (MTV) Solver across Rack Columns & Obstacles
+  const obstacles = config.obstacles ?? [];
+  for (let iter = 0; iter < 64; iter++) {
+    let anyMoved = false;
+
+    // Obstacle / Pillar collision repulsion
+    for (const g of colGroups) {
+      for (const obs of obstacles) {
+        const minDX = g.halfX + 0.42 + clearanceXY;
+        const minDY = g.halfY + 0.42 + clearanceXY;
+        const dx = g.cx - obs.xMeters;
+        const dy = g.cy - obs.yMeters;
+        const penX = minDX - Math.abs(dx);
+        const penY = minDY - Math.abs(dy);
+        if (penX > 0.001 && penY > 0.001) {
+          if (penX <= penY) {
+            const sign = dx >= 0 ? 1 : -1;
+            g.cx += sign * (penX + 0.015);
+          } else {
+            const sign = dy >= 0 ? 1 : -1;
+            g.cy += sign * (penY + 0.015);
+          }
+          anyMoved = true;
+        }
+      }
+    }
+
+    // Column-to-Column AABB collision resolution
+    for (let i = 0; i < colGroups.length; i++) {
+      for (let j = i + 1; j < colGroups.length; j++) {
+        const gA = colGroups[i];
+        const gB = colGroups[j];
+
+        // Check if any member bins between gA and gB actually overlap in Z elevation
+        let zConflict = false;
+        for (const idxA of gA.memberIndices) {
+          const bA = working[idxA];
+          const minZA = bA.zMeters - clearanceZ * 0.5;
+          const maxZA = bA.zMeters + bA.binHeightCm / 100 + clearanceZ * 0.5;
+          for (const idxB of gB.memberIndices) {
+            const bB = working[idxB];
+            const minZB = bB.zMeters - clearanceZ * 0.5;
+            const maxZB = bB.zMeters + bB.binHeightCm / 100 + clearanceZ * 0.5;
+            if (Math.min(maxZA, maxZB) - Math.max(minZA, minZB) > 0.001) {
+              zConflict = true;
+              break;
+            }
+          }
+          if (zConflict) break;
+        }
+        if (gA.memberIndices.length > 1 || gB.memberIndices.length > 1) {
+          zConflict = true;
+        }
+        if (!zConflict) continue;
+
+        const minDX = gA.halfX + gB.halfX + clearanceXY;
+        const minDY = gA.halfY + gB.halfY + clearanceXY;
+        const dx = gB.cx - gA.cx;
+        const dy = gB.cy - gA.cy;
+        const penX = minDX - Math.abs(dx);
+        const penY = minDY - Math.abs(dy);
+
+        if (penX > 0.001 && penY > 0.001) {
+          anyMoved = true;
+          const weightA =
+            iter < 8
+              ? gA.isMovedGroup && !gB.isMovedGroup
+                ? 0.75
+                : !gA.isMovedGroup && gB.isMovedGroup
+                  ? 0.25
+                  : 0.5
+              : 0.5;
+          const weightB = 1 - weightA;
+
+          if (penX <= penY) {
+            const sign = dx > 0.0001 ? 1 : dx < -0.0001 ? -1 : i < j ? 1 : -1;
+            const push = (penX + 0.015) * 0.85;
+            gA.cx -= sign * push * weightA;
+            gB.cx += sign * push * weightB;
+          } else {
+            const sign = dy > 0.0001 ? 1 : dy < -0.0001 ? -1 : i < j ? 1 : -1;
+            const push = (penY + 0.015) * 0.85;
+            gA.cy -= sign * push * weightA;
+            gB.cy += sign * push * weightB;
+          }
+        }
+      }
+    }
+
+    if (!anyMoved) break;
+  }
+
+  // Fallback exact separation guard: if any column still overlaps after relaxation, snap it to nearest free spot
+  const isGroupClearAt = (
+    idx: number,
+    testX: number,
+    testY: number
+  ): boolean => {
+    const g = colGroups[idx];
+    for (const obs of obstacles) {
+      if (
+        Math.abs(testX - obs.xMeters) < g.halfX + 0.42 + clearanceXY - 0.002 &&
+        Math.abs(testY - obs.yMeters) < g.halfY + 0.42 + clearanceXY - 0.002
+      ) {
+        return false;
+      }
+    }
+    for (let otherIdx = 0; otherIdx < colGroups.length; otherIdx++) {
+      if (otherIdx === idx) continue;
+      const other = colGroups[otherIdx];
+      if (
+        Math.abs(testX - other.cx) <
+          g.halfX + other.halfX + clearanceXY - 0.002 &&
+        Math.abs(testY - other.cy) <
+          g.halfY + other.halfY + clearanceXY - 0.002
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  for (let i = 0; i < colGroups.length; i++) {
+    const g = colGroups[i];
+    g.cx = Number(g.cx.toFixed(2));
+    g.cy = Number(g.cy.toFixed(2));
+    if (!isGroupClearAt(i, g.cx, g.cy)) {
+      const baseX = g.cx;
+      const baseY = g.cy;
+      let found = false;
+      for (let r = 1; r <= 30 && !found; r++) {
+        const dist = r * 0.35;
+        for (let a = 0; a < 16; a++) {
+          const angle = (a * Math.PI) / 8;
+          const candX = Number((baseX + Math.cos(angle) * dist).toFixed(2));
+          const candY = Number((baseY + Math.sin(angle) * dist).toFixed(2));
+          if (isGroupClearAt(i, candX, candY)) {
+            g.cx = candX;
+            g.cy = candY;
+            found = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Apply resolved column X-Y coordinates and Phase 3 Vertical Z-Stacking anti-overlap within each column
+  const aisleSp = Math.max(0.8, config.aisleSpacingM ?? DEFAULT_AISLE_SPACING_M);
+  const baySp = Math.max(0.6, config.baySpacingM ?? DEFAULT_BAY_SPACING_M);
+
+  for (const g of colGroups) {
+    const snappedX = Number(g.cx.toFixed(2));
+    const snappedY = Number(g.cy.toFixed(2));
+    const newAisle = Math.max(1, Math.round(snappedX / aisleSp) + 1);
+    const newBay = Math.max(1, Math.round((snappedY - 1.8) / baySp) + 1);
+
+    g.memberIndices.sort(
+      (ia, ib) =>
+        working[ia].level - working[ib].level ||
+        working[ia].zMeters - working[ib].zMeters
+    );
+
+    for (let k = 0; k < g.memberIndices.length; k++) {
+      const idx = g.memberIndices[k];
+      const bin = working[idx];
+      bin.xMeters = snappedX;
+      bin.yMeters = snappedY;
+      bin.aisle = newAisle;
+      bin.bay = newBay;
+
+      if (k > 0) {
+        const prevBin = working[g.memberIndices[k - 1]];
+        const minSafeZ = Number(
+          (prevBin.zMeters + prevBin.binHeightCm / 100 + clearanceZ).toFixed(2)
+        );
+        const defaultZ =
+          LEVEL_HEIGHTS_M[bin.level - 1] ??
+          Number(((bin.level - 1) * 0.82 + 0.05).toFixed(2));
+        bin.zMeters = Math.max(bin.zMeters, defaultZ, minSafeZ);
+      }
+      bin.isGoldenZone =
+        bin.zMeters >= config.goldenZoneMinM &&
+        bin.zMeters <= config.goldenZoneMaxM;
+    }
+  }
+
+  return working;
 }
 
 interface Orientation {
