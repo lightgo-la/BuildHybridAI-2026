@@ -19,14 +19,6 @@
 
 ---
 
-## 4-Day Development & Submission Schedule (Nov 25 – Nov 28, 2026)
-0. Nov 25 (Day 3) — 3D UX Polish & Custom Data Pipeline (`v1.1.0`)
-1. Nov 26 (Day 2) — Hybrid AI Action Engine & Live Hosting
-2. Nov 27 (Day 1) — Performance Optimization, Final QA & Demo Recording (`v1.2.0`)
-3. Nov 28 (Day 0 · Submission Day) — Final Packaging & Official Submission
-
----
-
 ## Key Features
 
 1. **3D Warehouse & Everyday Space Slotting Engine (`src/engine/slottingEngine.ts`)**
