@@ -12,7 +12,7 @@
 ![License Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache&logoColor=white)
 ![Release v1.2.0](https://img.shields.io/badge/Release-v1.2.0-8A2BE2)
 
-<img width="2528" height="1280" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/44075604-0476-44f7-8866-5acf4f59f8ce" />
+<img width="2456" height="1252" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/af8e33dd-0f56-47f5-93c6-d08aaef8cdd8" />
 
 > **Google for Developers `#BuildHybridAI 2026` Challenge · Web / Chrome Track**  
 > Open-Source 3D Warehouse Slotting Optimization & Everyday Home Storage Digital Twin powered by **Firebase AI Logic (`firebase/ai`)** Hybrid Inference (**On-Device Chrome Gemini Nano** + **Cloud Gemini Fallback** + **Local Deterministic Action Engine**).
