@@ -124,6 +124,7 @@ import {
   ViewportContextMenu,
   type ViewportContextState,
 } from './components/ViewportContextMenu';
+import { Plan2DBoxInspectorModal } from './components/Plan2DBoxInspectorModal';
 
 const CadPreviewModal = lazy(() =>
   import('./components/CadPreviewModal').then((m) => ({
@@ -421,6 +422,8 @@ export function App() {
   const [cadModalOpen, setCadModalOpen] = useState(false);
   const [mapEditorOpen, setMapEditorOpen] = useState(false);
   const [templateGalleryOpen, setTemplateGalleryOpen] = useState(false);
+  const [plan2DBoxModalOpen, setPlan2DBoxModalOpen] = useState(false);
+  const [suppress3DAutoZoom, setSuppress3DAutoZoom] = useState(false);
   const [simpleMode, setSimpleMode] = useState(true);
   const [showAdvanced3DTools, setShowAdvanced3DTools] = useState(false);
   const [showQuickInteriorBar, setShowQuickInteriorBar] = useState(false);
@@ -658,9 +661,25 @@ export function App() {
   const [showBeginnerGuide, setShowBeginnerGuide] = useState<boolean>(true);
 
   const handleSelectBin = useCallback((alloc: BinAllocation | null) => {
+    setSuppress3DAutoZoom(false);
     setSelectedBinId(alloc ? alloc.bin.id : null);
     if (alloc) setLeftTab('inspector');
   }, []);
+
+  const handleSelectBinFrom2D = useCallback(
+    (alloc: BinAllocation, openInspectorModal = true) => {
+      setSuppress3DAutoZoom(true);
+      setSelectedBinId(alloc.bin.id);
+      setSelectedPropId(null);
+      setSelectedDepot(false);
+      setSelectedObstacleId(null);
+      setLeftTab('inspector');
+      if (openInspectorModal) {
+        setPlan2DBoxModalOpen(true);
+      }
+    },
+    []
+  );
 
   const toggleLanguage = useCallback(() => {
     setLang(() => {
@@ -817,7 +836,8 @@ export function App() {
       cadModalOpen ||
       templateGalleryOpen ||
       setupOpen ||
-      designMenuOpen,
+      designMenuOpen ||
+      plan2DBoxModalOpen,
     alwaysOptimizedLock,
     canUndo: undoStack.length > 0,
     canRedo: redoStack.length > 0,
@@ -3025,10 +3045,22 @@ export function App() {
                   theme={activeTheme}
                   sceneBg={sceneBg}
                   onSelectBin={handleSelectBin}
-                  onSelectProp={setSelectedPropId}
-                  onSelectObstacle={setSelectedObstacleId}
-                  onSelectDepot={setSelectedDepot}
-                  onSelectCargo={setSelectedCargo}
+                  onSelectProp={(id) => {
+                    if (id) setSuppress3DAutoZoom(false);
+                    setSelectedPropId(id);
+                  }}
+                  onSelectObstacle={(id) => {
+                    if (id) setSuppress3DAutoZoom(false);
+                    setSelectedObstacleId(id);
+                  }}
+                  onSelectDepot={(sel) => {
+                    if (sel) setSuppress3DAutoZoom(false);
+                    setSelectedDepot(sel);
+                  }}
+                  onSelectCargo={(c) => {
+                    if (c) setSuppress3DAutoZoom(false);
+                    setSelectedCargo(c);
+                  }}
                   onContextAction={setContextMenu}
                   dragMoveMode={dragMoveMode}
                   dragScope={dragScope}
@@ -3048,6 +3080,7 @@ export function App() {
                   cameraResetTick={cameraResetTick}
                   cameraFocusTick={cameraFocusTick}
                   autoZoomEnabled={autoZoomEnabled}
+                  suppressAutoZoom={suppress3DAutoZoom}
                   onToggleAutoZoom={() =>
                     setAutoZoomEnabled((prev) => {
                       const next = !prev;
@@ -3423,6 +3456,28 @@ export function App() {
                         ))}
                       </div>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSuppress3DAutoZoom(true);
+                        if (!selectedBinId) {
+                          const firstAlloc =
+                            shownResult.allocations.find(
+                              (a) => a.boxes.length > 0 && a.bin.isGoldenZone
+                            ) ??
+                            shownResult.allocations.find(
+                              (a) => a.boxes.length > 0
+                            ) ??
+                            shownResult.allocations[0];
+                          if (firstAlloc) setSelectedBinId(firstAlloc.bin.id);
+                        }
+                        setPlan2DBoxModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1 rounded border border-emerald-400/60 bg-emerald-500/20 px-2 py-0.5 font-bold text-emerald-200 hover:bg-emerald-500/30"
+                      title="3D 카메라 줌 없이 새 창을 열어 선반별 박스 개수와 내부 구성품 개수를 확인·조절합니다"
+                    >
+                      {'📦 박스·구성품 개수 창'}
+                    </button>
                     <button
                       type="button"
                       onClick={() => setMapEditorOpen(true)}
@@ -3890,6 +3945,22 @@ export function App() {
                             plan2DDidDragRef.current = false;
                             return;
                           }
+                          if (plan2DTool === 'drag_edit') {
+                            setSuppress3DAutoZoom(true);
+                            if (!selectedBinId) {
+                              const firstAlloc =
+                                shownResult.allocations.find(
+                                  (a) => a.boxes.length > 0 && a.bin.isGoldenZone
+                                ) ??
+                                shownResult.allocations.find(
+                                  (a) => a.boxes.length > 0
+                                ) ??
+                                shownResult.allocations[0];
+                              if (firstAlloc) setSelectedBinId(firstAlloc.bin.id);
+                            }
+                            setPlan2DBoxModalOpen(true);
+                            return;
+                          }
                           if (
                             plan2DTool !== 'add_shelf' &&
                             plan2DTool !== 'add_obstacle'
@@ -3945,6 +4016,7 @@ export function App() {
                               onPointerDown={(e) => {
                                 if (e.button !== 0) return;
                                 e.stopPropagation();
+                                setSuppress3DAutoZoom(true);
                                 setSelectedPropId(prop.id);
                                 setSelectedBinId(null);
                                 setSelectedDepot(false);
@@ -3992,6 +4064,7 @@ export function App() {
                           onPointerDown={(e) => {
                             if (e.button !== 0) return;
                             e.stopPropagation();
+                            setSuppress3DAutoZoom(true);
                             setSelectedDepot(true);
                             setSelectedBinId(null);
                             setSelectedPropId(null);
@@ -4049,6 +4122,7 @@ export function App() {
                               onPointerDown={(e) => {
                                 if (e.button !== 0) return;
                                 e.stopPropagation();
+                                setSuppress3DAutoZoom(true);
                                 setSelectedObstacleId(obs.id);
                                 setSelectedBinId(null);
                                 setSelectedPropId(null);
@@ -4155,7 +4229,9 @@ export function App() {
                               onPointerDown={(e) => {
                                 if (e.button !== 0) return;
                                 e.stopPropagation();
-                                handleSelectBin(targetAlloc);
+                                plan2DDidDragRef.current = false;
+                                setSuppress3DAutoZoom(true);
+                                setSelectedBinId(targetAlloc.bin.id);
                                 setSelectedPropId(null);
                                 setSelectedDepot(false);
                                 setSelectedObstacleId(null);
@@ -4176,8 +4252,14 @@ export function App() {
                               }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleSelectBin(targetAlloc);
-                                setCameraFocusTick((n) => n + 1);
+                                if (plan2DDidDragRef.current) {
+                                  plan2DDidDragRef.current = false;
+                                  return;
+                                }
+                                if (plan2DTool === 'route_toggle') {
+                                  return;
+                                }
+                                handleSelectBinFrom2D(targetAlloc, true);
                               }}
                               onContextMenu={(e) => {
                                 e.preventDefault();
@@ -4676,6 +4758,24 @@ export function App() {
         settings={sceneBg}
         onChange={setSceneBg}
         lang={lang}
+      />
+
+      <Plan2DBoxInspectorModal
+        open={plan2DBoxModalOpen}
+        onClose={() => setPlan2DBoxModalOpen(false)}
+        scenarioName={activeScenario.name}
+        config={config}
+        result={shownResult}
+        skus={skus}
+        selectedBin={selectedBin}
+        onSelectBinWithoutZoom={(alloc) =>
+          handleSelectBinFrom2D(alloc, false)
+        }
+        onSetBinTotalBoxQuota={handleSetBinTotalBoxQuota}
+        onSetCargoCountInBin={handleSetCargoCountInBin}
+        onPinCargo={handlePinCargo}
+        onPlaceCustomBoxInBin={handlePlaceCustomBoxInBin}
+        onAddBinAbove={handleAddBinAbove}
       />
     </div>
   );

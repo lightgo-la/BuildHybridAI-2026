@@ -117,6 +117,7 @@ interface Warehouse3DViewportProps {
   cameraResetTick?: number;
   cameraFocusTick?: number;
   autoZoomEnabled?: boolean;
+  suppressAutoZoom?: boolean;
   onToggleAutoZoom?: () => void;
   onEnableAnimateRoute?: () => void;
   onChangeCameraPreset?: (preset: 'iso' | 'top' | 'elevation' | 'closeup') => void;
@@ -205,6 +206,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   cameraResetTick = 0,
   cameraFocusTick = 0,
   autoZoomEnabled = true,
+  suppressAutoZoom = false,
   onToggleAutoZoom,
   onEnableAnimateRoute,
   onChangeCameraPreset,
@@ -2241,7 +2243,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         selectedDepot
     );
 
-    if (autoZoomEnabled && !dragMoveMode) {
+    if (autoZoomEnabled && !dragMoveMode && !suppressAutoZoom) {
       if (hasSelection) {
         handleFocusSelectedObject();
       } else if (hadSelectionRef.current) {
@@ -2252,6 +2254,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   }, [
     autoZoomEnabled,
     dragMoveMode,
+    suppressAutoZoom,
     selectedBinId,
     selectedCargo,
     selectedPropId,
