@@ -1,5 +1,7 @@
 # CubiSlot 3D — 3D Warehouse & Living Space Slotting Digital Twin (`#BuildHybridAI 2026`)
 
+![Built with Antigravity](https://img.shields.io/badge/Built%20with-Antigravity-4285F4?logo=googlegemini&logoColor=white)
+![Built with Antigravity CLI](https://img.shields.io/badge/Built%20with-Antigravity%20CLI-0F172A?logo=gnubash&logoColor=white)
 ![Built with TypeScript](https://img.shields.io/badge/Built%20with-TypeScript%205.8-3178C6?logo=typescript&logoColor=white)
 ![Frontend React](https://img.shields.io/badge/Frontend-React%2019-61DAFB?logo=react&logoColor=black)
 ![3D Engine Three.js](https://img.shields.io/badge/3D%20Engine-Three.js%20%2F%20WebGL-000000?logo=threedotjs&logoColor=white)
