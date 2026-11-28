@@ -198,7 +198,7 @@ export const Plan2DBoxInspectorModal: React.FC<
   );
   const [addSkuQty, setAddSkuQty] = useState<number>(2);
 
-  const [customName, setCustomName] = useState<string>('구성품 박스');
+  const [customName, setCustomName] = useState<string>('Custom Cargo Box');
   const [customL, setCustomL] = useState<number>(34);
   const [customW, setCustomW] = useState<number>(26);
   const [customH, setCustomH] = useState<number>(22);
@@ -284,14 +284,24 @@ export const Plan2DBoxInspectorModal: React.FC<
       skuId: string,
       qty: number
     ) => {
-      onSetCargoCountInBin(binId, skuId, Math.max(0, Math.min(100, Math.round(qty))));
+      onSetCargoCountInBin(
+        binId,
+        skuId,
+        Math.max(0, Math.min(100, Math.round(qty)))
+      );
     };
 
     const rowsHtml = result.allocations
       .map((alloc) => {
         const skuCounts = new Map<
           string,
-          { skuId: string; name: string; code: string; count: number; color: string }
+          {
+            skuId: string;
+            name: string;
+            code: string;
+            count: number;
+            color: string;
+          }
         >();
         for (const b of alloc.boxes) {
           const cur = skuCounts.get(b.skuId);
@@ -309,7 +319,7 @@ export const Plan2DBoxInspectorModal: React.FC<
         }
         const itemsHtml =
           skuCounts.size === 0
-            ? `<span style="color:#64748b">비어 있음 (0개)</span>`
+            ? `<span style="color:#64748b">Empty (0 pcs)</span>`
             : [...skuCounts.values()]
                 .map(
                   (item) => `
@@ -318,7 +328,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                     <strong>${escapeHtml(item.name)}</strong>
                     <span style="color:#94a3b8;font-size:11px">(${escapeHtml(item.code)})</span>
                     <button onclick="window.opener && window.opener.__cubislotSetSkuCount('${escapeHtml(alloc.bin.id)}','${escapeHtml(item.skuId)}',${Math.max(0, item.count - 1)}); setTimeout(()=>location.reload(), 60);" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:4px;padding:0 6px;cursor:pointer">-</button>
-                    <strong style="color:#34d399;font-family:monospace">${item.count}개</strong>
+                    <strong style="color:#34d399;font-family:monospace">${item.count} pcs</strong>
                     <button onclick="window.opener && window.opener.__cubislotSetSkuCount('${escapeHtml(alloc.bin.id)}','${escapeHtml(item.skuId)}',${item.count + 1}); setTimeout(()=>location.reload(), 60);" style="background:#1e293b;color:#e2e8f0;border:1px solid #475569;border-radius:4px;padding:0 6px;cursor:pointer">+</button>
                   </span>`
                 )
@@ -329,13 +339,13 @@ export const Plan2DBoxInspectorModal: React.FC<
           <tr style="background:${isSel ? 'rgba(14,116,144,0.28)' : alloc.boxes.length > 0 ? 'rgba(15,23,42,0.75)' : 'rgba(15,23,42,0.35)'};border-bottom:1px solid #1e293b;">
             <td style="padding:8px 10px;font-family:monospace;font-weight:bold;color:${isSel ? '#facc15' : '#38bdf8'}">
               ${escapeHtml(alloc.bin.id)}
-              ${alloc.bin.isGoldenZone ? '<span style="background:#065f46;color:#6ee7b7;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px">★ 골든존</span>' : ''}
+              ${alloc.bin.isGoldenZone ? '<span style="background:#065f46;color:#6ee7b7;font-size:10px;padding:1px 5px;border-radius:4px;margin-left:4px">★ Golden Zone</span>' : ''}
             </td>
             <td style="padding:8px 10px;color:#cbd5e1">Z${alloc.bin.level} (${alloc.bin.zMeters}m)</td>
             <td style="padding:8px 10px">
               <div style="display:inline-flex;align-items:center;gap:6px">
                 <button onclick="window.opener && window.opener.__cubislotSetBinQuota('${escapeHtml(alloc.bin.id)}',${Math.max(0, alloc.boxes.length - 1)});" style="background:#1e293b;color:#fff;border:1px solid #475569;border-radius:4px;padding:2px 8px;cursor:pointer">-</button>
-                <strong style="color:#fbbf24;font-family:monospace;font-size:14px">${alloc.boxes.length} 박스</strong>
+                <strong style="color:#fbbf24;font-family:monospace;font-size:14px">${alloc.boxes.length} boxes</strong>
                 <button onclick="window.opener && window.opener.__cubislotSetBinQuota('${escapeHtml(alloc.bin.id)}',${alloc.boxes.length + 1});" style="background:#1e293b;color:#fff;border:1px solid #475569;border-radius:4px;padding:2px 8px;cursor:pointer">+</button>
               </div>
             </td>
@@ -348,10 +358,10 @@ export const Plan2DBoxInspectorModal: React.FC<
     const safeTitle = escapeHtml(scenarioName);
     win.document.open();
     win.document.write(`<!doctype html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
-  <title>2D 도면 & 박스·구성품 개수 확인 창 — ${safeTitle}</title>
+  <title>2D Floor Plan & Box / Content Item Counts — ${safeTitle}</title>
   <style>
     body { margin:0; background:#06101f; color:#e2e8f0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
     header { position:sticky; top:0; z-index:10; padding:12px 20px; background:#0f172a; border-bottom:1px solid #1e293b; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
@@ -366,31 +376,31 @@ export const Plan2DBoxInspectorModal: React.FC<
 <body>
   <header>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <strong style="font-size:15px;color:#38bdf8">📦 ${safeTitle} — 2D 도면 & 선반별 박스·내용 구성품 개수 창</strong>
-      <span class="badge">총 박스: ${totalWarehouseBoxes}개</span>
-      <span class="badge">적재 구성품 종류: ${totalWarehouseSkuTypes}종</span>
-      <span class="badge">사용 선반: ${result.kpis.occupiedBins} / ${result.kpis.totalBins}개</span>
+      <strong style="font-size:15px;color:#38bdf8">📦 ${safeTitle} — 2D Floor Plan & Shelf Box / Content Item Inspector</strong>
+      <span class="badge">Total Boxes: ${totalWarehouseBoxes}</span>
+      <span class="badge">Active Item Types: ${totalWarehouseSkuTypes}</span>
+      <span class="badge">Occupied Bins: ${result.kpis.occupiedBins} / ${result.kpis.totalBins}</span>
     </div>
     <div style="display:flex;gap:8px">
-      <button onclick="window.print()" style="background:#22d3ee;color:#082f49;border:0;padding:7px 14px;border-radius:6px;font-weight:bold;cursor:pointer">🖨️ 인쇄 / PDF 저장</button>
-      <button onclick="window.close()" style="background:#334155;color:#f8fafc;border:0;padding:7px 14px;border-radius:6px;font-weight:bold;cursor:pointer">닫기</button>
+      <button onclick="window.print()" style="background:#22d3ee;color:#082f49;border:0;padding:7px 14px;border-radius:6px;font-weight:bold;cursor:pointer">🖨️ Print / Save PDF</button>
+      <button onclick="window.close()" style="background:#334155;color:#f8fafc;border:0;padding:7px 14px;border-radius:6px;font-weight:bold;cursor:pointer">Close</button>
     </div>
   </header>
   <div class="container">
     <div class="card">
-      <h3 style="margin:0 0 10px 0;font-size:13px;color:#7dd3fc">1. 2D 평면도 & 층별 정면도 (1:1 도면)</h3>
+      <h3 style="margin:0 0 10px 0;font-size:13px;color:#7dd3fc">1. 2D Plan & Z-Elevation Blueprint (1:1 Metric Scale)</h3>
       ${svgMarkup}
     </div>
     <div class="card">
-      <h3 style="margin:0 0 10px 0;font-size:13px;color:#34d399">2. 선반별 박스 개수 & 내부 내용 구성품(품목) 개수 현황 및 실시간 조절</h3>
+      <h3 style="margin:0 0 10px 0;font-size:13px;color:#34d399">2. Per-Shelf Total Box Counts & Content Item (SKU) Quantity Schedule</h3>
       <table>
         <thead>
           <tr>
-            <th>선반 ID (Bin)</th>
-            <th>층 / 높이</th>
-            <th>선반 총 박스 개수</th>
-            <th>내용 구성품 (품목명 · 코드 · 개별 개수 조절)</th>
-            <th>적재율 / 중량</th>
+            <th>Shelf Bin ID</th>
+            <th>Level / Elevation</th>
+            <th>Total Box Count</th>
+            <th>Content Items (Item Name · SKU Code · Quantity Controls)</th>
+            <th>Cubic Fill / Load</th>
           </tr>
         </thead>
         <tbody>
@@ -423,18 +433,18 @@ export const Plan2DBoxInspectorModal: React.FC<
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-sm font-bold text-white">
-                  {`2D 선반 박스 & 내용 구성품 개수 확인·설정 창 — [${activeBin.bin.id}]`}
+                  {`2D Shelf Box & Content Item Inspector — [${activeBin.bin.id}]`}
                 </h2>
                 <span className="rounded-md border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[11px] font-bold text-emerald-300">
-                  {`현재 선반 박스: ${activeBin.boxes.length}개 (${skuBreakdownInBin.length}종 구성품)`}
+                  {`Current Shelf: ${activeBin.boxes.length} boxes (${skuBreakdownInBin.length} item types)`}
                 </span>
                 <span className="rounded-md border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[11px] font-bold text-amber-300">
-                  {`전체 창고 총 박스: ${totalWarehouseBoxes}개 (${totalWarehouseSkuTypes}종)`}
+                  {`Warehouse Total: ${totalWarehouseBoxes} boxes (${totalWarehouseSkuTypes} item types)`}
                 </span>
               </div>
               <p className="text-[11px] text-slate-400">
                 {
-                  '3D 카메라 줌 확대 없이 새 창에서 각 2D 선반의 총 박스 개수와 내부 내용 구성품(품목)별 개수를 확인하고 즉시 조절합니다.'
+                  'Inspect and adjust total box counts and individual content item (SKU) quantities per 2D shelf in a dedicated window without triggering 3D camera zoom.'
                 }
               </p>
             </div>
@@ -445,10 +455,10 @@ export const Plan2DBoxInspectorModal: React.FC<
               type="button"
               onClick={handleOpenStandalonePopupWindow}
               className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-200 transition hover:bg-amber-500/30"
-              title="별도의 독립된 브라우저 새 창으로 2D 도면과 전체 박스/구성품 개수 표를 띄웁니다"
+              title="Open 2D layout blueprint and full shelf box & content item table in a separate standalone browser window"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              {'↗ 별도 브라우저 새 창으로 띄우기'}
+              {'↗ Open in Standalone Browser Window'}
             </button>
             <button
               type="button"
@@ -456,7 +466,7 @@ export const Plan2DBoxInspectorModal: React.FC<
               className="inline-flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:border-cyan-400 hover:text-white"
             >
               <X className="h-3.5 w-3.5" />
-              {'닫기 (Esc)'}
+              {'Close (Esc)'}
             </button>
           </div>
         </div>
@@ -469,10 +479,10 @@ export const Plan2DBoxInspectorModal: React.FC<
               <div className="mb-2 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-xs font-bold text-cyan-300">
                   <MapIcon className="h-3.5 w-3.5" />
-                  {'1. 2D 선반 위치 선택 (클릭 시 줌 없이 즉시 전환)'}
+                  {'1. Select 2D Rack Column (Instant Switch · No 3D Zoom)'}
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  {`총 ${columnsByKey.size}개 선반 기둥`}
+                  {`${columnsByKey.size} Rack Columns`}
                 </span>
               </div>
 
@@ -513,12 +523,12 @@ export const Plan2DBoxInspectorModal: React.FC<
                               : 'bg-slate-800 text-slate-400'
                           }`}
                         >
-                          {`${col.totalBoxes}박스`}
+                          {`${col.totalBoxes} boxes`}
                         </span>
                       </div>
                       <div className="mt-1 flex w-full items-center justify-between text-[10px] text-slate-400">
-                        <span>{`구성품 ${col.totalSkuTypes}종`}</span>
-                        <span>{`${col.bins.length}개 층`}</span>
+                        <span>{`${col.totalSkuTypes} item types`}</span>
+                        <span>{`${col.bins.length} levels`}</span>
                       </div>
                     </button>
                   );
@@ -532,7 +542,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                 <div className="mb-2 flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-300">
                     <Layers className="h-3.5 w-3.5" />
-                    {`2. [${activeColumn.key}] 층별(Z1~Z${activeColumn.bins.length}) 박스 & 구성품 현황`}
+                    {`2. [${activeColumn.key}] Z-Levels (Z1–Z${activeColumn.bins.length}) Box & Item Breakdown`}
                   </span>
                   <button
                     type="button"
@@ -540,7 +550,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                     className="inline-flex items-center gap-1 rounded border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300 hover:bg-emerald-500/25"
                   >
                     <Plus className="h-3 w-3" />
-                    {'+ 위층 추가'}
+                    {'+ Add Z-Level'}
                   </button>
                 </div>
 
@@ -550,7 +560,10 @@ export const Plan2DBoxInspectorModal: React.FC<
                     .map((binAlloc) => {
                       const isCurrentLevel =
                         binAlloc.bin.id === activeBin.bin.id;
-                      const skuMap = new Map<string, { name: string; count: number }>();
+                      const skuMap = new Map<
+                        string,
+                        { name: string; count: number }
+                      >();
                       for (const bx of binAlloc.boxes) {
                         const prev = skuMap.get(bx.skuId);
                         if (prev) prev.count += 1;
@@ -581,7 +594,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                               </span>
                               {binAlloc.bin.isGoldenZone && (
                                 <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-bold text-emerald-300">
-                                  {'★ 골든존'}
+                                  {'★ Golden Zone'}
                                 </span>
                               )}
                             </div>
@@ -600,12 +613,12 @@ export const Plan2DBoxInspectorModal: React.FC<
                                   )
                                 }
                                 className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:border-cyan-400"
-                                title="박스 1개 감소"
+                                title="Decrease box count by 1"
                               >
                                 -
                               </button>
-                              <span className="min-w-[54px] text-center font-mono text-xs font-bold text-amber-300">
-                                {`${binAlloc.boxes.length} 박스`}
+                              <span className="min-w-[58px] text-center font-mono text-xs font-bold text-amber-300">
+                                {`${binAlloc.boxes.length} boxes`}
                               </span>
                               <button
                                 type="button"
@@ -617,7 +630,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                                   )
                                 }
                                 className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-xs font-bold text-slate-300 hover:border-cyan-400"
-                                title="박스 1개 추가"
+                                title="Increase box count by 1"
                               >
                                 +
                               </button>
@@ -627,7 +640,9 @@ export const Plan2DBoxInspectorModal: React.FC<
                           <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px]">
                             {skuMap.size === 0 ? (
                               <span className="text-slate-500">
-                                {'비어 있음 (우측에서 박스/구성품 개수를 추가하세요)'}
+                                {
+                                  'Empty shelf (Add boxes or content items on the right)'
+                                }
                               </span>
                             ) : (
                               [...skuMap.values()].map((item, idx) => (
@@ -637,7 +652,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                                 >
                                   {`${item.name} × `}
                                   <strong className="text-emerald-300">
-                                    {`${item.count}개`}
+                                    {`${item.count} pcs`}
                                   </strong>
                                 </span>
                               ))
@@ -658,10 +673,10 @@ export const Plan2DBoxInspectorModal: React.FC<
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="text-xs font-bold text-cyan-300">
-                    {`3. 선택 선반 [${activeBin.bin.id}] 총 박스 개수 설정`}
+                    {`3. Total Box Count in Shelf [${activeBin.bin.id}]`}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    {`선반 크기: ${activeBin.bin.binLengthCm}×${activeBin.bin.binWidthCm}×${activeBin.bin.binHeightCm}cm · 적재율: ${activeBin.cubicUtilizationPct.toFixed(1)}% · 중량: ${activeBin.currentWeightKg.toFixed(1)} / ${activeBin.bin.maxWeightKg}kg`}
+                    {`Shelf Size: ${activeBin.bin.binLengthCm}×${activeBin.bin.binWidthCm}×${activeBin.bin.binHeightCm}cm · Cubic Fill: ${activeBin.cubicUtilizationPct.toFixed(1)}% · Weight: ${activeBin.currentWeightKg.toFixed(1)} / ${activeBin.bin.maxWeightKg}kg`}
                   </p>
                 </div>
 
@@ -699,7 +714,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                     className="h-7 w-16 rounded-lg border border-amber-400/60 bg-slate-900 px-2 text-center font-mono text-sm font-bold text-amber-300"
                   />
                   <span className="text-xs font-bold text-slate-300">
-                    {'박스'}
+                    {'boxes'}
                   </span>
                   <button
                     type="button"
@@ -719,7 +734,7 @@ export const Plan2DBoxInspectorModal: React.FC<
 
               <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-slate-800/80 pt-2.5 text-[11px]">
                 <span className="font-semibold text-slate-400">
-                  {'빠른 박스 개수 선택:'}
+                  {'Quick Box Count Presets:'}
                 </span>
                 {[0, 1, 2, 3, 4, 6, 8, 10, 12].map((cnt) => (
                   <button
@@ -738,7 +753,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                         : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-emerald-400'
                     }`}
                   >
-                    {cnt === 0 ? '0 (비우기)' : `${cnt}개`}
+                    {cnt === 0 ? '0 (Empty)' : `${cnt} pcs`}
                   </button>
                 ))}
               </div>
@@ -748,17 +763,17 @@ export const Plan2DBoxInspectorModal: React.FC<
             <div className="rounded-xl border border-emerald-500/35 bg-slate-950/90 p-3.5">
               <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
                 <h3 className="text-xs font-bold text-emerald-300">
-                  {`4. 선반 [${activeBin.bin.id}] 내부 내용 구성품(품목)별 개수 조절 (${skuBreakdownInBin.length}종)`}
+                  {`4. Content Items (SKUs) & Quantities Inside [${activeBin.bin.id}] (${skuBreakdownInBin.length} types)`}
                 </h3>
                 <span className="text-[11px] text-slate-400">
-                  {'각 구성품의 개수를 직접 입력하거나 +/- 버튼으로 조절하세요'}
+                  {'Type an exact quantity or use +/- buttons for each item'}
                 </span>
               </div>
 
               {skuBreakdownInBin.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-slate-800 bg-slate-900/50 p-4 text-center text-xs text-slate-400">
                   {
-                    '현재 이 선반에 적재된 구성품이 없습니다. 아래에서 구성품(품목)을 선택해 개수를 추가하세요.'
+                    'No content items currently packed in this shelf bin. Select an item below to add boxes.'
                   }
                 </div>
               ) : (
@@ -786,7 +801,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                             </span>
                           </div>
                           <div className="text-[10px] text-slate-400">
-                            {`치수: ${item.lengthCm}×${item.widthCm}×${item.heightCm}cm · 개당 ${item.unitWeightKg}kg (합계 ${(item.unitWeightKg * item.count).toFixed(1)}kg)`}
+                            {`Size: ${item.lengthCm}×${item.widthCm}×${item.heightCm}cm · ${item.unitWeightKg}kg each (Total ${(item.unitWeightKg * item.count).toFixed(1)}kg)`}
                           </div>
                         </div>
                       </div>
@@ -802,7 +817,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                             )
                           }
                           className="inline-flex h-7 w-7 items-center justify-center rounded border border-slate-700 bg-slate-950 text-slate-200 hover:border-emerald-400"
-                          title="구성품 개수 -1"
+                          title="Decrease item quantity by 1"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
@@ -827,10 +842,10 @@ export const Plan2DBoxInspectorModal: React.FC<
                             );
                           }}
                           className="h-7 w-14 rounded border border-emerald-500/50 bg-slate-950 px-1.5 text-center font-mono text-xs font-bold text-emerald-300"
-                          title="이 구성품의 정확한 개수 입력"
+                          title="Enter exact quantity for this content item"
                         />
                         <span className="text-[11px] font-semibold text-slate-300">
-                          {'개'}
+                          {'pcs'}
                         </span>
                         <button
                           type="button"
@@ -842,7 +857,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                             )
                           }
                           className="inline-flex h-7 w-7 items-center justify-center rounded border border-slate-700 bg-slate-950 text-slate-200 hover:border-emerald-400"
-                          title="구성품 개수 +1"
+                          title="Increase item quantity by 1"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
@@ -856,10 +871,10 @@ export const Plan2DBoxInspectorModal: React.FC<
                             )
                           }
                           className="ml-1 inline-flex h-7 items-center gap-1 rounded border border-rose-500/40 bg-rose-500/15 px-2 text-[10px] font-semibold text-rose-300 hover:bg-rose-500/25"
-                          title="이 구성품을 선반에서 제거 (0개)"
+                          title="Remove this item from shelf (0 pcs)"
                         >
                           <Trash2 className="h-3 w-3" />
-                          {'제거'}
+                          {'Remove'}
                         </button>
                       </div>
                     </div>
@@ -870,7 +885,7 @@ export const Plan2DBoxInspectorModal: React.FC<
               {/* Add from existing SKU catalog with exact count */}
               <div className="mt-3 border-t border-slate-800 pt-3">
                 <div className="mb-1.5 text-[11px] font-bold text-cyan-300">
-                  {'+ 전체 구성품(SKU) 카탈로그에서 선택하여 개수 추가/변경'}
+                  {'+ Add or Set Content Item Quantity from Catalog'}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <select
@@ -884,14 +899,14 @@ export const Plan2DBoxInspectorModal: React.FC<
                       ).length;
                       return (
                         <option key={s.id} value={s.id}>
-                          {`${s.name.split(' (')[0]} (${s.skuCode}) — ${s.lengthCm}×${s.widthCm}×${s.heightCm}cm, ${s.weightKg}kg [현재 이 선반: ${curInBin}개]`}
+                          {`${s.name.split(' (')[0]} (${s.skuCode}) — ${s.lengthCm}×${s.widthCm}×${s.heightCm}cm, ${s.weightKg}kg [In this bin: ${curInBin} pcs]`}
                         </option>
                       );
                     })}
                   </select>
 
                   <div className="flex items-center gap-1">
-                    <span className="text-[11px] text-slate-400">{'개수:'}</span>
+                    <span className="text-[11px] text-slate-400">{'Qty:'}</span>
                     <input
                       type="number"
                       min={1}
@@ -908,7 +923,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                       }}
                       className="h-7 w-14 rounded-lg border border-cyan-500/50 bg-slate-900 px-2 text-center font-mono text-xs font-bold text-cyan-200"
                     />
-                    <span className="text-[11px] text-slate-400">{'개'}</span>
+                    <span className="text-[11px] text-slate-400">{'pcs'}</span>
                   </div>
 
                   <button
@@ -920,7 +935,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                     className="inline-flex items-center gap-1 rounded-lg border border-cyan-400/60 bg-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-200 hover:bg-cyan-500/30"
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    {`+${addSkuQty}개 추가`}
+                    {`+${addSkuQty} Add`}
                   </button>
 
                   <button
@@ -935,7 +950,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                     }}
                     className="inline-flex items-center gap-1 rounded-lg border border-emerald-400/60 bg-emerald-500/20 px-3 py-1.5 text-xs font-bold text-emerald-200 hover:bg-emerald-500/30"
                   >
-                    {`정확히 ${addSkuQty}개로 설정`}
+                    {`Set Exact (${addSkuQty} pcs)`}
                   </button>
                 </div>
               </div>
@@ -946,28 +961,28 @@ export const Plan2DBoxInspectorModal: React.FC<
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
                   <PackagePlus className="h-3.5 w-3.5" />
-                  {`5. 새 맞춤 박스 / 내용 구성품 직접 생성 및 개수 지정 적재`}
+                  {`5. Create & Pack Custom Box / Content Item with Quantity`}
                 </h3>
                 <span className="text-[10px] text-slate-400">
-                  {'선반보다 큰 박스나 많은 개수를 입력하면 선반이 자동 확장됩니다'}
+                  {'Shelf dimensions auto-expand if box size or count exceeds current capacity'}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 text-[11px] sm:grid-cols-6">
                 <label className="col-span-2 flex flex-col gap-1">
-                  <span className="text-slate-400">{'구성품 / 박스 이름'}</span>
+                  <span className="text-slate-400">{'Item / Box Name'}</span>
                   <input
                     type="text"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
-                    placeholder="예: 부품 박스 A"
+                    placeholder="e.g. Custom Part Box A"
                     className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-white"
                   />
                 </label>
 
                 <label className="flex flex-col gap-1">
                   <span className="font-bold text-emerald-300">
-                    {'넣을 개수 (개)'}
+                    {'Quantity (pcs)'}
                   </span>
                   <input
                     type="number"
@@ -988,7 +1003,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                 </label>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-slate-400">{'가로 L (cm)'}</span>
+                  <span className="text-slate-400">{'Length L (cm)'}</span>
                   <input
                     type="number"
                     min={5}
@@ -1005,7 +1020,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                 </label>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-slate-400">{'세로 W (cm)'}</span>
+                  <span className="text-slate-400">{'Width W (cm)'}</span>
                   <input
                     type="number"
                     min={5}
@@ -1022,7 +1037,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                 </label>
 
                 <label className="flex flex-col gap-1">
-                  <span className="text-slate-400">{'높이 H (cm)'}</span>
+                  <span className="text-slate-400">{'Height H (cm)'}</span>
                   <input
                     type="number"
                     min={5}
@@ -1042,7 +1057,7 @@ export const Plan2DBoxInspectorModal: React.FC<
               <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2 text-[11px]">
                   <label className="inline-flex items-center gap-1">
-                    <span className="text-slate-400">{'개당 무게(kg):'}</span>
+                    <span className="text-slate-400">{'Unit Weight (kg):'}</span>
                     <input
                       type="number"
                       step={0.5}
@@ -1063,15 +1078,15 @@ export const Plan2DBoxInspectorModal: React.FC<
                   </label>
 
                   <label className="inline-flex items-center gap-1">
-                    <span className="text-slate-400">{'등급:'}</span>
+                    <span className="text-slate-400">{'Class:'}</span>
                     <select
                       value={customAbc}
                       onChange={(e) => setCustomAbc(e.target.value as ABCClass)}
                       className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-white"
                     >
-                      <option value="A">Class A (고빈도)</option>
-                      <option value="B">Class B (중빈도)</option>
-                      <option value="C">Class C (저빈도)</option>
+                      <option value="A">Class A (Fast Pick)</option>
+                      <option value="B">Class B (Medium)</option>
+                      <option value="C">Class C (Reserve)</option>
                     </select>
                   </label>
 
@@ -1097,7 +1112,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                   onClick={() => {
                     onPlaceCustomBoxInBin({
                       binId: activeBin.bin.id,
-                      name: customName.trim() || '구성품 박스',
+                      name: customName.trim() || 'Custom Cargo Box',
                       lengthCm: customL,
                       widthCm: customW,
                       heightCm: customH,
@@ -1111,7 +1126,7 @@ export const Plan2DBoxInspectorModal: React.FC<
                   className="inline-flex items-center gap-1.5 rounded-lg border border-amber-400/60 bg-amber-500/25 px-3.5 py-1.5 text-xs font-bold text-amber-200 transition hover:bg-amber-500/35"
                 >
                   <PackagePlus className="h-3.5 w-3.5" />
-                  {`+ [${activeBin.bin.id}] 선반에 ${customQty}개 생성·적재`}
+                  {`+ Pack ${customQty} pcs into [${activeBin.bin.id}]`}
                 </button>
               </div>
             </div>

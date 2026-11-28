@@ -3474,9 +3474,9 @@ export function App() {
                         setPlan2DBoxModalOpen(true);
                       }}
                       className="inline-flex items-center gap-1 rounded border border-emerald-400/60 bg-emerald-500/20 px-2 py-0.5 font-bold text-emerald-200 hover:bg-emerald-500/30"
-                      title="3D 카메라 줌 없이 새 창을 열어 선반별 박스 개수와 내부 구성품 개수를 확인·조절합니다"
+                      title="Open 2D Box & Content Item Count Window without triggering 3D camera zoom"
                     >
-                      {'📦 박스·구성품 개수 창'}
+                      {'📦 Box & Item Counts'}
                     </button>
                     <button
                       type="button"
