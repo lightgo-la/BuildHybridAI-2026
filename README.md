@@ -21,7 +21,7 @@
 
 <img width="2456" height="1252" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/6148c26f-b509-4622-80e3-bd35a09a99f4" />
 
-**(https://youtu.be/VUHSq6-An3o?si=oqS1yGDDfbLso3XG)**
+▶️ Watch the Demo Video: https://youtu.be/VUHSq6-An3o?si=oqS1yGDDfbLso3XG
 ---
 
 ## Key Features
