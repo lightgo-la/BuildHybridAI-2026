@@ -547,6 +547,16 @@ test('Custom pick route and return-to-depot option dynamically update pickRoute 
     resWithReturn.kpis.avgCycleTimeSec > resNoReturn.kpis.avgCycleTimeSec,
     `Enabling routeReturnToDepot (${resWithReturn.kpis.avgCycleTimeSec}s) should add return leg time above one-way route (${resNoReturn.kpis.avgCycleTimeSec}s)`
   );
+
+  const resCleared = runOptimized3DSlotting(bins, sampleSkus, {
+    ...sampleConfig,
+    customRouteBinIds: [],
+  });
+  assert.equal(
+    resCleared.pickRoute.length,
+    0,
+    'Setting customRouteBinIds to [] must clear the entire pick route (0 stops)'
+  );
 });
 
 test('10,000-Iteration QC Invariant Suite: 3D bin boundaries, zero intra-bin AABB overlap, weight/NIOSH limits, unit conservation, and 3D shelf collision physics', () => {

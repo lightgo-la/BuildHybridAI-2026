@@ -811,7 +811,7 @@ function evaluateAllocations(
     .filter((a): a is BinAllocation => Boolean(a));
 
   let orderedHotBins = hotBinsRaw;
-  if (customRouteAllocs.length > 0) {
+  if (config.customRouteBinIds !== undefined) {
     orderedHotBins = customRouteAllocs;
   } else if (mode === 'optimized_3d' && hotBinsRaw.length > 1) {
     const remaining = [...hotBinsRaw];

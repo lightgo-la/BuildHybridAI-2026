@@ -3422,12 +3422,28 @@ export function App() {
                             ...prev,
                             customRouteBinIds: undefined,
                           }));
+                          setAnimateRoute(true);
                           showToast('Reset Pick Route to Auto Top-Wave');
                         }}
                         className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-300 hover:text-white"
                         title="Reset custom route to default wave"
                       >
                         {'Auto'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          pushWorkspaceUndo();
+                          setConfigPatch((prev) => ({
+                            ...prev,
+                            customRouteBinIds: [],
+                          }));
+                          showToast('Cleared entire Pick Route (0 stops)');
+                        }}
+                        className="rounded bg-rose-500/20 px-1.5 py-0.5 font-semibold text-rose-300 hover:bg-rose-500/35"
+                        title="Cancel and clear all stops from Pick Route (or Right-Click on 2D Plan)"
+                      >
+                        {'✕ Clear All'}
                       </button>
                     </div>
 
@@ -3940,6 +3956,18 @@ export function App() {
                             );
                           }
                         }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (shownResult.pickRoute.length > 0) {
+                            pushWorkspaceUndo();
+                            setConfigPatch((prev) => ({
+                              ...prev,
+                              customRouteBinIds: [],
+                            }));
+                            showToast('Cleared entire Pick Route (0 stops)');
+                          }
+                        }}
                         onClick={(e) => {
                           if (plan2DDidDragRef.current) {
                             plan2DDidDragRef.current = false;
@@ -4195,8 +4223,7 @@ export function App() {
 
                           const toggleRouteStopForStack = () => {
                             const curRoute =
-                              config.customRouteBinIds &&
-                              config.customRouteBinIds.length > 0
+                              config.customRouteBinIds !== undefined
                                 ? [...config.customRouteBinIds]
                                 : shownResult.pickRoute.map((w) => w.binId);
                             const existingIdx = curRoute.findIndex((id) =>
@@ -4213,9 +4240,31 @@ export function App() {
                             }));
                             showToast(
                               existingIdx !== -1
-                                ? `Removed [${targetAlloc.bin.id}] from Pick Route`
+                                ? nextRoute.length === 0
+                                  ? 'Cleared entire Pick Route (0 stops)'
+                                  : `Removed [${targetAlloc.bin.id}] from Pick Route`
                                 : `Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`
                             );
+                          };
+
+                          const clearAllRouteStops = () => {
+                            if (shownResult.pickRoute.length > 0) {
+                              pushWorkspaceUndo();
+                              setConfigPatch((prev) => ({
+                                ...prev,
+                                customRouteBinIds: [],
+                              }));
+                              showToast('Cleared entire Pick Route (0 stops)');
+                            } else {
+                              pushWorkspaceUndo();
+                              setConfigPatch((prev) => ({
+                                ...prev,
+                                customRouteBinIds: [targetAlloc.bin.id],
+                              }));
+                              showToast(
+                                `Added [${targetAlloc.bin.id}] as Route Stop #1`
+                              );
+                            }
                           };
 
                           return (
@@ -4264,7 +4313,7 @@ export function App() {
                               onContextMenu={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                toggleRouteStopForStack();
+                                clearAllRouteStops();
                               }}
                             >
                               {isSelectedStack && (

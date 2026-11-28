@@ -361,9 +361,7 @@ export function buildWarehousePromptContext(
     ? `Focused Bin ${selectedBin.bin.id}: elevation=${selectedBin.bin.zMeters}m, goldenZone=${selectedBin.bin.isGoldenZone}, cubicUtil=${selectedBin.cubicUtilizationPct.toFixed(1)}%, weight=${selectedBin.currentWeightKg.toFixed(1)}/${selectedBin.bin.maxWeightKg}kg, safetyViolation=${selectedBin.safetyViolation}, SKUs=[${selectedBin.boxes.map((x) => `${x.skuCode}(${x.lengthCm}x${x.widthCm}x${x.heightCm}cm,${x.weightKg}kg)`).join(', ')}]`
     : 'No single bin focused.';
 
-  const isCustomRoute = Boolean(
-    config.customRouteBinIds && config.customRouteBinIds.length > 0
-  );
+  const isCustomRoute = config.customRouteBinIds !== undefined;
   const routeModeLabel = isCustomRoute
     ? `User Custom Pick Route (${config.customRouteBinIds!.length} stops${config.routeReturnToDepot ? ', Return-to-Depot ON' : ''})`
     : 'Auto 3D TSP Pick Route';
