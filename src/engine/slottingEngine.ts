@@ -13,7 +13,7 @@ import type {
   ZLevelSummary,
 } from '../types/warehouse';
 
-const LEVEL_HEIGHTS_M = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95];
+const LEVEL_HEIGHTS_M = [0.05, 0.85, 1.61, 2.38, 3.15, 3.95];
 const LEVEL_MAX_WEIGHTS_KG = [1200, 750, 600, 420, 280, 200];
 const DEFAULT_BIN_L_CM = 120;
 const DEFAULT_BIN_W_CM = 90;
@@ -23,6 +23,7 @@ const DEFAULT_BAY_SPACING_M = 1.45;
 
 export function generateWarehouseBins(config: WarehouseConfig): BinSpec[] {
   const bins: BinSpec[] = [];
+  const disabledSet = new Set(config.disabledBinIds ?? []);
   const binLengthCm = config.binLengthCm ?? DEFAULT_BIN_L_CM;
   const binWidthCm = config.binWidthCm ?? DEFAULT_BIN_W_CM;
   const binHeightCm = config.binHeightCm ?? DEFAULT_BIN_H_CM;
@@ -40,8 +41,10 @@ export function generateWarehouseBins(config: WarehouseConfig): BinSpec[] {
   for (let a = 1; a <= config.aisles; a++) {
     for (let b = 1; b <= config.baysPerAisle; b++) {
       const customPitchM =
-        binHeightCm > 72 ? Number((binHeightCm / 100 + 0.12).toFixed(2)) : null;
+        binHeightCm > 70 ? Number((binHeightCm / 100 + 0.12).toFixed(2)) : null;
       for (let l = 1; l <= config.levels; l++) {
+        const id = `A${a}-B${b}-Z${l}`;
+        if (disabledSet.has(id)) continue;
         const zMeters =
           customPitchM !== null
             ? Number((0.05 + (l - 1) * customPitchM).toFixed(2))
@@ -51,7 +54,7 @@ export function generateWarehouseBins(config: WarehouseConfig): BinSpec[] {
           zMeters >= config.goldenZoneMinM && zMeters <= config.goldenZoneMaxM;
 
         bins.push({
-          id: `A${a}-B${b}-Z${l}`,
+          id,
           aisle: a,
           bay: b,
           level: l,
@@ -118,7 +121,7 @@ export function resolveShelfCollisions3D(
   const movedSet = new Set(movedBinIds);
   const working = inputBins.map((b) => ({ ...b }));
   const clearanceXY = 0.08;
-  const clearanceZ = 0.08;
+  const clearanceZ = 0.06;
 
   // Phase 1: Group bins that belong to the same vertical rack column (distinct Z levels at same X-Y center)
   // If a moved single bin lands on the exact same (X, Y) and same level as an existing bin, separate it horizontally
@@ -279,6 +282,25 @@ export function resolveShelfCollisions3D(
     for (let otherIdx = 0; otherIdx < colGroups.length; otherIdx++) {
       if (otherIdx === idx) continue;
       const other = colGroups[otherIdx];
+      let zConflict = g.memberIndices.length > 1 || other.memberIndices.length > 1;
+      if (!zConflict) {
+        for (const idxA of g.memberIndices) {
+          const bA = working[idxA];
+          const minZA = bA.zMeters - clearanceZ * 0.5;
+          const maxZA = bA.zMeters + bA.binHeightCm / 100 + clearanceZ * 0.5;
+          for (const idxB of other.memberIndices) {
+            const bB = working[idxB];
+            const minZB = bB.zMeters - clearanceZ * 0.5;
+            const maxZB = bB.zMeters + bB.binHeightCm / 100 + clearanceZ * 0.5;
+            if (Math.min(maxZA, maxZB) - Math.max(minZA, minZB) > 0.001) {
+              zConflict = true;
+              break;
+            }
+          }
+          if (zConflict) break;
+        }
+      }
+      if (!zConflict) continue;
       if (
         Math.abs(testX - other.cx) <
           g.halfX + other.halfX + clearanceXY - 0.002 &&
@@ -345,10 +367,7 @@ export function resolveShelfCollisions3D(
         const minSafeZ = Number(
           (prevBin.zMeters + prevBin.binHeightCm / 100 + clearanceZ).toFixed(2)
         );
-        const defaultZ =
-          LEVEL_HEIGHTS_M[bin.level - 1] ??
-          Number(((bin.level - 1) * 0.82 + 0.05).toFixed(2));
-        bin.zMeters = Math.max(bin.zMeters, defaultZ, minSafeZ);
+        bin.zMeters = Math.max(bin.zMeters, minSafeZ);
       }
       bin.isGoldenZone =
         bin.zMeters >= config.goldenZoneMinM &&
@@ -420,9 +439,9 @@ function hasPhysicalSupport(
   enforceWeightStability: boolean,
   boxes: PackedBox[]
 ): boolean {
-  if (z === 0) return true;
   const baseArea = l * w;
   if (baseArea <= 0) return false;
+  if (z === 0) return true;
 
   let supportedArea = 0;
   for (const b of boxes) {
@@ -431,8 +450,33 @@ function hasPhysicalSupport(
     const overlapY = Math.max(0, Math.min(y + w, b.yCm + b.widthCm) - Math.max(y, b.yCm));
     if (overlapX > 0 && overlapY > 0) {
       if (b.fragile) return false;
-      if (enforceWeightStability && candidateWeightKg > b.weightKg * 1.45) {
-        return false;
+      if (enforceWeightStability) {
+        if (candidateWeightKg > b.weightKg * 1.45) {
+          return false;
+        }
+        const bTop = b.zCm + b.heightCm;
+        let overheadLoadOnB =
+          candidateWeightKg * ((overlapX * overlapY) / baseArea);
+        for (const upper of boxes) {
+          if (upper.zCm < bTop - 0.01) continue;
+          const ux = Math.max(
+            0,
+            Math.min(upper.xCm + upper.lengthCm, b.xCm + b.lengthCm) -
+              Math.max(upper.xCm, b.xCm)
+          );
+          const uy = Math.max(
+            0,
+            Math.min(upper.yCm + upper.widthCm, b.yCm + b.widthCm) -
+              Math.max(upper.yCm, b.yCm)
+          );
+          if (ux > 0 && uy > 0) {
+            const upperArea = Math.max(1, upper.lengthCm * upper.widthCm);
+            overheadLoadOnB += upper.weightKg * ((ux * uy) / upperArea);
+          }
+        }
+        if (overheadLoadOnB > b.weightKg * 2.2) {
+          return false;
+        }
       }
       supportedArea += overlapX * overlapY;
     }
@@ -446,6 +490,14 @@ function tryPackIntoBin(
   allowRotation: boolean,
   bestFitMode = false
 ): PackedBox | null {
+  if (
+    sku.lengthCm <= 0 ||
+    sku.widthCm <= 0 ||
+    sku.heightCm <= 0 ||
+    sku.weightKg < 0
+  ) {
+    return null;
+  }
   if (alloc.currentWeightKg + sku.weightKg > alloc.bin.maxWeightKg) {
     return null;
   }
@@ -587,7 +639,7 @@ export function computeCycleTimeSec(
 ): number {
   const depotX = depotXMeters ?? ((Math.max(1, aisles) - 1) * aisleSpacingM) / 2;
   const depotY = depotYMeters ?? 0;
-  const corridorY = Math.min(depotY + 0.75, 0.85);
+  const corridorY = depotY + 0.75;
   const horizontalDist = computeAisleTravelDistanceM(
     depotX,
     depotY,
@@ -603,6 +655,14 @@ export function computeCycleTimeSec(
       const dist = Math.hypot(bin.xMeters - obs.xMeters, bin.yMeters - obs.yMeters);
       if (dist < 1.15) {
         obstacleDetourSec += 1.8;
+        break;
+      }
+      const inSameAisle = Math.abs(bin.xMeters - obs.xMeters) < 0.45;
+      const blocksAislePath =
+        (obs.yMeters > corridorY && obs.yMeters < bin.yMeters) ||
+        (obs.yMeters < corridorY && obs.yMeters > bin.yMeters);
+      if (inSameAisle && blocksAislePath) {
+        obstacleDetourSec += 0.9;
         break;
       }
     }
@@ -723,9 +783,9 @@ function evaluateAllocations(
   );
 
   const avgZ =
-    occupied.length > 0
+    occupied.length > 0 && totalPickLoad > 0
       ? occupied.reduce((acc, a) => acc + a.bin.zMeters * a.dailyPickLoad, 0) /
-        Math.max(1, totalPickLoad)
+        totalPickLoad
       : 1;
 
   const idealPerOccupied = totalPickLoad / Math.max(1, occupied.length);
@@ -743,7 +803,7 @@ function evaluateAllocations(
     ((Math.max(1, config.aisles) - 1) * (config.aisleSpacingM ?? DEFAULT_AISLE_SPACING_M)) /
       2;
   const depotY = config.depotYMeters ?? 0;
-  const corridorY = Math.min(depotY + 0.75, 0.85);
+  const corridorY = depotY + 0.75;
 
   const allocById = new Map(allocations.map((a) => [a.bin.id, a]));
   const customRouteAllocs = (config.customRouteBinIds ?? [])
@@ -829,9 +889,10 @@ function evaluateAllocations(
             depotY,
             corridorY
           );
+          const returnVert = prevZ;
           return config.equipmentMode === 'asrs_crane'
-            ? returnDist / 2.6 + 0.8
-            : returnDist / 1.9 + 1.0;
+            ? Math.max(returnDist / 2.6, returnVert / 1.35) + 0.8
+            : returnDist / 1.9 + returnVert / 0.55 + 1.0;
         })()
       : 0;
   const effectiveCycleTimeSec =
@@ -897,7 +958,8 @@ function applyPinnedPlacements(
   pinnedPlacements: PinnedCargoPlacement[],
   allowRotation: boolean,
   bestFitMode = false,
-  unplacedMap?: Map<string, UnplacedItemDetail>
+  unplacedMap?: Map<string, UnplacedItemDetail>,
+  heavyCutoffKg?: number
 ): { remainingSkus: SKUItem[]; unplacedPinned: number } {
   if (pinnedPlacements.length === 0) {
     return { remainingSkus: skus, unplacedPinned: 0 };
@@ -913,12 +975,50 @@ function applyPinnedPlacements(
     const sku = skuMap.get(pin.skuId);
     if (!alloc || !sku) continue;
 
+    if (
+      heavyCutoffKg !== undefined &&
+      sku.weightKg > heavyCutoffKg &&
+      alloc.bin.level >= 3
+    ) {
+      // Redirect Z3+ heavy pins to safe lower levels (Z1-Z2) in the same column or let optimizer place safely
+      const safeColAlloc = allocations
+        .filter(
+          (a) =>
+            a.bin.level <= 2 &&
+            (Math.hypot(
+              a.bin.xMeters - alloc.bin.xMeters,
+              a.bin.yMeters - alloc.bin.yMeters
+            ) < 0.35 ||
+              (a.bin.aisle === alloc.bin.aisle && a.bin.bay === alloc.bin.bay))
+        )
+        .sort((a, b) => a.bin.level - b.bin.level)[0];
+      if (!safeColAlloc) {
+        continue;
+      }
+      for (let i = 0; i < pin.count; i++) {
+        const avail = remainingQty.get(sku.id) ?? 0;
+        if (avail <= 0) break;
+        const packed = tryPackIntoBin(
+          safeColAlloc,
+          sku,
+          allowRotation,
+          bestFitMode
+        );
+        if (packed) {
+          remainingQty.set(sku.id, avail - 1);
+        }
+      }
+      continue;
+    }
+
     for (let i = 0; i < pin.count; i++) {
       const avail = remainingQty.get(sku.id) ?? 0;
       if (avail <= 0) break;
       const packed = tryPackIntoBin(alloc, sku, allowRotation, bestFitMode);
-      remainingQty.set(sku.id, avail - 1);
-      if (!packed) {
+      if (packed) {
+        remainingQty.set(sku.id, avail - 1);
+      } else if (bestFitMode) {
+        remainingQty.set(sku.id, avail - 1);
         unplacedPinned++;
         if (unplacedMap) {
           const reason: UnplacedItemDetail['reason'] =
@@ -1033,7 +1133,8 @@ export function runOptimized3DSlotting(
     pinnedPlacements,
     allowRotation,
     true,
-    unplacedMap
+    unplacedMap,
+    heavyCutoffKg
   );
 
   const prioritizedUnits: SKUItem[] = [];
@@ -1104,8 +1205,8 @@ export function runOptimized3DSlotting(
           if (bin.isGoldenZone) score += 45;
           else if (bin.level === 4) score += 25;
         } else {
-          if (bin.level >= 4 && sku.weightKg <= 12) score += 75;
-          if (bin.isGoldenZone) score -= 55;
+          if (bin.isGoldenZone) score -= 95;
+          else if (bin.level >= 4 && sku.weightKg <= 12) score += 75;
         }
 
         if (sku.weightKg > heavyCutoffKg && bin.level === 1) {
@@ -1142,8 +1243,13 @@ export function runOptimized3DSlotting(
     }
     if (!placed) {
       unplacedUnits++;
+      const hasWeightCapableBin = allocations.some(
+        (a) =>
+          (sku.weightKg <= heavyCutoffKg || a.bin.level <= 2) &&
+          a.currentWeightKg + sku.weightKg <= a.bin.maxWeightKg
+      );
       const reason: UnplacedItemDetail['reason'] =
-        sku.weightKg > heavyCutoffKg || scoredBins.length === 0
+        !hasWeightCapableBin || scoredBins.length === 0
           ? 'weight_or_safety_limit'
           : 'volume_full';
       recordUnplaced(unplacedMap, sku, 1, reason);
@@ -1181,11 +1287,28 @@ export function computeZLevelBreakdown(
         : 0;
     const levelPickLoad = levelBins.reduce((acc, a) => acc + a.dailyPickLoad, 0);
     const safetyViolations = levelBins.filter((a) => a.safetyViolation).length;
+    const defaultZ =
+      LEVEL_HEIGHTS_M[level - 1] ??
+      Number(((level - 1) * 0.82 + 0.05).toFixed(2));
+    const repZMeters =
+      levelBins.length > 0
+        ? Number(
+            (
+              levelBins.reduce((s, a) => s + a.bin.zMeters, 0) /
+              levelBins.length
+            ).toFixed(2)
+          )
+        : defaultZ;
+    const isGolden =
+      levelBins.length > 0
+        ? levelBins.some((a) => a.bin.isGoldenZone)
+        : repZMeters >= config.goldenZoneMinM &&
+          repZMeters <= config.goldenZoneMaxM;
 
     summaries.push({
       level,
-      zMeters: levelBins[0]?.bin.zMeters ?? 0,
-      isGoldenZone: Boolean(levelBins[0]?.bin.isGoldenZone),
+      zMeters: repZMeters,
+      isGoldenZone: isGolden,
       totalBins: levelBins.length,
       occupiedBins: occupied.length,
       avgCubicPct: Number(avgCubicPct.toFixed(1)),
@@ -1207,6 +1330,7 @@ export function buildExactBinSkuPins(
   exactCount: number
 ): { nextPins: PinnedCargoPlacement[]; totalPinnedForSku: number } {
   const sanitizedCount = Math.max(0, Math.min(200, Math.round(exactCount)));
+  const validBinIds = new Set(allocations.map((a) => a.bin.id));
   const currentCounts = new Map<string, number>();
 
   for (const alloc of allocations) {
@@ -1217,7 +1341,12 @@ export function buildExactBinSkuPins(
   }
 
   for (const p of prevPins) {
-    if (p.skuId === skuId && p.count > 0 && !currentCounts.has(p.binId)) {
+    if (
+      p.skuId === skuId &&
+      p.count > 0 &&
+      validBinIds.has(p.binId) &&
+      !currentCounts.has(p.binId)
+    ) {
       currentCounts.set(p.binId, p.count);
     }
   }
@@ -1228,7 +1357,9 @@ export function buildExactBinSkuPins(
     currentCounts.set(targetBinId, sanitizedCount);
   }
 
-  const otherSkuPins = prevPins.filter((p) => p.skuId !== skuId);
+  const otherSkuPins = prevPins.filter(
+    (p) => p.skuId !== skuId && (validBinIds.size === 0 || validBinIds.has(p.binId))
+  );
   const updatedSkuPins: PinnedCargoPlacement[] = [];
   let totalPinnedForSku = 0;
 
@@ -1259,6 +1390,7 @@ export function buildTransferredSkuPins(
   skuId: string,
   transferCount: number | 'all' = 1
 ): { nextPins: PinnedCargoPlacement[]; movedCount: number } {
+  const validBinIds = new Set(allocations.map((a) => a.bin.id));
   const currentCounts = new Map<string, number>();
   for (const alloc of allocations) {
     const cnt = alloc.boxes.filter((b) => b.skuId === skuId).length;
@@ -1267,19 +1399,31 @@ export function buildTransferredSkuPins(
     }
   }
 
-  if (currentCounts.size === 0) {
-    for (const p of prevPins) {
-      if (p.skuId === skuId && p.count > 0) {
-        currentCounts.set(p.binId, (currentCounts.get(p.binId) ?? 0) + p.count);
-      }
+  for (const p of prevPins) {
+    if (
+      p.skuId === skuId &&
+      p.count > 0 &&
+      (validBinIds.size === 0 || validBinIds.has(p.binId)) &&
+      !currentCounts.has(p.binId)
+    ) {
+      currentCounts.set(p.binId, p.count);
     }
   }
 
   const fromCount = currentCounts.get(fromBinId) ?? 0;
+  if (fromCount <= 0) {
+    return {
+      nextPins: prevPins.filter(
+        (p) => validBinIds.size === 0 || validBinIds.has(p.binId)
+      ),
+      movedCount: 0,
+    };
+  }
+
   const actualMove =
     transferCount === 'all'
-      ? Math.max(1, fromCount)
-      : Math.max(1, Math.min(fromCount || 1, transferCount));
+      ? fromCount
+      : Math.max(1, Math.min(fromCount, transferCount));
 
   if (fromCount <= actualMove) {
     currentCounts.delete(fromBinId);
@@ -1291,7 +1435,9 @@ export function buildTransferredSkuPins(
     currentCounts.set(toBinId, (currentCounts.get(toBinId) ?? 0) + actualMove);
   }
 
-  const otherSkuPins = prevPins.filter((p) => p.skuId !== skuId);
+  const otherSkuPins = prevPins.filter(
+    (p) => p.skuId !== skuId && (validBinIds.size === 0 || validBinIds.has(p.binId))
+  );
   const updatedSkuPins: PinnedCargoPlacement[] = [];
 
   if (toBinId && currentCounts.has(toBinId)) {

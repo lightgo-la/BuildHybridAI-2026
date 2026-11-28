@@ -27,19 +27,33 @@ function buildOrthogonalPlanRoute2D(
   depotY: number,
   returnToDepot = true
 ): Array<{ x: number; y: number }> {
-  const corridorY = Math.min(depotY + 0.75, 0.85);
+  const minStopY =
+    pickRoute.length > 0
+      ? Math.min(...pickRoute.map((p) => p.yMeters))
+      : depotY + 1.8;
+  const corridorY =
+    minStopY > depotY + 0.4
+      ? Math.min(depotY + 0.75, minStopY - 0.25)
+      : depotY + 0.75;
   const pts: Array<{ x: number; y: number }> = [{ x: depotX, y: depotY }];
   let curX = depotX;
   let curY = depotY;
 
   const pushTransition = (nextX: number, nextY: number) => {
     if (Math.abs(nextX - curX) >= 0.35) {
-      if (curY > corridorY + 0.1) {
+      if (Math.abs(curY - corridorY) > 0.01) {
         pts.push({ x: curX, y: corridorY });
       }
       pts.push({ x: nextX, y: corridorY });
+      if (Math.abs(nextY - corridorY) > 0.01) {
+        pts.push({ x: nextX, y: nextY });
+      }
+    } else if (Math.abs(nextX - curX) > 0.01 && Math.abs(nextY - curY) > 0.01) {
+      pts.push({ x: nextX, y: curY });
+      pts.push({ x: nextX, y: nextY });
+    } else {
+      pts.push({ x: nextX, y: nextY });
     }
-    pts.push({ x: nextX, y: nextY });
     curX = nextX;
     curY = nextY;
   };
@@ -100,6 +114,12 @@ function dxfRect(
     String(color),
     '66',
     '1',
+    '10',
+    '0.0000',
+    '20',
+    '0.0000',
+    '30',
+    '0.0000',
     '70',
     '1',
     '0',
@@ -110,6 +130,8 @@ function dxfRect(
     x1.toFixed(4),
     '20',
     y1.toFixed(4),
+    '30',
+    '0.0000',
     '0',
     'VERTEX',
     '8',
@@ -118,6 +140,8 @@ function dxfRect(
     x2.toFixed(4),
     '20',
     y1.toFixed(4),
+    '30',
+    '0.0000',
     '0',
     'VERTEX',
     '8',
@@ -126,6 +150,8 @@ function dxfRect(
     x2.toFixed(4),
     '20',
     y2.toFixed(4),
+    '30',
+    '0.0000',
     '0',
     'VERTEX',
     '8',
@@ -134,6 +160,8 @@ function dxfRect(
     x1.toFixed(4),
     '20',
     y2.toFixed(4),
+    '30',
+    '0.0000',
     '0',
     'SEQEND',
   ].join('\n');
@@ -158,11 +186,25 @@ function dxfLine(
     x1.toFixed(4),
     '20',
     y1.toFixed(4),
+    '30',
+    '0.0000',
     '11',
     x2.toFixed(4),
     '21',
     y2.toFixed(4),
+    '31',
+    '0.0000',
   ].join('\n');
+}
+
+function sanitizeDxfAscii(text: string): string {
+  return text
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/[·•]/g, '-')
+    .replace(/[×✕]/g, 'x')
+    .replace(/[—–]/g, '-')
+    .replace(/★/g, '*')
+    .replace(/[^\x20-\x7E]/g, '');
 }
 
 function dxfText(
@@ -173,7 +215,7 @@ function dxfText(
   height: number,
   text: string
 ): string {
-  const safe = text.replace(/[\r\n]/g, ' ');
+  const safe = sanitizeDxfAscii(text);
   return [
     '0',
     'TEXT',
@@ -185,6 +227,8 @@ function dxfText(
     x.toFixed(4),
     '20',
     y.toFixed(4),
+    '30',
+    '0.0000',
     '40',
     height.toFixed(3),
     '1',
@@ -215,6 +259,31 @@ export function generateWarehouseDXF(
     ['PICK_ROUTE', 2],
     ['ANNOTATIONS', 7],
   ];
+
+  const ltypeTable = [
+    '0',
+    'TABLE',
+    '2',
+    'LTYPE',
+    '70',
+    '1',
+    '0',
+    'LTYPE',
+    '2',
+    'CONTINUOUS',
+    '70',
+    '0',
+    '3',
+    'Solid line',
+    '72',
+    '65',
+    '73',
+    '0',
+    '40',
+    '0.0',
+    '0',
+    'ENDTAB',
+  ].join('\n');
 
   const layerTable = [
     '0',
@@ -295,9 +364,13 @@ export function generateWarehouseDXF(
   }
 
   const colTotalBoxes = new Map<string, number>();
+  const colHasSafetyHazard = new Set<string>();
+  const colHasGoldenAligned = new Set<string>();
   for (const a of allocations) {
     const colKey = `${a.bin.xMeters.toFixed(2)},${a.bin.yMeters.toFixed(2)}`;
     colTotalBoxes.set(colKey, (colTotalBoxes.get(colKey) ?? 0) + a.boxes.length);
+    if (a.safetyViolation) colHasSafetyHazard.add(colKey);
+    if (a.goldenZoneAligned) colHasGoldenAligned.add(colKey);
   }
 
   const planBins =
@@ -313,6 +386,7 @@ export function generateWarehouseDXF(
             }
             const scoreAlloc = (x: BinAllocation) =>
               (x.boxes.length > 0 ? 1000 : 0) +
+              (x.safetyViolation ? 500 : 0) +
               (x.bin.isGoldenZone ? 300 : 0) +
               x.dailyPickLoad;
             if (scoreAlloc(a) > scoreAlloc(cur)) {
@@ -351,9 +425,18 @@ export function generateWarehouseDXF(
       }
     }
 
-    if (alloc.safetyViolation) {
+    const showHazard =
+      options.planLevelFilter === 'all'
+        ? colHasSafetyHazard.has(colKey)
+        : alloc.safetyViolation;
+    const showGolden =
+      options.planLevelFilter === 'all'
+        ? colHasGoldenAligned.has(colKey)
+        : alloc.goldenZoneAligned;
+
+    if (showHazard) {
       entities.push(dxfRect('SAFETY_HAZARD', 1, x1 + 0.02, y1 + 0.02, x2 - 0.02, y2 - 0.02));
-    } else if (alloc.goldenZoneAligned) {
+    } else if (showGolden) {
       entities.push(dxfRect('GOLDEN_ZONE', 3, x1 + 0.02, y1 + 0.02, x2 - 0.02, y2 - 0.02));
     }
 
@@ -383,16 +466,17 @@ export function generateWarehouseDXF(
   }
 
   if (options.includeElevation) {
-    const elevOffsetX = maxX + 3.0;
+    const elevBaseX = maxX + 3.0;
     const elevWidth = maxX - minX;
+    const toElevX = (xM: number) => elevBaseX + (xM - minX);
     entities.push(
-      dxfRect('FLOOR_BOUNDARY', 7, elevOffsetX + minX, 0, elevOffsetX + maxX, maxZ)
+      dxfRect('FLOOR_BOUNDARY', 7, elevBaseX, 0, elevBaseX + elevWidth, maxZ)
     );
     entities.push(
       dxfText(
         'ANNOTATIONS',
         7,
-        elevOffsetX + minX,
+        elevBaseX,
         maxZ + 0.35,
         0.2,
         `Z-AXIS ELEVATION VIEW (Golden Zone: ${config.goldenZoneMinM}m - ${config.goldenZoneMaxM}m)`
@@ -403,9 +487,9 @@ export function generateWarehouseDXF(
       dxfLine(
         'GOLDEN_ZONE',
         3,
-        elevOffsetX + minX,
+        elevBaseX,
         config.goldenZoneMinM,
-        elevOffsetX + minX + elevWidth,
+        elevBaseX + elevWidth,
         config.goldenZoneMinM
       )
     );
@@ -413,9 +497,9 @@ export function generateWarehouseDXF(
       dxfLine(
         'GOLDEN_ZONE',
         3,
-        elevOffsetX + minX,
+        elevBaseX,
         config.goldenZoneMaxM,
-        elevOffsetX + minX + elevWidth,
+        elevBaseX + elevWidth,
         config.goldenZoneMaxM
       )
     );
@@ -431,8 +515,8 @@ export function generateWarehouseDXF(
       const { bin } = alloc;
       const wM = bin.binWidthCm / 100;
       const hM = bin.binHeightCm / 100;
-      const rx1 = elevOffsetX + bin.xMeters - wM / 2;
-      const rx2 = elevOffsetX + bin.xMeters + wM / 2;
+      const rx1 = toElevX(bin.xMeters - wM / 2);
+      const rx2 = toElevX(bin.xMeters + wM / 2);
       const ry1 = bin.zMeters;
       const ry2 = bin.zMeters + hM;
       const layer = alloc.safetyViolation
@@ -450,6 +534,11 @@ export function generateWarehouseDXF(
     }
   }
 
+  const dxfMaxX = options.includeElevation
+    ? maxX + 3.0 + (maxX - minX)
+    : maxX;
+  const dxfMaxY = Math.max(maxY + 1.0, options.includeElevation ? maxZ + 1.0 : maxY);
+
   return [
     '0',
     'SECTION',
@@ -460,15 +549,28 @@ export function generateWarehouseDXF(
     '1',
     'AC1009',
     '9',
-    '$INSUNITS',
-    '70',
-    '6', // meters
+    '$EXTMIN',
+    '10',
+    minX.toFixed(4),
+    '20',
+    Math.min(0, minY).toFixed(4),
+    '30',
+    '0.0000',
+    '9',
+    '$EXTMAX',
+    '10',
+    dxfMaxX.toFixed(4),
+    '20',
+    dxfMaxY.toFixed(4),
+    '30',
+    maxZ.toFixed(4),
     '0',
     'ENDSEC',
     '0',
     'SECTION',
     '2',
     'TABLES',
+    ltypeTable,
     layerTable,
     '0',
     'ENDSEC',
@@ -501,9 +603,11 @@ export function generateWarehouseSVG(
   const planW = (maxX - minX) * scale;
   const planH = (maxY - minY) * scale;
   const elevW = options.includeElevation ? planW : 0;
+  const elevH = options.includeElevation ? maxZ * scale : 0;
+  const contentH = Math.max(planH, elevH, 320);
   const gap = options.includeElevation ? 48 : 0;
   const totalW = Math.round(pad * 2 + planW + gap + elevW);
-  const totalH = Math.round(pad * 2 + Math.max(planH, 320) + 74);
+  const totalH = Math.round(pad * 2 + contentH + 74);
 
   const px = (xM: number) => pad + (xM - minX) * scale;
   const py = (yM: number) => pad + 42 + (maxY - yM) * scale;
@@ -561,12 +665,14 @@ export function generateWarehouseSVG(
   }
 
   const svgColTotalBoxes = new Map<string, number>();
+  const svgColHasHazard = new Set<string>();
   for (const a of allocations) {
     const colKey = `${a.bin.xMeters.toFixed(2)},${a.bin.yMeters.toFixed(2)}`;
     svgColTotalBoxes.set(
       colKey,
       (svgColTotalBoxes.get(colKey) ?? 0) + a.boxes.length
     );
+    if (a.safetyViolation) svgColHasHazard.add(colKey);
   }
 
   const planBins =
@@ -582,6 +688,7 @@ export function generateWarehouseSVG(
             }
             const scoreAlloc = (x: BinAllocation) =>
               (x.boxes.length > 0 ? 1000 : 0) +
+              (x.safetyViolation ? 500 : 0) +
               (x.bin.isGoldenZone ? 300 : 0) +
               x.dailyPickLoad;
             if (scoreAlloc(a) > scoreAlloc(cur)) {
@@ -616,7 +723,11 @@ export function generateWarehouseSVG(
       }
     }
 
-    if (alloc.safetyViolation) {
+    const hasHazard =
+      options.planLevelFilter === 'all'
+        ? svgColHasHazard.has(colKey)
+        : alloc.safetyViolation;
+    if (hasHazard) {
       parts.push(
         `<rect x="${bx + 1}" y="${by + 1}" width="${bw - 2}" height="${bh - 2}" fill="none" stroke="#f43f5e" stroke-width="1.5"/>`
       );
@@ -650,18 +761,18 @@ export function generateWarehouseSVG(
 
   if (options.includeElevation) {
     const ex0 = pad + planW + gap;
-    const eyBottom = pad + 42 + planH;
+    const eyBottom = pad + 42 + Math.max(planH, elevH);
     const ez = (zM: number) => eyBottom - zM * scale;
     const ex = (xM: number) => ex0 + (xM - minX) * scale;
 
     parts.push(
-      `<text x="${ex0}" y="${py(maxY) - 8}" fill="#93c5fd" font-size="11" font-weight="bold">FRONT ELEVATION (X-Z VERTICAL ZONING)</text>`
+      `<text x="${ex0}" y="${ez(maxZ) - 8}" fill="#93c5fd" font-size="11" font-weight="bold">FRONT ELEVATION (X-Z VERTICAL ZONING)</text>`
     );
     parts.push(
       `<rect x="${ex0}" y="${ez(maxZ)}" width="${planW}" height="${maxZ * scale}" fill="rgba(15,23,42,0.35)" stroke="#60a5fa" stroke-width="1.5"/>`
     );
 
-    const gzTop = ez(config.goldenZoneMaxM + 0.5);
+    const gzTop = ez(config.goldenZoneMaxM);
     const gzBottom = ez(config.goldenZoneMinM);
     parts.push(
       `<rect x="${ex0}" y="${gzTop}" width="${planW}" height="${Math.max(10, gzBottom - gzTop)}" fill="rgba(16,185,129,0.16)" stroke="#10b981" stroke-dasharray="4,3" stroke-width="1"/>`

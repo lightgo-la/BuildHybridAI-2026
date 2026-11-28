@@ -9,6 +9,7 @@ import {
   Map as MapIcon,
   Plus,
   Search,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
@@ -69,8 +70,26 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
 
   const activeTemplateImg = useMemo(() => {
     const found = WAREHOUSE_TEMPLATES.find((x) => x.id === activeScenario.id);
-    return found?.imageUrl ?? `/templates/${WAREHOUSE_TEMPLATES[12].id}.png`;
-  }, [activeScenario.id]);
+    if (found?.imageUrl) return found.imageUrl;
+    const scenarioThumbMap: Record<string, string> = {
+      'omni-highbay': '/templates/tpl-pro-ecommerce.png',
+      'asrs-shuttle': '/templates/tpl-pro-asrs.png',
+      'cold-storage': '/templates/tpl-pro-coldchain.png',
+      'heavy-crossdock': '/templates/tpl-pro-crossdock.png',
+      'everyday-home-pantry': '/templates/tpl-life-pantry.png',
+      'everyday-mini-shop': '/templates/tpl-life-convenience.png',
+    };
+    if (scenarioThumbMap[activeScenario.id]) {
+      return scenarioThumbMap[activeScenario.id];
+    }
+    const isEveryday =
+      (activeScenario.config.binLengthCm ?? 120) <= 100 ||
+      activeScenario.id.startsWith('everyday') ||
+      activeScenario.id.startsWith('tpl-life');
+    return isEveryday
+      ? '/templates/tpl-life-pantry.png'
+      : '/templates/tpl-pro-ecommerce.png';
+  }, [activeScenario.id, activeScenario.config.binLengthCm]);
 
   const filteredTemplates = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -148,11 +167,19 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
             </div>
             <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-2.5">
               <div className="flex items-center gap-1 text-[10px] text-slate-400">
-                <ShieldCheck className="h-3 w-3 text-emerald-400" />
+                {o.safetyViolations > 0 ? (
+                  <ShieldAlert className="h-3 w-3 text-rose-400" />
+                ) : (
+                  <ShieldCheck className="h-3 w-3 text-emerald-400" />
+                )}
                 {t(lang, 'kpiSafety')}
               </div>
-              <div className="mt-0.5 text-lg font-bold text-emerald-400">
-                {o.safetyViolations === 0 ? (('Safe (0)')) : o.safetyViolations}
+              <div
+                className={`mt-0.5 text-lg font-bold ${
+                  o.safetyViolations > 0 ? 'text-rose-400' : 'text-emerald-400'
+                }`}
+              >
+                {o.safetyViolations === 0 ? 'Safe (0)' : o.safetyViolations}
               </div>
             </div>
           </div>
@@ -351,6 +378,23 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
           </div>
         </div>
 
+        {filteredTemplates.length === 0 ? (
+          <div className="theme-surface flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-8 text-center">
+            <p className="text-xs text-slate-400">
+              No space templates matched &ldquo;{search}&rdquo; in this category.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setPersonaFilter('all');
+                setSearch('');
+              }}
+              className="rounded-lg border border-cyan-500/40 bg-cyan-500/15 px-3 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/25"
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredTemplates.map((tpl) => {
             const isSelected = tpl.id === activeScenario.id;
@@ -440,6 +484,7 @@ export const EverydayHomeView: React.FC<EverydayHomeViewProps> = ({
             );
           })}
         </div>
+        )}
       </section>
     </div>
   );

@@ -117,14 +117,14 @@ export const KEYBOARD_SHORTCUT_LIST: Array<{
   descEn: string;
 }> = [
   {
-    keyLabel: '1 / 2 / 3',
-    descKo: 'Switch Camera Preset (1: 3D Iso, 2: 2D Top, 3: Z-Elevation)',
-    descEn: 'Switch Camera Preset (1: 3D Iso, 2: 2D Top, 3: Z-Elevation)',
+    keyLabel: '1 / 2 / 3 / 4',
+    descKo: 'Switch Camera Preset (1: 3D Iso, 2: 2D Top, 3: Z-Elevation, 4: Closeup)',
+    descEn: 'Switch Camera Preset (1: 3D Iso, 2: 2D Top, 3: Z-Elevation, 4: Closeup)',
   },
   {
-    keyLabel: 'R',
-    descKo: 'Reset 3D Camera Framing to Center',
-    descEn: 'Reset 3D Camera Framing to Center',
+    keyLabel: 'R / F / A / 0',
+    descKo: 'R: Reset Camera · F: Focus Selected · A: Toggle Auto-Zoom · 0: Show All Z',
+    descEn: 'R: Reset Camera · F: Focus Selected · A: Toggle Auto-Zoom · 0: Show All Z',
   },
   {
     keyLabel: 'Space',
@@ -192,9 +192,9 @@ export const KEYBOARD_SHORTCUT_LIST: Array<{
     descEn: 'Undo / Redo 3D Workspace Edits',
   },
   {
-    keyLabel: '? (or K)',
-    descKo: 'Toggle Keyboard Shortcuts & Interior Studio Modal',
-    descEn: 'Toggle Keyboard Shortcuts & Interior Studio Modal',
+    keyLabel: '? / K / Esc',
+    descKo: '? or K: Shortcuts Guide · Esc: Clear Selection / Close Modal',
+    descEn: '? or K: Shortcuts Guide · Esc: Clear Selection / Close Modal',
   },
 ];
 
@@ -242,10 +242,27 @@ export const InteriorStudioModal: React.FC<InteriorStudioModalProps> = ({
     if (open) setTab(initialTab);
   }, [open, initialTab]);
 
+  React.useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--t-border)] px-5 py-3.5">
           <div className="flex items-center gap-2">

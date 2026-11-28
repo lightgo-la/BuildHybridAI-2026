@@ -323,6 +323,18 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
   settings,
   onChange,
 }) => {
+  React.useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const applyPreset = (preset: Scene3DPreset) => {
@@ -334,7 +346,12 @@ export const Scene3DBackgroundModal: React.FC<Scene3DBackgroundModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
         <div className="flex items-center justify-between border-b border-[var(--t-border)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">

@@ -58,7 +58,8 @@ export function extractBinIdsFromText(text: string): string[] {
 export function deriveRecommendedActions(
   prompt: string,
   _context: string,
-  text: string
+  text: string,
+  config?: WarehouseConfig
 ): HybridAIAction[] {
   const promptLower = prompt.toLowerCase();
   const combined = `${prompt}\n${text}`.toLowerCase();
@@ -137,14 +138,34 @@ export function deriveRecommendedActions(
     },
   ];
 
+  const isAlreadyActive = (act: HybridAIAction): boolean => {
+    if (!config) return false;
+    if (act.kind === 'enable_smart_fit' && config.allowRotationAndCoPack) {
+      return true;
+    }
+    if (act.kind === 'switch_equipment_asrs' && config.equipmentMode === 'asrs_crane') {
+      return true;
+    }
+    if (act.kind === 'apply_preset_safety' && config.optimizationPreset === 'safety') {
+      return true;
+    }
+    if (act.kind === 'apply_preset_speed' && config.optimizationPreset === 'speed') {
+      return true;
+    }
+    if (act.kind === 'apply_preset_density' && config.optimizationPreset === 'density') {
+      return true;
+    }
+    return false;
+  };
+
   for (const cand of candidates) {
     if (cand.regex.test(promptLower)) {
-      actions.push(...cand.items);
+      actions.push(...cand.items.filter((i) => !isAlreadyActive(i)));
     }
   }
   for (const cand of candidates) {
     if (!cand.regex.test(promptLower) && cand.regex.test(combined)) {
-      actions.push(...cand.items);
+      actions.push(...cand.items.filter((i) => !isAlreadyActive(i)));
     }
   }
 
@@ -168,48 +189,53 @@ export function deriveRecommendedActions(
   return deduped.slice(0, 4);
 }
 
+const TEXT_IO_LANGUAGE_OPTIONS = {
+  expectedInputs: [{ type: 'text' as const, languages: ['en'] }],
+  expectedOutputs: [{ type: 'text' as const, languages: ['en'] }],
+};
+
 async function tryDirectChromePromptApi(
   systemText: string,
-  fullPrompt: string
+  fullPrompt: string,
+  signal?: AbortSignal
 ): Promise<string | null> {
   if (typeof window === 'undefined') return null;
+  if (signal?.aborted) return null;
   const win = window as unknown as {
     LanguageModel?: {
       create?: (opts?: unknown) => Promise<{
-        prompt: (input: string) => Promise<string>;
+        prompt: (input: string, opts?: unknown) => Promise<string>;
         destroy?: () => void;
       }>;
     };
-    ai?: {
-      languageModel?: {
-        create?: (opts?: unknown) => Promise<{
-          prompt: (input: string) => Promise<string>;
-          destroy?: () => void;
-        }>;
-      };
-    };
   };
 
+  if (!win.LanguageModel?.create) return null;
+
+  let session: {
+    prompt: (input: string, opts?: unknown) => Promise<string>;
+    destroy?: () => void;
+  } | null = null;
   try {
-    if (win.LanguageModel?.create) {
-      const session = await win.LanguageModel.create({
-        initialPrompts: [{ role: 'system', content: systemText }],
-      });
-      const out = await session.prompt(fullPrompt);
-      session.destroy?.();
-      return out;
-    }
-    if (win.ai?.languageModel?.create) {
-      const session = await win.ai.languageModel.create({
-        systemPrompt: systemText,
-      });
-      const out = await session.prompt(fullPrompt);
-      session.destroy?.();
-      return out;
-    }
+    session = await win.LanguageModel.create({
+      ...TEXT_IO_LANGUAGE_OPTIONS,
+      initialPrompts: [{ role: 'system', content: systemText }],
+      ...(signal ? { signal } : {}),
+    });
+    const out = await session.prompt(
+      fullPrompt,
+      signal ? { signal } : undefined
+    );
+    return out;
   } catch {
+    return null;
+  } finally {
+    try {
+      session?.destroy?.();
+    } catch {
+      // ignore session cleanup error
+    }
   }
-  return null;
 }
 
 export function generateLocalDeterministicAudit(
@@ -265,45 +291,30 @@ export async function checkChromeGeminiNanoStatus(): Promise<ChromeNanoDiagnosti
   }
   const win = window as unknown as {
     LanguageModel?: {
-      availability?: () => Promise<string>;
-      capabilities?: () => Promise<{ available?: string }>;
-    };
-    ai?: {
-      languageModel?: {
-        capabilities?: () => Promise<{ available?: string }>;
-      };
+      availability?: (opts?: unknown) => Promise<string>;
     };
   };
 
   try {
     if (win.LanguageModel?.availability) {
-      const status = await win.LanguageModel.availability();
+      let status: string;
+      try {
+        status = await win.LanguageModel.availability(TEXT_IO_LANGUAGE_OPTIONS);
+      } catch {
+        status = await win.LanguageModel.availability();
+      }
       const normalized =
         status === 'available' || status === 'readily'
           ? 'readily'
-          : status === 'downloadable' || status === 'after-download'
+          : status === 'downloadable' ||
+              status === 'downloading' ||
+              status === 'after-download'
             ? 'after-download'
             : 'unavailable';
       return {
         supportedApi: true,
         availability: normalized,
         detail: `Chrome Prompt API detected (status: ${status})`,
-      };
-    }
-
-    if (win.ai?.languageModel?.capabilities) {
-      const caps = await win.ai.languageModel.capabilities();
-      const status = caps.available ?? 'no';
-      const normalized =
-        status === 'readily'
-          ? 'readily'
-          : status === 'after-download'
-            ? 'after-download'
-            : 'unavailable';
-      return {
-        supportedApi: true,
-        availability: normalized,
-        detail: `window.ai.languageModel detected (available: ${status})`,
       };
     }
 
@@ -375,14 +386,41 @@ export function buildWarehousePromptContext(
   ].join('\n');
 }
 
+const cachedModels = new Map<string, ReturnType<typeof getGenerativeModel>>();
+
+function resolveValidRecommendedBinIds(
+  responseText: string,
+  context: string
+): string[] {
+  const contextIds = extractBinIdsFromText(context);
+  const validSet = new Set(contextIds);
+  const fromResponse = extractBinIdsFromText(responseText).filter(
+    (id) => validSet.size === 0 || validSet.has(id)
+  );
+  if (fromResponse.length > 0) {
+    return fromResponse.slice(0, 6);
+  }
+  return contextIds.slice(0, 4);
+}
+
 export async function runHybridWarehouseCopilot(params: {
   firebaseState: FirebaseServicesState;
   prompt: string;
   context: string;
   modeChoice: HybridModeChoice;
   useLiteModel?: boolean;
+  config?: WarehouseConfig;
+  signal?: AbortSignal;
 }): Promise<HybridAIResponse> {
-  const { firebaseState, prompt, context, modeChoice, useLiteModel } = params;
+  const {
+    firebaseState,
+    prompt,
+    context,
+    modeChoice,
+    useLiteModel,
+    config,
+    signal,
+  } = params;
   const start = performance.now();
 
   const modelName = useLiteModel
@@ -390,13 +428,17 @@ export async function runHybridWarehouseCopilot(params: {
     : firebaseState.remoteParams.cloudModelName;
 
   const systemText =
-    'You are CubiSlot 3D AI, a warehouse industrial engineering co-pilot specializing in 3D slotting optimization, Golden Zone ergonomics (0.8m-1.65m), 3D bin packing, and AS/RS Chebyshev kinematics. Give concise, quantitative, actionable recommendations referencing exact bin IDs (e.g., A1-B2-Z2) and KPIs.';
+    'You are CubiSlot 3D AI, a warehouse industrial engineering co-pilot specializing in 3D slotting optimization, Golden Zone ergonomics (0.8m-1.65m), 3D bin packing, and AS/RS Chebyshev kinematics. Give concise, quantitative, actionable recommendations referencing exact bin IDs from the provided telemetry context and KPIs.';
 
   const fullPrompt = `${context}\n\nEngineer Question:\n${prompt}`;
 
   if (!firebaseState.app) {
     if (modeChoice === 'prefer_on_device' || modeChoice === 'only_on_device') {
-      const nanoOut = await tryDirectChromePromptApi(systemText, fullPrompt);
+      const nanoOut = await tryDirectChromePromptApi(
+        systemText,
+        fullPrompt,
+        signal
+      );
       if (nanoOut) {
         return {
           text: nanoOut,
@@ -404,71 +446,112 @@ export async function runHybridWarehouseCopilot(params: {
           requestedMode: modeChoice,
           modelName: 'chrome-gemini-nano',
           latencyMs: Math.round(performance.now() - start),
-          recommendedBinIds: extractBinIdsFromText(`${nanoOut}\n${context}`),
-          recommendedActions: deriveRecommendedActions(prompt, context, nanoOut),
+          recommendedBinIds: resolveValidRecommendedBinIds(nanoOut, context),
+          recommendedActions: deriveRecommendedActions(
+            prompt,
+            context,
+            nanoOut,
+            config
+          ),
         };
       }
     }
 
     const localText = generateLocalDeterministicAudit(prompt, context);
+    const cloudOnlyError =
+      modeChoice === 'only_in_cloud'
+        ? 'Force Cloud Gemini requires an active Firebase configuration. Showing local deterministic audit fallback.'
+        : undefined;
     return {
       text: localText,
       inferenceSource: 'local_engine',
       requestedMode: modeChoice,
       modelName: 'cubislot-local-heuristic-v1',
       latencyMs: Math.round(performance.now() - start),
-      recommendedBinIds: extractBinIdsFromText(`${localText}\n${context}`),
-      recommendedActions: deriveRecommendedActions(prompt, context, localText),
+      recommendedBinIds: resolveValidRecommendedBinIds(localText, context),
+      recommendedActions: deriveRecommendedActions(
+        prompt,
+        context,
+        localText,
+        config
+      ),
+      ...(cloudOnlyError ? { error: cloudOnlyError } : {}),
     };
   }
 
   try {
-    const ai = getAI(firebaseState.app, { backend: new GoogleAIBackend() });
-    const model = getGenerativeModel(ai, {
-      mode: MODE_MAP[modeChoice],
-      inCloudParams: {
-        model: modelName,
-        systemInstruction: systemText,
-      },
-      onDeviceParams: {
-        createOptions: {
-          initialPrompts: [
-            {
-              role: 'system',
-              content: [{ type: 'text', value: systemText }],
-            },
-          ],
+    const cacheKey = `${firebaseState.app.options.appId ?? 'default'}_${modeChoice}_${modelName}`;
+    let model = cachedModels.get(cacheKey);
+    if (!model) {
+      const ai = getAI(firebaseState.app, { backend: new GoogleAIBackend() });
+      model = getGenerativeModel(ai, {
+        mode: MODE_MAP[modeChoice],
+        inCloudParams: {
+          model: modelName,
+          systemInstruction: systemText,
         },
-      },
-    });
+        onDeviceParams: {
+          createOptions: {
+            ...TEXT_IO_LANGUAGE_OPTIONS,
+            initialPrompts: [
+              {
+                role: 'system',
+                content: [{ type: 'text', value: systemText }],
+              },
+            ],
+          },
+        },
+      });
+      cachedModels.set(cacheKey, model);
+    }
 
     const result = await model.generateContent(fullPrompt);
     const response = result.response;
     const text = response.text();
     const inferenceSource =
       response.inferenceSource ?? InferenceSource.IN_CLOUD;
+    const resolvedModelName =
+      inferenceSource === InferenceSource.ON_DEVICE
+        ? 'chrome-gemini-nano'
+        : modelName;
 
     return {
       text,
       inferenceSource,
       requestedMode: modeChoice,
-      modelName,
+      modelName: resolvedModelName,
       latencyMs: Math.round(performance.now() - start),
-      recommendedBinIds: extractBinIdsFromText(`${text}\n${context}`),
-      recommendedActions: deriveRecommendedActions(prompt, context, text),
+      recommendedBinIds: resolveValidRecommendedBinIds(text, context),
+      recommendedActions: deriveRecommendedActions(
+        prompt,
+        context,
+        text,
+        config
+      ),
     };
   } catch (err) {
-    const nanoOut = await tryDirectChromePromptApi(systemText, fullPrompt);
-    if (nanoOut) {
-      return {
-        text: nanoOut,
-        inferenceSource: InferenceSource.ON_DEVICE,
-        requestedMode: modeChoice,
-        modelName: 'chrome-gemini-nano',
-        latencyMs: Math.round(performance.now() - start),
-        recommendedBinIds: extractBinIdsFromText(`${nanoOut}\n${context}`),
-        recommendedActions: deriveRecommendedActions(prompt, context, nanoOut),
-      };
+    if (modeChoice !== 'only_in_cloud') {
+      const nanoOut = await tryDirectChromePromptApi(
+        systemText,
+        fullPrompt,
+        signal
+      );
+      if (nanoOut) {
+        return {
+          text: nanoOut,
+          inferenceSource: InferenceSource.ON_DEVICE,
+          requestedMode: modeChoice,
+          modelName: 'chrome-gemini-nano',
+          latencyMs: Math.round(performance.now() - start),
+          recommendedBinIds: resolveValidRecommendedBinIds(nanoOut, context),
+          recommendedActions: deriveRecommendedActions(
+            prompt,
+            context,
+            nanoOut,
+            config
+          ),
+        };
+      }
     }
 
     const localText = generateLocalDeterministicAudit(prompt, context);
@@ -479,8 +562,18 @@ export async function runHybridWarehouseCopilot(params: {
       requestedMode: modeChoice,
       modelName: `local-fallback (${message.slice(0, 48)})`,
       latencyMs: Math.round(performance.now() - start),
-      recommendedBinIds: extractBinIdsFromText(`${localText}\n${context}`),
-      recommendedActions: deriveRecommendedActions(prompt, context, localText),
+      recommendedBinIds: resolveValidRecommendedBinIds(localText, context),
+      recommendedActions: deriveRecommendedActions(
+        prompt,
+        context,
+        localText,
+        config
+      ),
+      ...(modeChoice === 'only_in_cloud'
+        ? {
+            error: `Cloud Gemini inference failed (${message.slice(0, 120)}). Showing local deterministic audit fallback.`,
+          }
+        : {}),
     };
   }
 }

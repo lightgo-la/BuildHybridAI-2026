@@ -293,14 +293,14 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
   if (!menu) return null;
 
   const menuWidth = 340;
-  const menuMaxHeight = 560;
+  const menuMaxHeight = Math.max(260, Math.min(560, window.innerHeight - 16));
   const left = Math.max(
     8,
     Math.min(menu.clientX, window.innerWidth - menuWidth - 12)
   );
   const top = Math.max(
     8,
-    Math.min(menu.clientY, window.innerHeight - menuMaxHeight - 12)
+    Math.min(menu.clientY, window.innerHeight - menuMaxHeight - 8)
   );
   const alloc = menu.binAlloc;
   const prop = menu.interiorProp ?? selectedProp ?? null;
@@ -405,7 +405,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                     min={20}
                     max={300}
                     value={alloc.bin.binLengthCm}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (e.target.value.trim() === '') return;
                       onResizeSingleBin(
                         alloc.bin.id,
                         {
@@ -415,8 +416,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                           ),
                         },
                         'single'
-                      )
-                    }
+                      );
+                    }}
                     className="w-full rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-center font-mono text-white"
                   />
                 </div>
@@ -429,7 +430,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                     min={20}
                     max={300}
                     value={alloc.bin.binWidthCm}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (e.target.value.trim() === '') return;
                       onResizeSingleBin(
                         alloc.bin.id,
                         {
@@ -439,8 +441,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                           ),
                         },
                         'single'
-                      )
-                    }
+                      );
+                    }}
                     className="w-full rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-center font-mono text-white"
                   />
                 </div>
@@ -453,7 +455,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                     min={15}
                     max={250}
                     value={alloc.bin.binHeightCm}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (e.target.value.trim() === '') return;
                       onResizeSingleBin(
                         alloc.bin.id,
                         {
@@ -463,8 +466,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                           ),
                         },
                         'single'
-                      )
-                    }
+                      );
+                    }}
                     className="w-full rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-center font-mono text-white"
                   />
                 </div>
@@ -640,7 +643,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                     min={0}
                     max={100}
                     value={alloc.boxes.length}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (e.target.value.trim() === '') return;
                       onSetBinTotalBoxQuota(
                         alloc.bin.id,
                         Math.max(
@@ -648,8 +652,8 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                           Math.min(100, Math.round(Number(e.target.value) || 0))
                         ),
                         skus[0]?.id
-                      )
-                    }
+                      );
+                    }}
                     className="w-11 rounded border border-cyan-500/50 bg-slate-900 px-1 py-0.5 text-center font-mono font-bold text-amber-300"
                   />
                 </div>
@@ -736,6 +740,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
                         max={100}
                         value={cntInBin}
                         onChange={(e) => {
+                          if (e.target.value.trim() === '') return;
                           const nextVal = Math.max(
                             0,
                             Math.min(
@@ -1975,12 +1980,29 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
   );
 
   return (
-    <div
-      ref={menuRef}
-      style={{ left: `${Math.max(8, left)}px`, top: `${Math.max(8, top)}px` }}
-      onContextMenu={(e) => e.preventDefault()}
-      className="fixed z-50 flex max-h-[560px] w-[340px] flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-xs text-[var(--t-text)] shadow-2xl backdrop-blur-md"
-    >
+    <>
+      <div
+        className="fixed inset-0 z-40"
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onClose();
+        }}
+      />
+      <div
+        ref={menuRef}
+        style={{
+          left: `${Math.max(8, left)}px`,
+          top: `${Math.max(8, top)}px`,
+          maxHeight: `${menuMaxHeight}px`,
+        }}
+        onContextMenu={(e) => e.preventDefault()}
+        className="fixed z-50 flex w-[340px] flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-xs text-[var(--t-text)] shadow-2xl backdrop-blur-md"
+      >
       <div className="border-b border-[var(--t-border)] bg-[var(--t-surface-alt)] px-2.5 pt-2 pb-1.5">
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-[11px] font-bold text-cyan-300">
@@ -2063,6 +2085,7 @@ export const ViewportContextMenu: React.FC<ViewportContextMenuProps> = ({
           {'Right-click anywhere'}
         </span>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

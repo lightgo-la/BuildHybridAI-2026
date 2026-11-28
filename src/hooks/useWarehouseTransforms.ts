@@ -85,6 +85,7 @@ export interface CustomBoxPlacementInput {
 interface UseWarehouseTransformsParams {
   bins: BinSpec[];
   allocations: BinAllocation[];
+  skus?: SKUItem[];
   config: WarehouseConfig;
   effectiveInteriorProps?: InteriorProp[];
   lang: LangCode;
@@ -103,9 +104,15 @@ interface UseWarehouseTransformsParams {
   setAppView: Dispatch<SetStateAction<'workspace' | 'home'>>;
 }
 
+function clampFloorCoord(val: number): number {
+  if (!Number.isFinite(val)) return 0;
+  return Number(Math.max(-25, Math.min(65, val)).toFixed(2));
+}
+
 export function useWarehouseTransforms({
   bins,
   allocations,
+  skus = [],
   config,
   effectiveInteriorProps,
   lang,
@@ -139,11 +146,22 @@ export function useWarehouseTransforms({
       setRemovedBinIds((prev) => (prev.includes(binId) ? prev : [...prev, binId]));
       setExtraBins((prev) => prev.filter((b) => b.id !== binId));
       setPinnedPlacements((prev) => prev.filter((p) => p.binId !== binId));
+      setConfigPatch((prev) => {
+        if (!prev.customRouteBinIds && !config.customRouteBinIds) return prev;
+        const baseRoute = prev.customRouteBinIds ?? config.customRouteBinIds ?? [];
+        const filtered = baseRoute.filter((id) => id !== binId);
+        return {
+          ...prev,
+          customRouteBinIds: filtered.length > 0 ? filtered : undefined,
+        };
+      });
       setSelectedBinId((curr) => (curr === binId ? null : curr));
       setSelectedCargo((curr) => (curr?.binId === binId ? null : curr));
     },
     [
+      config.customRouteBinIds,
       pushWorkspaceUndo,
+      setConfigPatch,
       setExtraBins,
       setPinnedPlacements,
       setRemovedBinIds,
@@ -159,14 +177,23 @@ export function useWarehouseTransforms({
         allocations
           .find((a) => a.bin.id === binId)
           ?.boxes.filter((b) => b.skuId === skuId).length ?? 0;
+      const totalPlacedAcrossBins = allocations.reduce(
+        (sum, a) => sum + a.boxes.filter((b) => b.skuId === skuId).length,
+        0
+      );
 
       setPinnedPlacements((prev) => {
         const existingPin = prev.find(
           (p) => p.binId === binId && p.skuId === skuId
         );
-        const baseCount = existingPin
-          ? Math.max(existingPin.count, currentInBin)
-          : currentInBin;
+        const baseCount =
+          delta < 0
+            ? currentInBin > 0
+              ? currentInBin
+              : (existingPin?.count ?? 0)
+            : existingPin
+              ? Math.max(existingPin.count, currentInBin)
+              : currentInBin;
         const targetCount = Math.max(0, baseCount + delta);
 
         const { nextPins, totalPinnedForSku } = buildExactBinSkuPins(
@@ -178,9 +205,17 @@ export function useWarehouseTransforms({
         );
 
         setSkus((currSkus) =>
-          currSkus.map((s) =>
-            s.id === skuId ? { ...s, quantity: Math.max(0, totalPinnedForSku) } : s
-          )
+          currSkus.map((s) => {
+            if (s.id !== skuId) return s;
+            const unplacedRemainder = Math.max(
+              0,
+              s.quantity - totalPlacedAcrossBins
+            );
+            return {
+              ...s,
+              quantity: Math.max(0, totalPinnedForSku + unplacedRemainder),
+            };
+          })
         );
         return nextPins;
       });
@@ -196,7 +231,9 @@ export function useWarehouseTransforms({
       if (autoExpandBin && clampedCount > 0) {
         const targetBin = bins.find((b) => b.id === binId);
         const targetAlloc = allocations.find((a) => a.bin.id === binId);
-        const sampleBox = targetAlloc?.boxes.find((b) => b.skuId === skuId);
+        const sampleBox =
+          targetAlloc?.boxes.find((b) => b.skuId === skuId) ??
+          skus.find((s) => s.id === skuId);
         if (targetBin && sampleBox) {
           const singleVol =
             sampleBox.lengthCm * sampleBox.widthCm * sampleBox.heightCm;
@@ -212,13 +249,20 @@ export function useWarehouseTransforms({
           const neededWeight =
             otherBoxesWeight + sampleBox.weightKg * clampedCount;
 
-          if (neededVol > currentVol || neededWeight > targetBin.maxWeightKg) {
+          if (
+            neededVol > currentVol ||
+            neededWeight > targetBin.maxWeightKg ||
+            sampleBox.lengthCm > targetBin.binLengthCm ||
+            sampleBox.widthCm > targetBin.binWidthCm ||
+            sampleBox.heightCm > targetBin.binHeightCm
+          ) {
             const scale =
               neededVol > currentVol ? Math.cbrt(neededVol / currentVol) : 1;
             const nextL = Math.min(
               300,
               Math.max(
                 targetBin.binLengthCm,
+                sampleBox.lengthCm + 4,
                 Math.ceil(targetBin.binLengthCm * scale)
               )
             );
@@ -226,6 +270,7 @@ export function useWarehouseTransforms({
               300,
               Math.max(
                 targetBin.binWidthCm,
+                sampleBox.widthCm + 4,
                 Math.ceil(targetBin.binWidthCm * scale)
               )
             );
@@ -233,6 +278,7 @@ export function useWarehouseTransforms({
               250,
               Math.max(
                 targetBin.binHeightCm,
+                sampleBox.heightCm + 4,
                 Math.ceil(targetBin.binHeightCm * scale)
               )
             );
@@ -303,6 +349,8 @@ export function useWarehouseTransforms({
       setPinnedPlacements,
       setRemovedBinIds,
       setSkus,
+      showToast,
+      skus,
     ]
   );
 
@@ -328,16 +376,19 @@ export function useWarehouseTransforms({
         pushWorkspaceUndo();
         setPinnedPlacements((prev) => {
           let working = prev;
+          const nextTotals = new Map<string, number>();
           for (const [sId] of entries) {
             const res = buildExactBinSkuPins(working, allocations, binId, sId, 0);
             working = res.nextPins;
-            const totalForSku = res.totalPinnedForSku;
-            setSkus((curr) =>
-              curr.map((s) =>
-                s.id === sId ? { ...s, quantity: Math.max(0, totalForSku) } : s
-              )
-            );
+            nextTotals.set(sId, res.totalPinnedForSku);
           }
+          setSkus((curr) =>
+            curr.map((s) =>
+              nextTotals.has(s.id)
+                ? { ...s, quantity: Math.max(0, nextTotals.get(s.id)!) }
+                : s
+            )
+          );
           return working;
         });
         return;
@@ -348,6 +399,7 @@ export function useWarehouseTransforms({
         return;
       }
 
+      pushWorkspaceUndo();
       const currentSum = targetAlloc.boxes.length;
       const newCounts = new Map<string, number>();
       let assigned = 0;
@@ -355,25 +407,119 @@ export function useWarehouseTransforms({
         if (idx === entries.length - 1) {
           newCounts.set(sId, Math.max(0, clampedTotal - assigned));
         } else {
-          const share = Math.max(
-            0,
-            Math.round((cnt / Math.max(1, currentSum)) * clampedTotal)
-          );
+          const rawShare = Math.round((cnt / Math.max(1, currentSum)) * clampedTotal);
+          const share = Math.max(0, Math.min(clampedTotal - assigned, rawShare));
           newCounts.set(sId, share);
           assigned += share;
         }
       });
 
-      for (const [sId, nextCnt] of newCounts.entries()) {
-        handleSetCargoCountInBin(binId, sId, nextCnt, true);
+      const targetBin = bins.find((b) => b.id === binId);
+      if (targetBin) {
+        let neededVol = 0;
+        let neededWeight = 0;
+        for (const [sId, nextCnt] of newCounts.entries()) {
+          const sample =
+            targetAlloc.boxes.find((b) => b.skuId === sId) ??
+            skus.find((s) => s.id === sId);
+          if (sample && nextCnt > 0) {
+            neededVol +=
+              sample.lengthCm * sample.widthCm * sample.heightCm * nextCnt;
+            neededWeight += sample.weightKg * nextCnt;
+          }
+        }
+        neededVol *= 1.18;
+        const currentVol =
+          targetBin.binLengthCm * targetBin.binWidthCm * targetBin.binHeightCm;
+        if (neededVol > currentVol || neededWeight > targetBin.maxWeightKg) {
+          const scale =
+            neededVol > currentVol ? Math.cbrt(neededVol / currentVol) : 1;
+          const nextL = Math.min(
+            300,
+            Math.max(
+              targetBin.binLengthCm,
+              Math.ceil(targetBin.binLengthCm * scale)
+            )
+          );
+          const nextW = Math.min(
+            300,
+            Math.max(
+              targetBin.binWidthCm,
+              Math.ceil(targetBin.binWidthCm * scale)
+            )
+          );
+          const nextH = Math.min(
+            250,
+            Math.max(
+              targetBin.binHeightCm,
+              Math.ceil(targetBin.binHeightCm * scale)
+            )
+          );
+          const nextBins = resolveShelfCollisions3D(
+            adjustColumnZLevelsForTallBins(
+              bins.map((b) =>
+                b.id === binId
+                  ? {
+                      ...b,
+                      binLengthCm: nextL,
+                      binWidthCm: nextW,
+                      binHeightCm: nextH,
+                      maxWeightKg: Math.max(
+                        b.maxWeightKg,
+                        Math.ceil(neededWeight + 25)
+                      ),
+                    }
+                  : b
+              ),
+              config.goldenZoneMinM,
+              config.goldenZoneMaxM,
+              nextH > targetBin.binHeightCm
+            ),
+            config,
+            [binId]
+          );
+          setCustomBinsOverride(nextBins);
+          setExtraBins([]);
+          setRemovedBinIds([]);
+        }
       }
+
+      setPinnedPlacements((prev) => {
+        let working = prev;
+        const nextTotals = new Map<string, number>();
+        for (const [sId, nextCnt] of newCounts.entries()) {
+          const res = buildExactBinSkuPins(
+            working,
+            allocations,
+            binId,
+            sId,
+            nextCnt
+          );
+          working = res.nextPins;
+          nextTotals.set(sId, res.totalPinnedForSku);
+        }
+        setSkus((curr) =>
+          curr.map((s) =>
+            nextTotals.has(s.id)
+              ? { ...s, quantity: Math.max(0, nextTotals.get(s.id)!) }
+              : s
+          )
+        );
+        return working;
+      });
     },
     [
       allocations,
+      bins,
+      config,
       handleSetCargoCountInBin,
       pushWorkspaceUndo,
+      setCustomBinsOverride,
+      setExtraBins,
       setPinnedPlacements,
+      setRemovedBinIds,
       setSkus,
+      skus,
     ]
   );
 
@@ -390,11 +536,18 @@ export function useWarehouseTransforms({
 
       const sourceAlloc = allocations.find((a) => a.bin.id === fromBinId);
       const targetAlloc = allocations.find((a) => a.bin.id === toBinId);
-      const sampleBox = sourceAlloc?.boxes.find((b) => b.skuId === skuId);
+      const sourceSkuBoxes = (sourceAlloc?.boxes ?? []).filter(
+        (b) => b.skuId === skuId
+      );
+      const sampleBox = sourceSkuBoxes[0];
+      const moveUnitCount =
+        transferCount === 'all'
+          ? Math.max(1, sourceSkuBoxes.length)
+          : Math.max(1, Math.min(sourceSkuBoxes.length || 1, transferCount));
       const boxVol = sampleBox
-        ? sampleBox.lengthCm * sampleBox.widthCm * sampleBox.heightCm
+        ? sampleBox.lengthCm * sampleBox.widthCm * sampleBox.heightCm * moveUnitCount
         : 0;
-      const boxWeight = sampleBox?.weightKg ?? 0;
+      const boxWeight = (sampleBox?.weightKg ?? 0) * moveUnitCount;
 
       const swappedSkuId =
         targetAlloc &&
@@ -462,8 +615,10 @@ export function useWarehouseTransforms({
       floorZ: number,
       transferCount: number | 'all' = 1
     ) => {
-      const snappedX = Number((Math.round(floorX / 0.25) * 0.25).toFixed(2));
-      const snappedY = Number((Math.round(floorZ / 0.25) * 0.25).toFixed(2));
+      const clampedX = clampFloorCoord(floorX);
+      const clampedZ = clampFloorCoord(floorZ);
+      const snappedX = Number((Math.round(clampedX / 0.25) * 0.25).toFixed(2));
+      const snappedY = Number((Math.round(clampedZ / 0.25) * 0.25).toFixed(2));
 
       const existingFloorBin = bins.find(
         (b) =>
@@ -622,19 +777,41 @@ export function useWarehouseTransforms({
 
   const handleAddBinAbove = useCallback(
     (alloc: BinAllocation) => {
-      const nextLevel = alloc.bin.level + 1;
-      const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75, 5.55];
+      const colBins = bins.filter(
+        (b) =>
+          Math.hypot(
+            b.xMeters - alloc.bin.xMeters,
+            b.yMeters - alloc.bin.yMeters
+          ) < 0.35 ||
+          (b.aisle === alloc.bin.aisle && b.bay === alloc.bin.bay)
+      );
+      const maxColLevel = colBins.reduce(
+        (max, b) => Math.max(max, b.level),
+        alloc.bin.level
+      );
+      if (maxColLevel >= 8) {
+        showToast('Maximum 8 Z-levels reached for this rack column.');
+        return;
+      }
+      const topBin =
+        colBins.find((b) => b.level === maxColLevel) ?? alloc.bin;
+      const nextLevel = maxColLevel + 1;
+      const levelHeights = [0.05, 0.85, 1.61, 2.38, 3.15, 3.95, 4.75, 5.55];
       const maxWeights = [1200, 750, 600, 420, 280, 200, 160, 140];
       const defaultZ =
         levelHeights[nextLevel - 1] ??
         Number(((nextLevel - 1) * 0.82 + 0.05).toFixed(2));
       const minSafeZ = Number(
-        (alloc.bin.zMeters + alloc.bin.binHeightCm / 100 + 0.08).toFixed(2)
+        (topBin.zMeters + topBin.binHeightCm / 100 + 0.08).toFixed(2)
       );
       const zMeters = Math.max(defaultZ, minSafeZ);
+      let nextId = `A${topBin.aisle}-B${topBin.bay}-Z${nextLevel}`;
+      if (bins.some((b) => b.id === nextId)) {
+        nextId = `C${bins.length + 1}-A${topBin.aisle}-B${topBin.bay}-Z${nextLevel}`;
+      }
       const newBin: BinSpec = {
-        ...alloc.bin,
-        id: `A${alloc.bin.aisle}-B${alloc.bin.bay}-Z${nextLevel}`,
+        ...topBin,
+        id: nextId,
         level: nextLevel,
         zMeters,
         maxWeightKg: maxWeights[nextLevel - 1] ?? 150,
@@ -643,15 +820,17 @@ export function useWarehouseTransforms({
       };
       handleAddBin(newBin);
     },
-    [config.goldenZoneMinM, config.goldenZoneMaxM, handleAddBin]
+    [bins, config.goldenZoneMinM, config.goldenZoneMaxM, handleAddBin, showToast]
   );
 
   const handleAddBinAtFloor = useCallback(
     (x: number, z: number) => {
+      const clampedX = clampFloorCoord(x);
+      const clampedZ = clampFloorCoord(z);
       const aisleSpacing = config.aisleSpacingM ?? 3.4;
       const baySpacing = config.baySpacingM ?? 1.45;
-      const aisle = Math.max(1, Math.round(x / aisleSpacing) + 1);
-      const bay = Math.max(1, Math.round((z - 1.8) / baySpacing) + 1);
+      const aisle = Math.max(1, Math.round(clampedX / aisleSpacing) + 1);
+      const bay = Math.max(1, Math.round((clampedZ - 1.8) / baySpacing) + 1);
       const snappedX = Number(((aisle - 1) * aisleSpacing).toFixed(2));
       const snappedY = Number(((bay - 1) * baySpacing + 1.8).toFixed(2));
       const hasObstacle = (config.obstacles ?? []).some(
@@ -660,12 +839,12 @@ export function useWarehouseTransforms({
           Math.hypot(o.xMeters - snappedX, o.yMeters - snappedY) < 0.45
       );
       if (hasObstacle) return;
-      const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75];
-      const maxWeights = [1200, 750, 600, 420, 280, 200, 160];
+      const levelHeights = [0.05, 0.85, 1.61, 2.38, 3.15, 3.95, 4.75, 5.55];
+      const maxWeights = [1200, 750, 600, 420, 280, 200, 160, 140];
 
       let targetLevel = 1;
       while (
-        targetLevel <= 7 &&
+        targetLevel <= 8 &&
         bins.some(
           (b) =>
             Math.hypot(b.xMeters - snappedX, b.yMeters - snappedY) < 0.35 &&
@@ -674,6 +853,7 @@ export function useWarehouseTransforms({
       ) {
         targetLevel++;
       }
+      if (targetLevel > 8) return;
       const zMeters =
         levelHeights[targetLevel - 1] ??
         Number(((targetLevel - 1) * 0.82 + 0.05).toFixed(2));
@@ -710,15 +890,17 @@ export function useWarehouseTransforms({
   );
 
   const handleMoveSingleBin = useCallback(
-    (binId: string, newX: number, newY: number, newLevel?: number) => {
+    (binId: string, rawNewX: number, rawNewY: number, newLevel?: number) => {
       const target = bins.find((b) => b.id === binId);
       if (!target) return;
+      const newX = clampFloorCoord(rawNewX);
+      const newY = clampFloorCoord(rawNewY);
       pushWorkspaceUndo();
       const aisleSp = Math.max(0.8, config.aisleSpacingM ?? 3.4);
       const baySp = Math.max(0.6, config.baySpacingM ?? 1.45);
       const newAisle = Math.max(1, Math.round(newX / aisleSp) + 1);
       const newBay = Math.max(1, Math.round((newY - 1.8) / baySp) + 1);
-      const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95, 4.75, 5.55];
+      const levelHeights = [0.05, 0.85, 1.61, 2.38, 3.15, 3.95, 4.75, 5.55];
       const maxWeights = [1200, 750, 600, 420, 280, 200, 160, 140];
 
       const nextLevel =
@@ -774,7 +956,9 @@ export function useWarehouseTransforms({
   );
 
   const handleMoveRackColumn = useCallback(
-    (oldX: number, oldY: number, newX: number, newY: number) => {
+    (oldX: number, oldY: number, rawNewX: number, rawNewY: number) => {
+      const newX = clampFloorCoord(rawNewX);
+      const newY = clampFloorCoord(rawNewY);
       pushWorkspaceUndo();
       const aisleSp = Math.max(0.8, config.aisleSpacingM ?? 3.4);
       const baySp = Math.max(0.6, config.baySpacingM ?? 1.45);
@@ -1379,8 +1563,8 @@ export function useWarehouseTransforms({
   const handleMoveDepot = useCallback(
     (newX: number, newY: number) => {
       pushWorkspaceUndo();
-      const nx = Number(newX.toFixed(2));
-      const ny = Number(newY.toFixed(2));
+      const nx = clampFloorCoord(newX);
+      const ny = clampFloorCoord(newY);
       setConfigPatch((prev) => ({
         ...prev,
         depotXMeters: nx,
@@ -1396,8 +1580,10 @@ export function useWarehouseTransforms({
   const handleAddObstacleAt = useCallback(
     (x: number, y: number, label?: string) => {
       pushWorkspaceUndo();
-      const nx = Number((Math.round(x / 0.25) * 0.25).toFixed(2));
-      const ny = Number((Math.round(y / 0.25) * 0.25).toFixed(2));
+      const clampedX = clampFloorCoord(x);
+      const clampedY = clampFloorCoord(y);
+      const nx = Number((Math.round(clampedX / 0.25) * 0.25).toFixed(2));
+      const ny = Number((Math.round(clampedY / 0.25) * 0.25).toFixed(2));
       const aisleSp = Math.max(0.8, config.aisleSpacingM ?? 3.4);
       const baySp = Math.max(0.6, config.baySpacingM ?? 1.45);
       const newObs: WarehouseObstacle = {
@@ -1439,11 +1625,11 @@ export function useWarehouseTransforms({
           if (o.id !== id) return o;
           const nx =
             patch.xMeters !== undefined
-              ? Number(patch.xMeters.toFixed(2))
+              ? clampFloorCoord(patch.xMeters)
               : o.xMeters;
           const ny =
             patch.yMeters !== undefined
-              ? Number(patch.yMeters.toFixed(2))
+              ? clampFloorCoord(patch.yMeters)
               : o.yMeters;
           return {
             ...o,
@@ -1496,10 +1682,16 @@ export function useWarehouseTransforms({
 
       const targetAlloc = allocations.find((a) => a.bin.id === targetBin.id);
       const existingWeight = targetAlloc?.currentWeightKg ?? 0;
+      const existingVolume = targetAlloc?.usedVolumeCm3 ?? 0;
+      const currentBinVolume =
+        targetBin.binLengthCm * targetBin.binWidthCm * targetBin.binHeightCm;
+      const neededVolume =
+        (existingVolume + boxL * boxW * boxH * qty) * 1.18;
 
       const needsLengthExpand = boxL > targetBin.binLengthCm;
       const needsWidthExpand = boxW > targetBin.binWidthCm;
       const needsHeightExpand = boxH > targetBin.binHeightCm;
+      const needsVolumeExpand = neededVolume > currentBinVolume;
       const needsWeightExpand =
         existingWeight + boxKg * qty > targetBin.maxWeightKg;
 
@@ -1509,34 +1701,68 @@ export function useWarehouseTransforms({
         (needsLengthExpand ||
           needsWidthExpand ||
           needsHeightExpand ||
+          needsVolumeExpand ||
           needsWeightExpand)
       ) {
-        const nextL = Math.max(targetBin.binLengthCm, boxL + 4);
-        const nextW = Math.max(targetBin.binWidthCm, boxW + 4);
-        const nextH = Math.max(targetBin.binHeightCm, boxH + 4);
-        const nextBins = adjustColumnZLevelsForTallBins(
-          bins.map((b) =>
-            b.id === targetBin.id
-              ? {
-                  ...b,
-                  binLengthCm: nextL,
-                  binWidthCm: nextW,
-                  binHeightCm: nextH,
-                  maxWeightKg: Math.max(
-                    b.maxWeightKg,
-                    Math.ceil(existingWeight + boxKg * qty + 20)
-                  ),
-                }
-              : b
+        const volScale =
+          needsVolumeExpand && currentBinVolume > 0
+            ? Math.cbrt(neededVolume / currentBinVolume)
+            : 1;
+        const nextL = Math.min(
+          300,
+          Math.max(
+            targetBin.binLengthCm,
+            boxL + 4,
+            Math.ceil(targetBin.binLengthCm * volScale)
+          )
+        );
+        const nextW = Math.min(
+          300,
+          Math.max(
+            targetBin.binWidthCm,
+            boxW + 4,
+            Math.ceil(targetBin.binWidthCm * volScale)
+          )
+        );
+        const nextH = Math.min(
+          250,
+          Math.max(
+            targetBin.binHeightCm,
+            boxH + 4,
+            Math.ceil(targetBin.binHeightCm * volScale)
+          )
+        );
+        const nextBins = resolveShelfCollisions3D(
+          adjustColumnZLevelsForTallBins(
+            bins.map((b) =>
+              b.id === targetBin.id
+                ? {
+                    ...b,
+                    binLengthCm: nextL,
+                    binWidthCm: nextW,
+                    binHeightCm: nextH,
+                    maxWeightKg: Math.max(
+                      b.maxWeightKg,
+                      Math.ceil(existingWeight + boxKg * qty + 20)
+                    ),
+                  }
+                : b
+            ),
+            config.goldenZoneMinM,
+            config.goldenZoneMaxM,
+            nextH > targetBin.binHeightCm
           ),
-          config.goldenZoneMinM,
-          config.goldenZoneMaxM,
-          needsHeightExpand
+          config,
+          [targetBin.id]
         );
         setCustomBinsOverride(nextBins);
         setExtraBins([]);
         setRemovedBinIds([]);
-        if (needsLengthExpand || needsWidthExpand || needsHeightExpand) {
+        if (
+          nextL > targetBin.binLengthCm ||
+          nextW > targetBin.binWidthCm ||
+          nextH > targetBin.binHeightCm
+        ) {
           expandedDimsNotice =
             ` (Shelf auto-expanded to ${nextL}×${nextW}×${nextH}cm)`;
         }
@@ -1644,11 +1870,29 @@ export function useWarehouseTransforms({
 
       if (binIdToAutoExpand) {
         const targetBin = bins.find((b) => b.id === binIdToAutoExpand);
+        const targetAlloc = allocations.find(
+          (a) => a.bin.id === binIdToAutoExpand
+        );
+        const skuCountInBin = Math.max(
+          1,
+          (targetAlloc?.boxes ?? []).filter((b) => b.skuId === skuId).length
+        );
+        const otherWeightInBin = (targetAlloc?.boxes ?? [])
+          .filter((b) => b.skuId !== skuId)
+          .reduce((acc, b) => acc + b.weightKg, 0);
+        const projectedWeight =
+          otherWeightInBin +
+          (clampedKg ??
+            skus.find((s) => s.id === skuId)?.weightKg ??
+            0) *
+            skuCountInBin;
+
         if (
           targetBin &&
           ((clampedL !== undefined && clampedL > targetBin.binLengthCm) ||
             (clampedW !== undefined && clampedW > targetBin.binWidthCm) ||
-            (clampedH !== undefined && clampedH > targetBin.binHeightCm))
+            (clampedH !== undefined && clampedH > targetBin.binHeightCm) ||
+            projectedWeight > targetBin.maxWeightKg)
         ) {
           const nextL = Math.max(
             targetBin.binLengthCm,
@@ -1662,20 +1906,28 @@ export function useWarehouseTransforms({
             targetBin.binHeightCm,
             (clampedH ?? targetBin.binHeightCm) + 4
           );
-          const nextBins = adjustColumnZLevelsForTallBins(
-            bins.map((b) =>
-              b.id === targetBin.id
-                ? {
-                    ...b,
-                    binLengthCm: nextL,
-                    binWidthCm: nextW,
-                    binHeightCm: nextH,
-                  }
-                : b
+          const nextBins = resolveShelfCollisions3D(
+            adjustColumnZLevelsForTallBins(
+              bins.map((b) =>
+                b.id === targetBin.id
+                  ? {
+                      ...b,
+                      binLengthCm: nextL,
+                      binWidthCm: nextW,
+                      binHeightCm: nextH,
+                      maxWeightKg: Math.max(
+                        b.maxWeightKg,
+                        Math.ceil(projectedWeight + 20)
+                      ),
+                    }
+                  : b
+              ),
+              config.goldenZoneMinM,
+              config.goldenZoneMaxM,
+              clampedH !== undefined && clampedH > targetBin.binHeightCm
             ),
-            config.goldenZoneMinM,
-            config.goldenZoneMaxM,
-            clampedH !== undefined && clampedH > targetBin.binHeightCm
+            config,
+            [targetBin.id]
           );
           setCustomBinsOverride(nextBins);
           setExtraBins([]);

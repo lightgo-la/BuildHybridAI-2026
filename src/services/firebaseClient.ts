@@ -69,35 +69,73 @@ const DEFAULT_REMOTE_PARAMS: RemoteSlottingParams = {
 
 const STORAGE_KEY = 'cubislot_firebase_runtime_config';
 
+function sanitizePlaceholder(val: string | undefined): string {
+  if (!val) return '';
+  const trimmed = val.trim();
+  if (trimmed.includes('your_')) return '';
+  return trimmed;
+}
+
 export function loadEnvOrStoredConfig(): FirebaseRuntimeConfig {
-  const envConfig: FirebaseRuntimeConfig = {
-    apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
-    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? '',
-    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? '',
-    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
-    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
-    appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
-    recaptchaSiteKey: import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY ?? '',
-    debugToken: import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN === 'true',
-  };
-
-  if (envConfig.apiKey && envConfig.projectId && envConfig.appId) {
-    return envConfig;
-  }
-
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem(STORAGE_KEY)
+        : null;
     if (raw) {
-      return JSON.parse(raw) as FirebaseRuntimeConfig;
+      const parsed = JSON.parse(raw) as Partial<FirebaseRuntimeConfig>;
+      if (parsed && typeof parsed === 'object') {
+        const storedCfg: FirebaseRuntimeConfig = {
+          apiKey: sanitizePlaceholder(parsed.apiKey),
+          authDomain: sanitizePlaceholder(parsed.authDomain),
+          projectId: sanitizePlaceholder(parsed.projectId),
+          storageBucket: sanitizePlaceholder(parsed.storageBucket),
+          messagingSenderId: sanitizePlaceholder(parsed.messagingSenderId),
+          appId: sanitizePlaceholder(parsed.appId),
+          recaptchaSiteKey: sanitizePlaceholder(parsed.recaptchaSiteKey),
+          debugToken: Boolean(parsed.debugToken),
+        };
+        if (isFirebaseConfigured(storedCfg)) {
+          return storedCfg;
+        }
+      }
     }
   } catch {
+    // ignore localStorage read error
   }
+
+  const envConfig: FirebaseRuntimeConfig = {
+    apiKey: sanitizePlaceholder(import.meta.env.VITE_FIREBASE_API_KEY),
+    authDomain: sanitizePlaceholder(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+    projectId: sanitizePlaceholder(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+    storageBucket: sanitizePlaceholder(
+      import.meta.env.VITE_FIREBASE_STORAGE_BUCKET
+    ),
+    messagingSenderId: sanitizePlaceholder(
+      import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID
+    ),
+    appId: sanitizePlaceholder(import.meta.env.VITE_FIREBASE_APP_ID),
+    recaptchaSiteKey: sanitizePlaceholder(
+      import.meta.env.VITE_RECAPTCHA_V3_SITE_KEY
+    ),
+    debugToken: import.meta.env.VITE_FIREBASE_APPCHECK_DEBUG_TOKEN === 'true',
+  };
 
   return envConfig;
 }
 
 export function saveRuntimeConfig(cfg: FirebaseRuntimeConfig): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  const cleaned: FirebaseRuntimeConfig = {
+    apiKey: cfg.apiKey.trim(),
+    authDomain: cfg.authDomain.trim(),
+    projectId: cfg.projectId.trim(),
+    storageBucket: (cfg.storageBucket ?? '').trim(),
+    messagingSenderId: (cfg.messagingSenderId ?? '').trim(),
+    appId: cfg.appId.trim(),
+    recaptchaSiteKey: (cfg.recaptchaSiteKey ?? '').trim(),
+    debugToken: Boolean(cfg.debugToken),
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
 }
 
 export function isFirebaseConfigured(cfg: FirebaseRuntimeConfig): boolean {
@@ -106,18 +144,32 @@ export function isFirebaseConfigured(cfg: FirebaseRuntimeConfig): boolean {
       cfg.projectId &&
       cfg.appId &&
       !cfg.apiKey.includes('your_') &&
-      !cfg.projectId.includes('your_')
+      !cfg.projectId.includes('your_') &&
+      !cfg.appId.includes('your_')
   );
 }
 
 let cachedState: FirebaseServicesState | null = null;
+let inflightInitPromise: Promise<FirebaseServicesState> | null = null;
 
-export async function initFirebaseServices(
+function sanitizeRemoteModelName(name: string, fallback: string): string {
+  const trimmed = name.trim();
+  if (!trimmed || /^gemini-1\.|^gemini-2\.0/i.test(trimmed)) {
+    return fallback;
+  }
+  return trimmed;
+}
+
+async function performFirebaseInit(
   customCfg?: FirebaseRuntimeConfig
 ): Promise<FirebaseServicesState> {
   const cfg = customCfg ?? loadEnvOrStoredConfig();
+  const globalAppCheckObj = globalThis as unknown as {
+    FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean | string;
+  };
 
   if (!isFirebaseConfigured(cfg)) {
+    globalAppCheckObj.FIREBASE_APPCHECK_DEBUG_TOKEN = false;
     if (getApps().length > 0) {
       await Promise.all(getApps().map((existing) => deleteApp(existing)));
     }
@@ -142,37 +194,31 @@ export async function initFirebaseServices(
     }
 
     const app = initializeApp({
-      apiKey: cfg.apiKey,
-      authDomain: cfg.authDomain,
-      projectId: cfg.projectId,
-      storageBucket: cfg.storageBucket,
-      messagingSenderId: cfg.messagingSenderId,
-      appId: cfg.appId,
+      apiKey: cfg.apiKey.trim(),
+      authDomain: cfg.authDomain.trim(),
+      projectId: cfg.projectId.trim(),
+      storageBucket: cfg.storageBucket.trim(),
+      messagingSenderId: cfg.messagingSenderId.trim(),
+      appId: cfg.appId.trim(),
     });
 
     let appCheck: AppCheck | null = null;
     let appCheckMode: FirebaseServicesState['appCheckMode'] = 'unconfigured';
 
     if (cfg.debugToken) {
-      (
-        globalThis as unknown as {
-          FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean | string;
-        }
-      ).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      globalAppCheckObj.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
       appCheckMode = 'debug_token';
+    } else {
+      globalAppCheckObj.FIREBASE_APPCHECK_DEBUG_TOKEN = false;
     }
 
-    if (cfg.recaptchaSiteKey && !cfg.recaptchaSiteKey.includes('your_')) {
+    const cleanSiteKey = sanitizePlaceholder(cfg.recaptchaSiteKey);
+    if (cleanSiteKey) {
       appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider(cfg.recaptchaSiteKey),
+        provider: new ReCaptchaV3Provider(cleanSiteKey),
         isTokenAutoRefreshEnabled: true,
       });
       if (!cfg.debugToken) appCheckMode = 'recaptcha_v3';
-    } else if (cfg.debugToken) {
-      appCheck = initializeAppCheck(app, {
-        provider: new ReCaptchaV3Provider('6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'),
-        isTokenAutoRefreshEnabled: true,
-      });
     }
 
     let remoteConfig: RemoteConfig | null = null;
@@ -191,45 +237,56 @@ export async function initFirebaseServices(
       const fetchedMaxSkus = getNumber(remoteConfig, 'on_device_max_skus');
       const fetchedMinM = getNumber(remoteConfig, 'golden_zone_min_m');
       const fetchedMaxM = getNumber(remoteConfig, 'golden_zone_max_m');
+      const validBounds =
+        Number.isFinite(fetchedMinM) &&
+        Number.isFinite(fetchedMaxM) &&
+        fetchedMinM >= 0 &&
+        fetchedMaxM > fetchedMinM;
       remoteParams = {
-        cloudModelName:
-          getString(remoteConfig, 'cloud_model_name') ||
-          DEFAULT_REMOTE_PARAMS.cloudModelName,
-        liteModelName:
-          getString(remoteConfig, 'lite_model_name') ||
-          DEFAULT_REMOTE_PARAMS.liteModelName,
+        cloudModelName: sanitizeRemoteModelName(
+          getString(remoteConfig, 'cloud_model_name'),
+          DEFAULT_REMOTE_PARAMS.cloudModelName
+        ),
+        liteModelName: sanitizeRemoteModelName(
+          getString(remoteConfig, 'lite_model_name'),
+          DEFAULT_REMOTE_PARAMS.liteModelName
+        ),
         onDeviceMaxSkus:
           Number.isFinite(fetchedMaxSkus) && fetchedMaxSkus > 0
             ? fetchedMaxSkus
             : DEFAULT_REMOTE_PARAMS.onDeviceMaxSkus,
-        goldenZoneMinM:
-          Number.isFinite(fetchedMinM) && fetchedMinM >= 0
-            ? fetchedMinM
-            : DEFAULT_REMOTE_PARAMS.goldenZoneMinM,
-        goldenZoneMaxM:
-          Number.isFinite(fetchedMaxM) && fetchedMaxM > 0
-            ? fetchedMaxM
-            : DEFAULT_REMOTE_PARAMS.goldenZoneMaxM,
+        goldenZoneMinM: validBounds
+          ? fetchedMinM
+          : DEFAULT_REMOTE_PARAMS.goldenZoneMinM,
+        goldenZoneMaxM: validBounds
+          ? fetchedMaxM
+          : DEFAULT_REMOTE_PARAMS.goldenZoneMaxM,
         source: 'remote_config',
       };
     } catch {
+      // remote config optional
     }
 
     let auth: Auth | null = null;
     let firestore: Firestore | null = null;
     let userId: string | null = null;
     try {
+      firestore = getFirestore(app);
+    } catch {
+      // firestore unavailable
+    }
+    try {
       auth = getAuth(app);
       const cred = await signInAnonymously(auth);
       userId = cred.user.uid;
-      firestore = getFirestore(app);
     } catch {
+      // anonymous auth optional if firestore rules allow test mode
     }
 
     cachedState = {
       configured: true,
       app,
-      appCheckActive: Boolean(appCheck),
+      appCheckActive: Boolean(appCheck) || Boolean(cfg.debugToken),
       appCheckMode,
       remoteConfig,
       remoteParams,
@@ -254,6 +311,23 @@ export async function initFirebaseServices(
       error: message,
     };
     return cachedState;
+  }
+}
+
+export async function initFirebaseServices(
+  customCfg?: FirebaseRuntimeConfig
+): Promise<FirebaseServicesState> {
+  if (inflightInitPromise) {
+    await inflightInitPromise.catch(() => {});
+  }
+  const nextPromise = performFirebaseInit(customCfg);
+  inflightInitPromise = nextPromise;
+  try {
+    return await nextPromise;
+  } finally {
+    if (inflightInitPromise === nextPromise) {
+      inflightInitPromise = null;
+    }
   }
 }
 

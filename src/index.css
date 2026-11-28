@@ -30,7 +30,7 @@ body,
 
 @media (min-width: 1024px) {
   .workspace-grid {
-    grid-template-columns: var(--left-panel-px) minmax(320px, 1fr) var(--right-panel-px);
+    grid-template-columns: minmax(250px, var(--left-panel-px)) minmax(320px, 1fr) minmax(270px, var(--right-panel-px));
     align-items: stretch;
   }
 }
@@ -50,6 +50,10 @@ body,
 }
 
 .themed-shell .bg-slate-950,
+.themed-shell .bg-slate-950\/95,
+.themed-shell .bg-slate-950\/92,
+.themed-shell .bg-slate-950\/90,
+.themed-shell .bg-slate-950\/85,
 .themed-shell .bg-slate-950\/80,
 .themed-shell .bg-slate-950\/70,
 .themed-shell .bg-slate-950\/60,
@@ -59,6 +63,7 @@ body,
 }
 
 .themed-shell .bg-slate-900,
+.themed-shell .bg-slate-900\/95,
 .themed-shell .bg-slate-900\/90,
 .themed-shell .bg-slate-900\/85,
 .themed-shell .bg-slate-900\/80,
@@ -89,6 +94,7 @@ body,
 }
 
 /* Dynamic Theme Accent Propagation */
+.themed-shell .text-cyan-200,
 .themed-shell .text-cyan-300,
 .themed-shell .text-cyan-400 {
   color: var(--t-accent) !important;
@@ -113,15 +119,18 @@ body,
   border-color: var(--t-accent-border) !important;
 }
 
+.themed-shell[data-theme-mode='light'] .text-emerald-200,
 .themed-shell[data-theme-mode='light'] .text-emerald-300,
 .themed-shell[data-theme-mode='light'] .text-emerald-400 {
   color: #047857 !important;
 }
 
+.themed-shell[data-theme-mode='light'] .text-amber-200,
 .themed-shell[data-theme-mode='light'] .text-amber-300 {
   color: #b45309 !important;
 }
 
+.themed-shell[data-theme-mode='light'] .text-rose-200,
 .themed-shell[data-theme-mode='light'] .text-rose-300,
 .themed-shell[data-theme-mode='light'] .text-rose-400 {
   color: #be123c !important;

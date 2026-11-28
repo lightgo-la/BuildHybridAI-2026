@@ -670,6 +670,38 @@ test('10,000-Iteration QC Invariant Suite: 3D bin boundaries, zero intra-bin AAB
             `QC iter ${iter}: 3D AABB overlap between boxes in bin ${b.id}`
           );
         }
+
+        if (boxA.zCm > 1e-4) {
+          let supportedArea = 0;
+          const baseArea = boxA.lengthCm * boxA.widthCm;
+          for (const below of alloc.boxes) {
+            if (below === boxA) continue;
+            if (Math.abs(below.zCm + below.heightCm - boxA.zCm) < 1e-3) {
+              const ox = Math.max(
+                0,
+                Math.min(boxA.xCm + boxA.lengthCm, below.xCm + below.lengthCm) -
+                  Math.max(boxA.xCm, below.xCm)
+              );
+              const oy = Math.max(
+                0,
+                Math.min(boxA.yCm + boxA.widthCm, below.yCm + below.widthCm) -
+                  Math.max(boxA.yCm, below.yCm)
+              );
+              if (ox > 1e-4 && oy > 1e-4) {
+                assert.equal(
+                  below.fragile,
+                  false,
+                  `QC iter ${iter}: box ${boxA.skuCode} stacked on fragile box ${below.skuCode}`
+                );
+                supportedArea += ox * oy;
+              }
+            }
+          }
+          assert.ok(
+            supportedArea / Math.max(1, baseArea) >= 0.65 - 1e-4,
+            `QC iter ${iter}: floating box ${boxA.skuCode} at z=${boxA.zCm}cm in bin ${b.id}`
+          );
+        }
       }
     }
 
@@ -829,4 +861,147 @@ test('5,000-Iteration QA End-to-End Workflow Suite: 24 templates, 6 scenarios, e
       assert.equal(parsed[0].skuCode, `QA-${qaIter}`);
     }
   }
+});
+
+test('Regression: Heavy cargo pinned to Z3+ is safely redirected to Z1-Z2 in 3D Optimized mode and rotated pins do not vanish in 2D Baseline', () => {
+  const bins = generateWarehouseBins(sampleConfig);
+  const heavyZ4Pin = [{ binId: 'A1-B1-Z4', skuId: 'sku-heavy-a', count: 2 }];
+  const opt = runOptimized3DSlotting(bins, sampleSkus, sampleConfig, heavyZ4Pin);
+  assert.equal(
+    opt.kpis.safetyViolations,
+    0,
+    '3D Optimized must redirect Z4 heavy cargo pins to Z1-Z2 so safety violations remain 0'
+  );
+  const z1OrZ2Heavy = opt.allocations
+    .filter((a) => a.bin.aisle === 1 && a.bin.bay === 1 && a.bin.level <= 2)
+    .reduce(
+      (sum, a) =>
+        sum + a.boxes.filter((b) => b.skuId === 'sku-heavy-a').length,
+      0
+    );
+  assert.ok(z1OrZ2Heavy >= 2, 'Heavy cargo should be placed safely in Z1-Z2');
+
+  // SKU that only fits when rotated in a 60x100cm bin (length=85 > 60, width=50 <= 60)
+  const narrowBins = generateWarehouseBins({
+    ...sampleConfig,
+    aisles: 1,
+    baysPerAisle: 2,
+    levels: 2,
+    binLengthCm: 60,
+    binWidthCm: 100,
+    binHeightCm: 70,
+  });
+  const rotSkus: SKUItem[] = [
+    {
+      id: 'sku-rot',
+      skuCode: 'ROT-85',
+      name: 'Rotated Carton',
+      category: 'Test',
+      abcClass: 'A',
+      dailyPicks: 90,
+      lengthCm: 50,
+      widthCm: 45,
+      heightCm: 25,
+      weightKg: 5,
+      quantity: 3,
+      fragile: false,
+      color: '#22d3ee',
+    },
+  ];
+  const overPin = [{ binId: 'A1-B1-Z1', skuId: 'sku-rot', count: 3 }];
+  const baseRes = runBaseline2DSlotting(
+    narrowBins,
+    rotSkus,
+    sampleConfig,
+    overPin
+  );
+  const totalBasePlaced = baseRes.allocations.reduce(
+    (s, a) => s + a.boxes.length,
+    0
+  );
+  assert.equal(
+    totalBasePlaced + baseRes.unplacedUnits,
+    3,
+    '2D Baseline must conserve total SKU units when a pin partially overflows'
+  );
+});
+
+test('Regression: Orphan pins to deleted bins are pruned by buildExactBinSkuPins and buildTransferredSkuPins', () => {
+  const bins = generateWarehouseBins(sampleConfig);
+  const opt = runOptimized3DSlotting(bins, sampleSkus, sampleConfig);
+  const orphanPins = [
+    { binId: 'DELETED-BIN-Z9', skuId: 'sku-fast-a', count: 99 },
+  ];
+
+  const exactRes = buildExactBinSkuPins(
+    orphanPins,
+    opt.allocations,
+    'A1-B1-Z2',
+    'sku-fast-a',
+    3
+  );
+  assert.equal(
+    exactRes.nextPins.some((p) => p.binId === 'DELETED-BIN-Z9'),
+    false,
+    'Orphan pin to deleted bin must be pruned'
+  );
+
+  const transferRes = buildTransferredSkuPins(
+    orphanPins,
+    opt.allocations,
+    'A1-B1-Z2',
+    'A1-B2-Z2',
+    'sku-fast-a',
+    0
+  );
+  assert.equal(transferRes.movedCount, 0);
+  assert.equal(
+    transferRes.nextPins.some((p) => p.binId === 'DELETED-BIN-Z9'),
+    false
+  );
+});
+
+test('Regression: AutoCAD R12 DXF strict compliance and non-overlapping elevation view for negative X coordinates', () => {
+  const bins = generateWarehouseBins(sampleConfig).map((b) => ({
+    ...b,
+    xMeters: b.xMeters - 8,
+  }));
+  const opt = runOptimized3DSlotting(bins, sampleSkus, sampleConfig);
+  const dxf = generateWarehouseDXF(opt, sampleConfig, ' Negative X · Test ★ ', {
+    includeCartons: true,
+    includePickRoute: true,
+    includeLabels: true,
+    includeElevation: true,
+    planLevelFilter: 'all',
+  });
+
+  assert.equal(
+    dxf.includes('$INSUNITS'),
+    false,
+    'AutoCAD R12 (AC1009) DXF must not contain R2000 $INSUNITS variable'
+  );
+  assert.ok(
+    dxf.includes('TABLE\n2\nLTYPE'),
+    'AutoCAD R12 DXF must define CONTINUOUS in the LTYPE table'
+  );
+  assert.equal(
+    /[^\x20-\x7E\r\n]/.test(dxf),
+    false,
+    'AutoCAD R12 DXF must contain pure ASCII characters only'
+  );
+});
+
+test('Regression: RFC 4180 multi-line CSV parser, dailyPicks=0 support, and 280x280x240cm dimension round-trip', () => {
+  const csv = `skuCode,name,category,abcClass,dailyPicks,lengthCm,widthCm,heightCm,weightKg,quantity,fragile
+'=SAFE-01,"Multi-line
+Cargo Name, With Comma",Bulk,C,0,260,240,220,45.5,150,false`;
+
+  const parsed = parseSkusFromCSV(csv);
+  assert.equal(parsed.length, 1);
+  assert.equal(parsed[0].dailyPicks, 0);
+  assert.equal(parsed[0].lengthCm, 260);
+  assert.equal(parsed[0].widthCm, 240);
+  assert.equal(parsed[0].heightCm, 220);
+  assert.equal(parsed[0].quantity, 150);
+  assert.ok(parsed[0].name.includes('Multi-line'));
 });

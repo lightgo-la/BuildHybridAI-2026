@@ -95,10 +95,17 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   );
 
   useEffect(() => {
-    if (selectedBinId) {
+    if (selectedBinId && bins.some((b) => b.id === selectedBinId)) {
       setTargetPlacementBinId(selectedBinId);
+    } else if (!selectedBinId) {
+      setTargetPlacementBinId('');
+    } else if (
+      targetPlacementBinId &&
+      !bins.some((b) => b.id === targetPlacementBinId)
+    ) {
+      setTargetPlacementBinId('');
     }
-  }, [selectedBinId]);
+  }, [selectedBinId, bins, targetPlacementBinId]);
 
   const [newAisle, setNewAisle] = useState(1);
   const [newBay, setNewBay] = useState(config.baysPerAisle + 1);
@@ -128,12 +135,14 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
   }, [config.baysPerAisle, maxL, maxW, maxH]);
 
   const parseInputInt = (raw: string, fallback: number, min: number, max: number) => {
+    if (raw.trim() === '') return fallback;
     const n = Number(raw);
     if (!Number.isFinite(n)) return fallback;
     return Math.max(min, Math.min(max, Math.round(n)));
   };
 
   const parseInputFloat = (raw: string, fallback: number, min: number, max: number) => {
+    if (raw.trim() === '') return fallback;
     const n = Number(raw);
     if (!Number.isFinite(n)) return fallback;
     return Math.max(min, Math.min(max, n));
@@ -152,7 +161,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
     );
     if (hasObstacle) return;
 
-    const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95];
+    const levelHeights = [0.05, 0.85, 1.61, 2.38, 3.15, 3.95, 4.75, 5.55];
     const zMeters =
       levelHeights[newLevel - 1] ?? Number(((newLevel - 1) * 0.82 + 0.05).toFixed(2));
     const binId = `A${newAisle}-B${newBay}-Z${newLevel}`;
@@ -262,6 +271,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   max={7}
                   value={config.aisles}
                   onChange={(e) => {
+                    if (e.target.value.trim() === '') return;
                     const val = Number(e.target.value);
                     if (!Number.isFinite(val)) return;
                     onUpdateConfig({
@@ -281,6 +291,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   max={10}
                   value={config.baysPerAisle}
                   onChange={(e) => {
+                    if (e.target.value.trim() === '') return;
                     const val = Number(e.target.value);
                     if (!Number.isFinite(val)) return;
                     onUpdateConfig({
@@ -303,6 +314,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   max={6}
                   value={config.levels}
                   onChange={(e) => {
+                    if (e.target.value.trim() === '') return;
                     const val = Number(e.target.value);
                     if (!Number.isFinite(val)) return;
                     onUpdateConfig({
@@ -325,6 +337,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   max={180}
                   value={config.binLengthCm ?? 120}
                   onChange={(e) => {
+                    if (e.target.value.trim() === '') return;
                     const val = Number(e.target.value);
                     if (!Number.isFinite(val)) return;
                     onUpdateConfig({
@@ -344,6 +357,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   max={150}
                   value={config.binWidthCm ?? 90}
                   onChange={(e) => {
+                    if (e.target.value.trim() === '') return;
                     const val = Number(e.target.value);
                     if (!Number.isFinite(val)) return;
                     onUpdateConfig({
@@ -363,6 +377,7 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                   max={120}
                   value={config.binHeightCm ?? 70}
                   onChange={(e) => {
+                    if (e.target.value.trim() === '') return;
                     const val = Number(e.target.value);
                     if (!Number.isFinite(val)) return;
                     onUpdateConfig({
@@ -607,13 +622,13 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
                     { length: 100 },
                     (_, i) => {
                       const idx = i + 1;
-                      const [cat, ko, en, color, frag] = cats[i % cats.length];
+                      const [cat, , en, color, frag] = cats[i % cats.length];
                       const abcClass: ABCClass =
                         i % 3 === 0 ? 'A' : i % 3 === 1 ? 'B' : 'C';
                       return {
                         id: `sku-sample100-${idx}`,
                         skuCode: `SKU-${String(idx).padStart(3, '0')}`,
-                        name: `${ko} #${idx} (${en} ${idx})`,
+                        name: `${en} #${idx}`,
                         category: cat,
                         abcClass,
                         dailyPicks:
@@ -814,9 +829,10 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
               </span>
               <input
                 type="number"
+                min={0}
                 value={dailyPicks}
                 onChange={(e) =>
-                  setDailyPicks(parseInputInt(e.target.value, dailyPicks, 1, 5000))
+                  setDailyPicks(parseInputInt(e.target.value, dailyPicks, 0, 5000))
                 }
                 className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
               />
@@ -837,43 +853,64 @@ export const SimulationEditorPanel: React.FC<SimulationEditorPanelProps> = ({
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {`L (≤${maxL})`}
+                {`L (≤${targetPlacementBinId ? 280 : maxL})`}
               </span>
               <input
                 type="number"
-                max={maxL}
+                max={targetPlacementBinId ? 280 : maxL}
                 value={lengthCm}
                 onChange={(e) =>
-                  setLengthCm(parseInputInt(e.target.value, lengthCm, 8, maxL))
+                  setLengthCm(
+                    parseInputInt(
+                      e.target.value,
+                      lengthCm,
+                      5,
+                      targetPlacementBinId ? 280 : maxL
+                    )
+                  )
                 }
                 className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
               />
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {`W (≤${maxW})`}
+                {`W (≤${targetPlacementBinId ? 280 : maxW})`}
               </span>
               <input
                 type="number"
-                max={maxW}
+                max={targetPlacementBinId ? 280 : maxW}
                 value={widthCm}
                 onChange={(e) =>
-                  setWidthCm(parseInputInt(e.target.value, widthCm, 8, maxW))
+                  setWidthCm(
+                    parseInputInt(
+                      e.target.value,
+                      widthCm,
+                      5,
+                      targetPlacementBinId ? 280 : maxW
+                    )
+                  )
                 }
                 className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-slate-100"
               />
             </div>
             <div>
               <span className="text-[10px] text-slate-500">
-                {`H (≤${maxH}) / Qty`}
+                {`H (≤${targetPlacementBinId ? 240 : maxH}) / Qty`}
               </span>
               <div className="flex gap-1">
                 <input
                   type="number"
-                  max={maxH}
+                  max={targetPlacementBinId ? 240 : maxH}
                   value={heightCm}
                   onChange={(e) =>
-                    setHeightCm(parseInputInt(e.target.value, heightCm, 8, maxH))
+                    setHeightCm(
+                      parseInputInt(
+                        e.target.value,
+                        heightCm,
+                        5,
+                        targetPlacementBinId ? 240 : maxH
+                      )
+                    )
                   }
                   className="w-1/2 rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-slate-100"
                 />

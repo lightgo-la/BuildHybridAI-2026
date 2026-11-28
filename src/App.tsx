@@ -214,7 +214,6 @@ export function App() {
   const pushWorkspaceUndo = useCallback(() => {
     const now = performance.now();
     if (now - lastUndoPushMsRef.current < 350) {
-      lastUndoPushMsRef.current = now;
       return;
     }
     lastUndoPushMsRef.current = now;
@@ -240,30 +239,29 @@ export function App() {
   ]);
 
   const handleWorkspaceUndo = useCallback(() => {
+    if (undoStack.length === 0) return;
     lastUndoPushMsRef.current = 0;
-    setUndoStack((prev) => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      setRedoStack((r) => [
-        ...r.slice(-24),
-        {
-          skus,
-          configPatch,
-          customBinsOverride,
-          extraBins,
-          removedBinIds,
-          pinnedPlacements,
-        },
-      ]);
-      setSkus(last.skus);
-      setConfigPatch(last.configPatch);
-      setCustomBinsOverride(last.customBinsOverride);
-      setExtraBins(last.extraBins);
-      setRemovedBinIds(last.removedBinIds);
-      setPinnedPlacements(last.pinnedPlacements);
-      return prev.slice(0, -1);
-    });
+    const last = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((r) => [
+      ...r.slice(-24),
+      {
+        skus,
+        configPatch,
+        customBinsOverride,
+        extraBins,
+        removedBinIds,
+        pinnedPlacements,
+      },
+    ]);
+    setSkus(last.skus);
+    setConfigPatch(last.configPatch);
+    setCustomBinsOverride(last.customBinsOverride);
+    setExtraBins(last.extraBins);
+    setRemovedBinIds(last.removedBinIds);
+    setPinnedPlacements(last.pinnedPlacements);
   }, [
+    undoStack,
     skus,
     configPatch,
     customBinsOverride,
@@ -273,30 +271,29 @@ export function App() {
   ]);
 
   const handleWorkspaceRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
     lastUndoPushMsRef.current = 0;
-    setRedoStack((prev) => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      setUndoStack((u) => [
-        ...u.slice(-24),
-        {
-          skus,
-          configPatch,
-          customBinsOverride,
-          extraBins,
-          removedBinIds,
-          pinnedPlacements,
-        },
-      ]);
-      setSkus(last.skus);
-      setConfigPatch(last.configPatch);
-      setCustomBinsOverride(last.customBinsOverride);
-      setExtraBins(last.extraBins);
-      setRemovedBinIds(last.removedBinIds);
-      setPinnedPlacements(last.pinnedPlacements);
-      return prev.slice(0, -1);
-    });
+    const last = redoStack[redoStack.length - 1];
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((u) => [
+      ...u.slice(-24),
+      {
+        skus,
+        configPatch,
+        customBinsOverride,
+        extraBins,
+        removedBinIds,
+        pinnedPlacements,
+      },
+    ]);
+    setSkus(last.skus);
+    setConfigPatch(last.configPatch);
+    setCustomBinsOverride(last.customBinsOverride);
+    setExtraBins(last.extraBins);
+    setRemovedBinIds(last.removedBinIds);
+    setPinnedPlacements(last.pinnedPlacements);
   }, [
+    redoStack,
     skus,
     configPatch,
     customBinsOverride,
@@ -342,7 +339,31 @@ export function App() {
   const [split2DSize, setSplit2DSize] = useState<
     'collapsed' | 'compact' | 'normal' | 'large'
   >('normal');
+  const [plan2DTool, setPlan2DTool] = useState<
+    'drag_edit' | 'add_shelf' | 'add_obstacle' | 'route_toggle'
+  >('drag_edit');
+  const [plan2DSnapGrid, setPlan2DSnapGrid] = useState<boolean>(true);
+  const [plan2DDragPreview, setPlan2DDragPreview] = useState<{
+    kind: 'rack_col' | 'depot' | 'obstacle' | 'prop';
+    id: string;
+    origX: number;
+    origY: number;
+    curX: number;
+    curY: number;
+  } | null>(null);
+  const plan2DSvgRef = useRef<SVGSVGElement | null>(null);
+  const plan2DDidDragRef = useRef<boolean>(false);
   const [windowMaximized, setWindowMaximized] = useState<boolean>(false);
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setWindowMaximized(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    return () =>
+      document.removeEventListener('fullscreenchange', onFullscreenChange);
+  }, []);
   const [lang, setLang] = useState<LangCode>(loadLang);
   const [appView, setAppView] = useState<'workspace' | 'home'>('workspace');
   const [viewLayer, setViewLayer] = useState<ViewLayerMode>('slotting');
@@ -504,6 +525,11 @@ export function App() {
       return next;
     });
     setScenarioId(customMap.id);
+    setSkus(customMap.skus);
+    setConfigPatch({});
+    setCustomBinsOverride(customMap.customBins ?? null);
+    setExtraBins([]);
+    setRemovedBinIds([]);
   }, []);
 
   const handleDeleteCustomScenario = useCallback(
@@ -514,8 +540,14 @@ export function App() {
         return next;
       });
       if (scenarioId === id) {
-        setScenarioId(SAMPLE_SCENARIOS[0].id);
-        setSkus(SAMPLE_SCENARIOS[0].skus);
+        const fallback = SAMPLE_SCENARIOS[0];
+        setScenarioId(fallback.id);
+        setSkus(fallback.skus);
+        setConfigPatch({});
+        setCustomBinsOverride(fallback.customBins ?? null);
+        setExtraBins([]);
+        setRemovedBinIds([]);
+        setPinnedPlacements([]);
       }
     },
     [scenarioId]
@@ -756,6 +788,7 @@ export function App() {
     bins,
     allocations: shownResult.allocations,
     config,
+    skus,
     effectiveInteriorProps,
     lang,
     pushWorkspaceUndo,
@@ -775,6 +808,7 @@ export function App() {
 
   useWarehouseShortcuts({
     lang,
+    appView,
     mapEditorOpen,
     anyModalOpen:
       mapEditorOpen ||
@@ -785,6 +819,9 @@ export function App() {
       setupOpen ||
       designMenuOpen,
     alwaysOptimizedLock,
+    canUndo: undoStack.length > 0,
+    canRedo: redoStack.length > 0,
+    onUnlockAlwaysOptimized: () => setAlwaysOptimizedLock(false),
     dragMoveMode,
     dragScope,
     selectedBin,
@@ -850,11 +887,14 @@ export function App() {
         optimizedKpis: { ...optimizedResult.kpis },
         inferenceSource: lastInferenceSource || 'deterministic_engine',
       });
-      setFirestoreNotice(`Saved run ${id.slice(0, 8)} to Firestore`);
+      const msg = `Saved run ${id.slice(0, 8)} to Firestore`;
+      setFirestoreNotice(msg);
+      showToast(msg);
     } catch (err) {
-      setFirestoreNotice(
-        err instanceof Error ? err.message : 'Unable to save snapshot'
-      );
+      const errMsg =
+        err instanceof Error ? err.message : 'Unable to save snapshot';
+      setFirestoreNotice(errMsg);
+      showToast(errMsg);
     }
   };
 
@@ -942,22 +982,21 @@ export function App() {
             onChangeEquipmentMode={setEquipmentMode}
             onOpenTemplateGallery={() => setTemplateGalleryOpen(true)}
             onToggleActiveLayout={() => {
-              if (alwaysOptimizedLock) {
-                setActiveLayout('optimized_3d');
-                showToast(
-                  '🔒 Always-Optimized Lock is ON. Keeping 3D Optimized layout.'
-                );
-                return;
-              }
               const next =
                 activeLayout === 'optimized_3d'
                   ? 'baseline_2d'
                   : 'optimized_3d';
+              if (alwaysOptimizedLock && next === 'baseline_2d') {
+                setAlwaysOptimizedLock(false);
+              }
               setActiveLayout(next);
               showToast(
-                `Switched to ${next}`
+                next === 'baseline_2d'
+                  ? 'Switched to Before (2D Baseline)'
+                  : 'Switched to After (3D Optimized)'
               );
             }}
+            onDismissFirestoreNotice={() => setFirestoreNotice('')}
             onSelectRecommendedBin={(targetAlloc) => {
               setSelectedBinId(targetAlloc.bin.id);
               setLeftTab('inspector');
@@ -1267,7 +1306,7 @@ export function App() {
                 ) : (
                   <Unlock className="h-3 w-3" />
                 )}
-                {`Always Optimized ${alwaysOptimizedLock ? 'ON' : 'OFF'}`}
+                {`Lock 3D ${alwaysOptimizedLock ? 'ON' : 'OFF'}`}
               </button>
 
               <div className="flex overflow-hidden rounded-lg border border-cyan-500/40 bg-slate-950 text-[10px]">
@@ -1296,36 +1335,6 @@ export function App() {
                   </button>
                 ))}
               </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !windowMaximized;
-                  setWindowMaximized(next);
-                  if (!document.fullscreenElement && next) {
-                    document.documentElement.requestFullscreen?.().catch(() => {});
-                  } else if (document.fullscreenElement && !next) {
-                    document.exitFullscreen?.().catch(() => {});
-                  }
-                }}
-                className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold ${
-                  windowMaximized
-                    ? 'border-amber-400 bg-amber-500/25 text-amber-200'
-                    : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-cyan-400'
-                }`}
-                title={
-                  'Maximize Optimization Viewport to Full Window'
-                }
-              >
-                {windowMaximized ? (
-                  <Minimize2 className="h-3 w-3 text-amber-300" />
-                ) : (
-                  <Maximize2 className="h-3 w-3 text-cyan-300" />
-                )}
-                {windowMaximized
-                    ? 'Restore Window'
-                    : 'Maximize Window'}
-              </button>
 
               <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950/90 px-1.5 py-0.5 text-[10px]">
                 <span className="font-semibold text-slate-400">
@@ -1356,6 +1365,34 @@ export function App() {
                   </button>
                 ))}
               </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !windowMaximized;
+                  setWindowMaximized(next);
+                  if (!document.fullscreenElement && next) {
+                    document.documentElement.requestFullscreen?.().catch(() => {});
+                  } else if (document.fullscreenElement && !next) {
+                    document.exitFullscreen?.().catch(() => {});
+                  }
+                }}
+                className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[10px] font-bold ${
+                  windowMaximized
+                    ? 'border-amber-400 bg-amber-500/25 text-amber-200'
+                    : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-cyan-400'
+                }`}
+                title={
+                  'Maximize Optimization Viewport to Full Window'
+                }
+              >
+                {windowMaximized ? (
+                  <Minimize2 className="h-3 w-3 text-amber-300" />
+                ) : (
+                  <Maximize2 className="h-3 w-3 text-cyan-300" />
+                )}
+                {windowMaximized ? 'Restore' : 'Fullscreen'}
+              </button>
             </div>
 
             <div className="flex items-center gap-1">
@@ -1629,78 +1666,82 @@ export function App() {
               </div>
 
               <div className="flex flex-wrap items-center gap-1.5">
-                <div className="flex items-center gap-1 rounded-md border border-cyan-500/35 bg-slate-900 px-1.5 py-0.5">
-                  <span className="font-semibold text-cyan-300">
-                    {'Floor:'}
-                  </span>
-                  {[
-                    ['#e2e8f0', ('Light Tile')],
-                    ['#e7d5b8', ('Warm Wood')],
-                    ['#cbd5e1', ('Concrete')],
-                    ['#bbf7d0', ('Epoxy Green')],
-                    ['#172554', ('Blueprint')],
-                    ['#1e293b', ('Dark Slate')],
-                  ].map(([col, title]) => (
-                    <button
-                      key={col}
-                      type="button"
-                      onClick={() => handleChangeFloorColor(col)}
-                      title={title}
-                      className={`h-3.5 w-3.5 rounded-full border ${
-                        !sceneBg.useThemeDefault &&
-                        sceneBg.floorColor.toLowerCase() === col
-                          ? 'scale-110 border-white ring-1 ring-cyan-400'
-                          : 'border-slate-600'
-                      }`}
-                      style={{ backgroundColor: col }}
-                    />
-                  ))}
-                  <input
-                    type="color"
-                    value={
-                      sceneBg.useThemeDefault
-                        ? activeTheme.scene.floor
-                        : sceneBg.floorColor
-                    }
-                    onChange={(e) => handleChangeFloorColor(e.target.value)}
-                    className="h-4 w-5 cursor-pointer border-0 bg-transparent"
-                    title={
-                      'Pick Custom Map Floor Color'
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900 px-1.5 py-0.5">
-                  <Sun className="h-3 w-3 text-amber-400" />
-                  {[
-                    ['daylight-studio', ('Daylight')],
-                    ['warm-home', ('Warm Home')],
-                    ['pure-white', ('White')],
-                    ['cyber-night', ('Dark')],
-                  ].map(([pid, label]) => (
-                    <button
-                      key={pid}
-                      type="button"
-                      onClick={() => {
-                        const found = SCENE_3D_PRESETS.find((x) => x.id === pid);
-                        if (found) {
-                          setSceneBg((prev) => ({
-                            ...prev,
-                            presetId: found.id,
-                            ...found.settings,
-                          }));
+                {(!simpleMode || showAdvanced3DTools) && (
+                  <>
+                    <div className="flex items-center gap-1 rounded-md border border-cyan-500/35 bg-slate-900 px-1.5 py-0.5">
+                      <span className="font-semibold text-cyan-300">
+                        {'Floor:'}
+                      </span>
+                      {[
+                        ['#e2e8f0', ('Light Tile')],
+                        ['#e7d5b8', ('Warm Wood')],
+                        ['#cbd5e1', ('Concrete')],
+                        ['#bbf7d0', ('Epoxy Green')],
+                        ['#172554', ('Blueprint')],
+                        ['#1e293b', ('Dark Slate')],
+                      ].map(([col, title]) => (
+                        <button
+                          key={col}
+                          type="button"
+                          onClick={() => handleChangeFloorColor(col)}
+                          title={title}
+                          className={`h-3.5 w-3.5 rounded-full border ${
+                            !sceneBg.useThemeDefault &&
+                            sceneBg.floorColor.toLowerCase() === col
+                              ? 'scale-110 border-white ring-1 ring-cyan-400'
+                              : 'border-slate-600'
+                          }`}
+                          style={{ backgroundColor: col }}
+                        />
+                      ))}
+                      <input
+                        type="color"
+                        value={
+                          sceneBg.useThemeDefault
+                            ? activeTheme.scene.floor
+                            : sceneBg.floorColor
                         }
-                      }}
-                      className={`rounded px-1.5 py-0.5 font-medium ${
-                        sceneBg.presetId === pid
-                          ? 'bg-amber-500/25 text-amber-200 font-bold'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                        onChange={(e) => handleChangeFloorColor(e.target.value)}
+                        className="h-4 w-5 cursor-pointer border-0 bg-transparent"
+                        title={
+                          'Pick Custom Map Floor Color'
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1 rounded-md border border-slate-800 bg-slate-900 px-1.5 py-0.5">
+                      <Sun className="h-3 w-3 text-amber-400" />
+                      {[
+                        ['daylight-studio', ('Daylight')],
+                        ['warm-home', ('Warm Home')],
+                        ['pure-white', ('White')],
+                        ['cyber-night', ('Dark')],
+                      ].map(([pid, label]) => (
+                        <button
+                          key={pid}
+                          type="button"
+                          onClick={() => {
+                            const found = SCENE_3D_PRESETS.find((x) => x.id === pid);
+                            if (found) {
+                              setSceneBg((prev) => ({
+                                ...prev,
+                                presetId: found.id,
+                                ...found.settings,
+                              }));
+                            }
+                          }}
+                          className={`rounded px-1.5 py-0.5 font-medium ${
+                            sceneBg.presetId === pid
+                              ? 'bg-amber-500/25 text-amber-200 font-bold'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 {simpleMode && (
                   <button
@@ -1713,8 +1754,8 @@ export function App() {
                     }`}
                   >
                     {showAdvanced3DTools
-                        ? 'Hide Advanced ▴'
-                        : 'Advanced Tools ▾'}
+                        ? 'Hide Scene & Drag Tools ▴'
+                        : 'Scene & Drag Tools ▾'}
                   </button>
                 )}
               </div>
@@ -1863,16 +1904,42 @@ export function App() {
                                   );
                                 }
                               } else if (data && typeof data === 'object') {
+                                if (
+                                  typeof data.scenarioId === 'string' &&
+                                  allScenarios.some((s) => s.id === data.scenarioId)
+                                ) {
+                                  setScenarioId(data.scenarioId);
+                                }
                                 if (Array.isArray(data.skus)) setSkus(data.skus);
-                                if (data.configPatch) setConfigPatch(data.configPatch);
+                                if (data.configPatch && typeof data.configPatch === 'object') {
+                                  setConfigPatch(data.configPatch);
+                                }
                                 if (Array.isArray(data.interiorProps)) {
                                   setConfigPatch((prev) => ({
                                     ...prev,
                                     interiorProps: data.interiorProps,
                                   }));
                                 }
-                                if (Array.isArray(data.customBinsOverride)) {
+                                if (Array.isArray(data.obstacles)) {
+                                  setConfigPatch((prev) => ({
+                                    ...prev,
+                                    obstacles: data.obstacles,
+                                  }));
+                                }
+                                if (
+                                  data.customBinsOverride === null ||
+                                  Array.isArray(data.customBinsOverride)
+                                ) {
                                   setCustomBinsOverride(data.customBinsOverride);
+                                }
+                                if (Array.isArray(data.extraBins)) {
+                                  setExtraBins(data.extraBins);
+                                }
+                                if (Array.isArray(data.removedBinIds)) {
+                                  setRemovedBinIds(data.removedBinIds);
+                                }
+                                if (Array.isArray(data.pinnedPlacements)) {
+                                  setPinnedPlacements(data.pinnedPlacements);
                                 }
                                 showToast(
                                   'Loaded full workspace settings JSON!'
@@ -2160,7 +2227,7 @@ export function App() {
             )}
           </div>
 
-          <div className="relative flex flex-1 flex-col overflow-hidden">
+          <div className="relative flex flex-1 flex-col overflow-hidden lg:flex-row">
             {shortcutToast && (
               <div className="pointer-events-none absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-cyan-400/60 bg-slate-950/90 px-4 py-1.5 text-xs font-bold text-cyan-200 shadow-2xl backdrop-blur">
                 {shortcutToast}
@@ -2189,7 +2256,8 @@ export function App() {
                     min={5}
                     max={280}
                     value={selectedCargo.lengthCm}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (e.target.value.trim() === '') return;
                       handleUpdateBoxDimensions(
                         selectedCargo.skuId,
                         {
@@ -2199,8 +2267,8 @@ export function App() {
                           ),
                         },
                         selectedCargo.binId
-                      )
-                    }
+                      );
+                    }}
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
                     title={'Length L (cm)'}
                   />
@@ -2210,7 +2278,8 @@ export function App() {
                     min={5}
                     max={280}
                     value={selectedCargo.widthCm}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (e.target.value.trim() === '') return;
                       handleUpdateBoxDimensions(
                         selectedCargo.skuId,
                         {
@@ -2220,8 +2289,8 @@ export function App() {
                           ),
                         },
                         selectedCargo.binId
-                      )
-                    }
+                      );
+                    }}
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
                     title={'Width W (cm)'}
                   />
@@ -2231,7 +2300,8 @@ export function App() {
                     min={5}
                     max={240}
                     value={selectedCargo.heightCm}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (e.target.value.trim() === '') return;
                       handleUpdateBoxDimensions(
                         selectedCargo.skuId,
                         {
@@ -2241,8 +2311,8 @@ export function App() {
                           ),
                         },
                         selectedCargo.binId
-                      )
-                    }
+                      );
+                    }}
                     className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
                     title={'Height H (cm)'}
                   />
@@ -2435,7 +2505,8 @@ export function App() {
                       min={0}
                       max={100}
                       value={selectedBin.boxes.length}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (e.target.value.trim() === '') return;
                         handleSetBinTotalBoxQuota(
                           selectedBin.bin.id,
                           Math.max(
@@ -2443,8 +2514,8 @@ export function App() {
                             Math.min(100, Math.round(Number(e.target.value) || 0))
                           ),
                           skus[0]?.id
-                        )
-                      }
+                        );
+                      }}
                       className="w-10 rounded border border-emerald-500/50 bg-slate-950 px-1 py-0.2 text-center font-mono font-bold text-amber-300"
                       title={
                         'Enter exact total box count for this shelf bin'
@@ -2461,7 +2532,8 @@ export function App() {
                       min={20}
                       max={300}
                       value={selectedBin.bin.binLengthCm}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (e.target.value.trim() === '') return;
                         handleResizeSingleBin(
                           selectedBin.bin.id,
                           {
@@ -2475,8 +2547,8 @@ export function App() {
                             : dragScope === 'whole_template'
                               ? 'all'
                               : 'column'
-                        )
-                      }
+                        );
+                      }}
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
                       title={'Shelf Length L (cm)'}
                     />
@@ -2486,7 +2558,8 @@ export function App() {
                       min={20}
                       max={300}
                       value={selectedBin.bin.binWidthCm}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (e.target.value.trim() === '') return;
                         handleResizeSingleBin(
                           selectedBin.bin.id,
                           {
@@ -2500,8 +2573,8 @@ export function App() {
                             : dragScope === 'whole_template'
                               ? 'all'
                               : 'column'
-                        )
-                      }
+                        );
+                      }}
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
                       title={'Shelf Width W (cm)'}
                     />
@@ -2511,7 +2584,8 @@ export function App() {
                       min={15}
                       max={250}
                       value={selectedBin.bin.binHeightCm}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        if (e.target.value.trim() === '') return;
                         handleResizeSingleBin(
                           selectedBin.bin.id,
                           {
@@ -2525,8 +2599,8 @@ export function App() {
                             : dragScope === 'whole_template'
                               ? 'all'
                               : 'column'
-                        )
-                      }
+                        );
+                      }}
                       className="w-11 rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-center font-mono text-white"
                       title={'Shelf Height H (cm)'}
                     />
@@ -2935,7 +3009,7 @@ export function App() {
             )}
 
             {main2DPlanMode !== 'full_2d' && (
-              <div className="relative min-h-[420px] flex-1">
+              <div className="relative min-h-[420px] min-w-0 flex-1">
                 <Warehouse3DViewport
                   allocations={shownResult.allocations}
                   pickRoute={shownResult.pickRoute}
@@ -3130,24 +3204,26 @@ export function App() {
                   </div>
                 </div>
 
-                <div className="absolute right-3 top-3 z-20 rounded-lg border border-slate-800 bg-slate-900/85 px-2.5 py-2 text-[10px] text-slate-300 backdrop-blur">
-                  <div className="flex items-center gap-1.5">
+                <div className="pointer-events-none absolute right-3 top-3 z-10 flex flex-wrap items-center gap-2.5 rounded-lg border border-slate-800/90 bg-slate-900/80 px-2.5 py-1.5 text-[10px] text-slate-300 backdrop-blur">
+                  <div className="flex items-center gap-1">
                     <span
                       className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: activeTheme.scene.golden }}
                     />
-                    {`Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`}
+                    {simpleMode
+                      ? `Easy-Reach (${config.goldenZoneMinM}–${config.goldenZoneMaxM}m)`
+                      : `Golden Zone (${config.goldenZoneMinM}m–${config.goldenZoneMaxM}m)`}
                   </div>
-                  <div className="mt-1 flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <span
                       className="h-2 w-2 rounded-full"
                       style={{ backgroundColor: activeTheme.scene.route }}
                     />
-                    {'Active Pick Wave Path'}
+                    {simpleMode ? 'Pick Path' : 'Active Pick Wave'}
                   </div>
-                  <div className="mt-1 flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-rose-500" />
-                    {'Heavy-on-Upper Violation'}
+                    {simpleMode ? 'Heavy Alert' : 'Heavy Violation'}
                   </div>
                 </div>
               </div>
@@ -3155,53 +3231,181 @@ export function App() {
 
             {main2DPlanMode !== 'off' && (
               <div
-                className={`flex flex-col border-t border-cyan-500/35 bg-[#06101f] transition-all ${
+                className={`flex flex-col border-t border-cyan-500/35 bg-[#06101f] transition-all lg:border-l lg:border-t-0 ${
                   main2DPlanMode === 'full_2d'
                     ? 'flex-1 min-h-[540px]'
                     : split2DSize === 'collapsed'
-                      ? 'h-9 shrink-0 overflow-hidden'
+                      ? 'h-9 shrink-0 overflow-hidden lg:h-auto lg:w-10'
                       : split2DSize === 'compact'
-                        ? 'h-48 shrink-0'
+                        ? 'h-64 shrink-0 lg:h-auto lg:w-[340px]'
                         : split2DSize === 'large'
-                          ? 'h-96 shrink-0'
-                          : 'h-72 shrink-0'
+                          ? 'h-[440px] shrink-0 lg:h-auto lg:w-[540px]'
+                          : 'h-80 shrink-0 lg:h-auto lg:w-[430px]'
                 }`}
               >
+                {main2DPlanMode === 'split' && split2DSize === 'collapsed' ? (
+                  <button
+                    type="button"
+                    onClick={() => setSplit2DSize('normal')}
+                    className="flex h-full w-full items-center justify-center gap-2 bg-slate-900/95 px-2 py-2 text-[11px] font-bold text-cyan-300 hover:bg-slate-800 lg:flex-col"
+                    title="Expand Right 2D Floor Plan"
+                  >
+                    <MapIcon className="h-4 w-4 text-cyan-400" />
+                    <span className="lg:[writing-mode:vertical-rl]">
+                      {'Expand 2D Floor Plan ◀'}
+                    </span>
+                  </button>
+                ) : (
+                  <>
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-900/95 px-3 py-1.5 text-[11px]">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
                     <MapIcon className="h-3.5 w-3.5 text-cyan-400" />
                     <span className="font-bold text-cyan-200">
                       {`Main Screen Live 2D Floor Plan & Pick Route (${activeScenario.name})`}
                     </span>
-                    <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-mono text-[10px] font-bold text-emerald-300">
-                      {`Left-click bin to inspect · Right-click to toggle route stop`}
+                    <span className="rounded border border-emerald-500/40 bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                      {'⚡ 2D ↔ 3D Live Sync'}
                     </span>
+
+                    <div className="ml-1 flex items-center overflow-hidden rounded-md border border-slate-700 bg-slate-950 p-0.5 text-[10px]">
+                      {(
+                        [
+                          ['drag_edit', '✋ Select & Drag 2D'],
+                          ['add_shelf', '➕ Click +Shelf'],
+                          ['add_obstacle', '🧱 Click +Pillar'],
+                          ['route_toggle', '🚩 Click Pick Stop'],
+                        ] as const
+                      ).map(([toolId, label]) => (
+                        <button
+                          key={toolId}
+                          type="button"
+                          onClick={() => setPlan2DTool(toolId)}
+                          className={`rounded px-2 py-0.5 font-semibold transition ${
+                            plan2DTool === toolId
+                              ? 'bg-cyan-500 text-slate-950'
+                              : 'text-slate-300 hover:text-white'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPlan2DSnapGrid((v) => !v)}
+                      className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold transition ${
+                        plan2DSnapGrid
+                          ? 'border-cyan-500/50 bg-cyan-500/20 text-cyan-200'
+                          : 'border-slate-700 bg-slate-950 text-slate-400 hover:text-white'
+                      }`}
+                      title="Snap 2D drag movements to 0.25m metric grid"
+                    >
+                      {plan2DSnapGrid ? 'Grid 0.25m: ON' : 'Free Drag'}
+                    </button>
                   </div>
+
                   <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <div className="inline-flex items-center gap-1 rounded border border-emerald-500/40 bg-slate-950/90 px-1.5 py-0.5">
+                      <span className="font-semibold text-emerald-300">
+                        {'Route:'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const occupied = shownResult.allocations.filter(
+                            (a) => a.boxes.length > 0
+                          );
+                          const remaining = [...occupied];
+                          const ordered: string[] = [];
+                          let cx = activeDepotX;
+                          let cy = activeDepotZ;
+                          while (remaining.length > 0 && ordered.length < 12) {
+                            remaining.sort(
+                              (a, b) =>
+                                Math.hypot(
+                                  a.bin.xMeters - cx,
+                                  a.bin.yMeters - cy
+                                ) -
+                                Math.hypot(
+                                  b.bin.xMeters - cx,
+                                  b.bin.yMeters - cy
+                                )
+                            );
+                            const next = remaining.shift()!;
+                            ordered.push(next.bin.id);
+                            cx = next.bin.xMeters;
+                            cy = next.bin.yMeters;
+                          }
+                          pushWorkspaceUndo();
+                          setConfigPatch((prev) => ({
+                            ...prev,
+                            customRouteBinIds: ordered,
+                          }));
+                          setAnimateRoute(true);
+                          showToast(
+                            `Updated 2D & 3D Pick Route to Shortest TSP (${ordered.length} stops)`
+                          );
+                        }}
+                        className="rounded bg-emerald-500/20 px-1.5 py-0.5 font-semibold text-emerald-200 hover:bg-emerald-500/35"
+                        title="Auto-compute shortest nearest-neighbor pick route and sync to 3D"
+                      >
+                        {'Shortest TSP'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const golden = shownResult.allocations
+                            .filter(
+                              (a) => a.boxes.length > 0 && a.bin.isGoldenZone
+                            )
+                            .sort(
+                              (a, b) =>
+                                a.bin.aisle - b.bin.aisle ||
+                                a.bin.bay - b.bin.bay
+                            )
+                            .slice(0, 10)
+                            .map((a) => a.bin.id);
+                          pushWorkspaceUndo();
+                          setConfigPatch((prev) => ({
+                            ...prev,
+                            customRouteBinIds: golden,
+                          }));
+                          setAnimateRoute(true);
+                          showToast(
+                            `Updated 2D & 3D Pick Route to Golden Zone Priority (${golden.length} stops)`
+                          );
+                        }}
+                        className="rounded bg-cyan-500/20 px-1.5 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/35"
+                        title="Route through Golden Zone shelves first"
+                      >
+                        {'Golden First'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          pushWorkspaceUndo();
+                          setConfigPatch((prev) => ({
+                            ...prev,
+                            customRouteBinIds: undefined,
+                          }));
+                          showToast('Reset Pick Route to Auto Top-Wave');
+                        }}
+                        className="rounded bg-slate-800 px-1.5 py-0.5 text-slate-300 hover:text-white"
+                        title="Reset custom route to default wave"
+                      >
+                        {'Auto'}
+                      </button>
+                    </div>
+
                     {main2DPlanMode === 'split' && (
                       <div className="inline-flex items-center rounded border border-slate-700 bg-slate-950/90 p-0.5">
                         {(
                           [
-                            {
-                              id: 'collapsed',
-                              ko: 'Fold',
-                              en: 'Fold',
-                            },
-                            {
-                              id: 'compact',
-                              ko: 'Small',
-                              en: 'Small',
-                            },
-                            {
-                              id: 'normal',
-                              ko: 'Medium',
-                              en: 'Medium',
-                            },
-                            {
-                              id: 'large',
-                              ko: 'Large',
-                              en: 'Large',
-                            },
+                            { id: 'collapsed', en: 'Fold' },
+                            { id: 'compact', en: 'Small' },
+                            { id: 'normal', en: 'Medium' },
+                            { id: 'large', en: 'Large' },
                           ] as const
                         ).map((opt) => (
                           <button
@@ -3225,7 +3429,7 @@ export function App() {
                       className="inline-flex items-center gap-1 rounded border border-cyan-500/50 bg-cyan-500/20 px-2 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/30"
                     >
                       <Route className="h-3 w-3" />
-                      {'Open 2D & Route Editor'}
+                      {'Full 2D Studio'}
                     </button>
                     <button
                       type="button"
@@ -3244,8 +3448,13 @@ export function App() {
                         );
                         const win = window.open('', '_blank', 'width=1280,height=860');
                         if (win) {
+                          const safeName = activeScenario.name
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/"/g, '&quot;');
                           win.document.write(
-                            `<!doctype html><html><head><meta charset="utf-8"/><title>2D Floor Plan - ${activeScenario.name}</title><style>body{margin:0;background:#071326;color:#e2e8f0;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}header{padding:10px 16px;background:#0f172a;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center}main{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px}svg{max-width:100%;height:auto}</style></head><body><header><strong>${activeScenario.name} — 2D Floor Plan & Pick Route (Standalone Window)</strong><button onclick="window.print()" style="background:#22d3ee;color:#082f49;border:0;padding:6px 12px;border-radius:6px;font-weight:bold;cursor:pointer">Print / Save PDF</button></header><main>${svgMarkup}</main></body></html>`
+                            `<!doctype html><html><head><meta charset="utf-8"/><title>2D Floor Plan - ${safeName}</title><style>body{margin:0;background:#071326;color:#e2e8f0;font-family:sans-serif;display:flex;flex-direction:column;height:100vh}header{padding:10px 16px;background:#0f172a;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center}main{flex:1;overflow:auto;display:flex;align-items:center;justify-content:center;padding:12px}svg{max-width:100%;height:auto}</style></head><body><header><strong>${safeName} — 2D Floor Plan & Pick Route (Standalone Window)</strong><button onclick="window.print()" style="background:#22d3ee;color:#082f49;border:0;padding:6px 12px;border-radius:6px;font-weight:bold;cursor:pointer">Print / Save PDF</button></header><main>${svgMarkup}</main></body></html>`
                           );
                           win.document.close();
                         }
@@ -3256,7 +3465,7 @@ export function App() {
                       }
                     >
                       <ExternalLink className="h-3 w-3" />
-                      {'Pop-out Desktop Window'}
+                      {'Pop-out'}
                     </button>
                     <button
                       type="button"
@@ -3286,9 +3495,208 @@ export function App() {
                       className="inline-flex items-center gap-1 rounded border border-emerald-500/50 bg-emerald-500/20 px-2 py-0.5 font-semibold text-emerald-200 hover:bg-emerald-500/30"
                     >
                       <Download className="h-3 w-3" />
-                      {'Save 2D Layout (.SVG)'}
+                      {'.SVG'}
                     </button>
                   </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 bg-slate-950/90 px-3 py-1 text-[10px]">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-cyan-300">
+                      {'Room Floor (m):'}
+                    </span>
+                    <label className="inline-flex items-center gap-1 text-slate-300">
+                      {'W'}
+                      <input
+                        type="number"
+                        step={0.5}
+                        min={2}
+                        max={60}
+                        value={
+                          config.floorWidthM ??
+                          Number(
+                            Math.max(
+                              10,
+                              config.aisles * (config.aisleSpacingM ?? 3.4) + 2
+                            ).toFixed(1)
+                          )
+                        }
+                        onChange={(e) => {
+                          const w = Math.max(
+                            2,
+                            Math.min(60, Number(e.target.value) || 6)
+                          );
+                          pushWorkspaceUndo();
+                          setConfigPatch((prev) => ({
+                            ...prev,
+                            floorWidthM: w,
+                          }));
+                        }}
+                        className="w-12 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-center font-mono text-white"
+                      />
+                    </label>
+                    <span className="text-slate-500">×</span>
+                    <label className="inline-flex items-center gap-1 text-slate-300">
+                      {'D'}
+                      <input
+                        type="number"
+                        step={0.5}
+                        min={2}
+                        max={60}
+                        value={
+                          config.floorDepthM ??
+                          Number(
+                            Math.max(
+                              8,
+                              config.baysPerAisle * (config.baySpacingM ?? 1.45) +
+                                3.5
+                            ).toFixed(1)
+                          )
+                        }
+                        onChange={(e) => {
+                          const d = Math.max(
+                            2,
+                            Math.min(60, Number(e.target.value) || 6)
+                          );
+                          pushWorkspaceUndo();
+                          setConfigPatch((prev) => ({
+                            ...prev,
+                            floorDepthM: d,
+                          }));
+                        }}
+                        className="w-12 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-center font-mono text-white"
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const maxX = bins.reduce(
+                          (m, b) => Math.max(m, b.xMeters),
+                          0
+                        );
+                        const avgY =
+                          bins.length > 0
+                            ? bins.reduce((s, b) => s + b.yMeters, 0) /
+                              bins.length
+                            : 1.8;
+                        handleAddBinAtFloor(
+                          Number((maxX + 1.1).toFixed(2)),
+                          Number(avgY.toFixed(2))
+                        );
+                        showToast('Added new 3D shelf rack on floor plan');
+                      }}
+                      className="rounded border border-emerald-500/40 bg-emerald-500/15 px-2 py-0.5 font-semibold text-emerald-300 hover:bg-emerald-500/25"
+                    >
+                      {'+ Add Shelf Rack'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleRotateWholeTemplate90();
+                        showToast('Rotated 2D/3D Floor Layout 90°');
+                      }}
+                      className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-slate-300 hover:border-cyan-400 hover:text-white"
+                    >
+                      {'↻ Rotate 90°'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleCenterWholeTemplate();
+                        showToast('Centered 2D/3D Floor Layout');
+                      }}
+                      className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-slate-300 hover:border-cyan-400 hover:text-white"
+                    >
+                      {'⊕ Center'}
+                    </button>
+                  </div>
+
+                  {selectedBin ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-bold text-amber-300">
+                        {`Selected [${selectedBin.bin.id}]:`}
+                      </span>
+                      <span className="text-slate-400">{'Pos(m)'}</span>
+                      <input
+                        type="number"
+                        step={0.25}
+                        value={selectedBin.bin.xMeters}
+                        onChange={(e) => {
+                          if (e.target.value.trim() === '') return;
+                          const val = Number(e.target.value);
+                          if (!Number.isFinite(val)) return;
+                          handleMoveRackColumn(
+                            selectedBin.bin.xMeters,
+                            selectedBin.bin.yMeters,
+                            val,
+                            selectedBin.bin.yMeters
+                          );
+                        }}
+                        className="w-12 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-center font-mono text-cyan-200"
+                        title="X Coordinate (m)"
+                      />
+                      <input
+                        type="number"
+                        step={0.25}
+                        value={selectedBin.bin.yMeters}
+                        onChange={(e) => {
+                          if (e.target.value.trim() === '') return;
+                          const val = Number(e.target.value);
+                          if (!Number.isFinite(val)) return;
+                          handleMoveRackColumn(
+                            selectedBin.bin.xMeters,
+                            selectedBin.bin.yMeters,
+                            selectedBin.bin.xMeters,
+                            val
+                          );
+                        }}
+                        className="w-12 rounded border border-slate-700 bg-slate-900 px-1 py-0.5 text-center font-mono text-cyan-200"
+                        title="Y Coordinate (m)"
+                      />
+                      <span className="text-slate-400">{'Boxes:'}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={80}
+                        value={selectedBin.boxes.length}
+                        onChange={(e) => {
+                          if (e.target.value.trim() === '') return;
+                          handleSetBinTotalBoxQuota(
+                            selectedBin.bin.id,
+                            Math.max(
+                              0,
+                              Math.min(80, Math.round(Number(e.target.value) || 0))
+                            ),
+                            skus[0]?.id
+                          );
+                        }}
+                        className="w-10 rounded border border-emerald-500/50 bg-slate-900 px-1 py-0.5 text-center font-mono font-bold text-emerald-300"
+                        title="Exact box count in this shelf (syncs to 3D)"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddBinAbove(selectedBin)}
+                        className="rounded border border-cyan-500/40 bg-cyan-500/15 px-1.5 py-0.5 font-semibold text-cyan-200 hover:bg-cyan-500/25"
+                      >
+                        {'+1 Z-Level'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBin(selectedBin.bin.id)}
+                        className="rounded border border-rose-500/40 bg-rose-500/15 px-1.5 py-0.5 font-semibold text-rose-300 hover:bg-rose-500/25"
+                      >
+                        {'Delete'}
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-slate-400">
+                      {
+                        '💡 Drag any Shelf, ★ Depot, Furniture, or Pillar on the 2D plan — 3D Digital Twin updates live!'
+                      }
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex-1 overflow-auto p-2">
@@ -3303,52 +3711,85 @@ export function App() {
                       list.push(a);
                       byPos.set(key, list);
                     }
-                    const depotX = activeDepotX;
-                    const depotY = activeDepotZ;
+                    const depotX =
+                      plan2DDragPreview?.kind === 'depot'
+                        ? plan2DDragPreview.curX
+                        : activeDepotX;
+                    const depotY =
+                      plan2DDragPreview?.kind === 'depot'
+                        ? plan2DDragPreview.curY
+                        : activeDepotZ;
                     const floorW =
                       config.floorWidthM ??
                       Math.max(10, config.aisles * (config.aisleSpacingM ?? 3.4) + 2);
                     const floorD =
                       config.floorDepthM ??
                       Math.max(8, config.baysPerAisle * (config.baySpacingM ?? 1.45) + 3.5);
-                    const pxPerM = main2DPlanMode === 'full_2d' ? 44 : 28;
+                    const pxPerM = main2DPlanMode === 'full_2d' ? 48 : 34;
                     const minWX = -1.5;
                     const minWY = -1.5;
                     const maxWX = Math.max(
-                      floorW - 1.5,
+                      floorW - 0.5,
                       ...shownResult.allocations.map((a) => a.bin.xMeters + 1.8),
                       depotX + 2
                     );
                     const maxWY = Math.max(
-                      floorD - 1.5,
+                      floorD - 0.5,
                       ...shownResult.allocations.map((a) => a.bin.yMeters + 1.8),
                       depotY + 2
                     );
-                    const wPx = Math.max(460, Math.round((maxWX - minWX) * pxPerM));
-                    const hPx = Math.max(210, Math.round((maxWY - minWY) * pxPerM));
+                    const wPx = Math.max(520, Math.round((maxWX - minWX) * pxPerM));
+                    const hPx = Math.max(230, Math.round((maxWY - minWY) * pxPerM));
                     const sx = (wx: number) => (wx - minWX) * pxPerM;
                     const sy = (wy: number) => (maxWY - wy) * pxPerM;
 
-                    const corridorY = Math.min(depotY + 0.75, 0.85);
+                    const clientToWorld = (clientX: number, clientY: number) => {
+                      const svgEl = plan2DSvgRef.current;
+                      if (!svgEl) return { wx: 0, wy: 0 };
+                      const rect = svgEl.getBoundingClientRect();
+                      const scaleX = wPx / Math.max(1, rect.width);
+                      const scaleY = hPx / Math.max(1, rect.height);
+                      const svgX = (clientX - rect.left) * scaleX;
+                      const svgY = (clientY - rect.top) * scaleY;
+                      const rawWX = svgX / pxPerM + minWX;
+                      const rawWY = maxWY - svgY / pxPerM;
+                      const snap = plan2DSnapGrid ? 0.25 : 0.05;
+                      return {
+                        wx: Number((Math.round(rawWX / snap) * snap).toFixed(2)),
+                        wy: Number((Math.round(rawWY / snap) * snap).toFixed(2)),
+                      };
+                    };
+
+                    const corridorY = depotY + 0.75;
                     const routePts: Array<{ x: number; y: number }> = [
                       { x: depotX, y: depotY },
                     ];
                     let cx = depotX;
                     let cy = depotY;
                     for (const wp of shownResult.pickRoute) {
+                      const isDraggedStop =
+                        plan2DDragPreview?.kind === 'rack_col' &&
+                        Math.abs(wp.xMeters - plan2DDragPreview.origX) < 0.05 &&
+                        Math.abs(wp.yMeters - plan2DDragPreview.origY) < 0.05;
+                      const wx = isDraggedStop
+                        ? plan2DDragPreview.curX
+                        : wp.xMeters;
+                      const wy = isDraggedStop
+                        ? plan2DDragPreview.curY
+                        : wp.yMeters;
                       if (
-                        Math.abs(wp.xMeters - cx) >= 0.35 &&
+                        Math.abs(wx - cx) >= 0.35 &&
                         cy > corridorY &&
-                        wp.yMeters > corridorY
+                        wy > corridorY
                       ) {
                         routePts.push({ x: cx, y: corridorY });
-                        routePts.push({ x: wp.xMeters, y: corridorY });
+                        routePts.push({ x: wx, y: corridorY });
                       } else {
-                        routePts.push({ x: wp.xMeters, y: cy });
+                        routePts.push({ x: wx, y: cy });
                       }
-                      routePts.push({ x: wp.xMeters, y: wp.yMeters });
-                      cx = wp.xMeters;
-                      cy = wp.yMeters;
+                      routePts.push({ x: wx, y: wy });
+                      cx = wx;
+                      cy = wy;
                     }
                     if (
                       config.routeReturnToDepot !== false &&
@@ -3357,16 +3798,118 @@ export function App() {
                       if (Math.abs(depotX - cx) >= 0.35 && cy > corridorY) {
                         routePts.push({ x: cx, y: corridorY });
                         routePts.push({ x: depotX, y: corridorY });
+                      } else {
+                        routePts.push({ x: depotX, y: cy });
                       }
                       routePts.push({ x: depotX, y: depotY });
                     }
 
                     return (
                       <svg
+                        ref={plan2DSvgRef}
                         width={wPx}
                         height={hPx}
                         viewBox={`0 0 ${wPx} ${hPx}`}
-                        className="mx-auto block rounded border border-sky-500/30 bg-[#071326] select-none"
+                        className={`mx-auto block rounded border border-sky-500/30 bg-[#071326] select-none ${
+                          plan2DTool === 'add_shelf' ||
+                          plan2DTool === 'add_obstacle'
+                            ? 'cursor-crosshair'
+                            : 'cursor-default'
+                        }`}
+                        onPointerMove={(e) => {
+                          if (!plan2DDragPreview) return;
+                          const { wx, wy } = clientToWorld(e.clientX, e.clientY);
+                          if (
+                            Math.hypot(
+                              wx - plan2DDragPreview.origX,
+                              wy - plan2DDragPreview.origY
+                            ) >= 0.05
+                          ) {
+                            plan2DDidDragRef.current = true;
+                          }
+                          setPlan2DDragPreview((prev) =>
+                            prev ? { ...prev, curX: wx, curY: wy } : null
+                          );
+                        }}
+                        onPointerCancel={() => {
+                          setPlan2DDragPreview(null);
+                        }}
+                        onPointerLeave={() => {
+                          if (plan2DDragPreview) {
+                            setPlan2DDragPreview(null);
+                          }
+                        }}
+                        onPointerUp={() => {
+                          if (!plan2DDragPreview) return;
+                          const drag = plan2DDragPreview;
+                          setPlan2DDragPreview(null);
+                          if (
+                            Math.hypot(
+                              drag.curX - drag.origX,
+                              drag.curY - drag.origY
+                            ) < 0.05
+                          ) {
+                            return;
+                          }
+                          plan2DDidDragRef.current = true;
+                          if (drag.kind === 'rack_col') {
+                            handleMoveRackColumn(
+                              drag.origX,
+                              drag.origY,
+                              drag.curX,
+                              drag.curY
+                            );
+                            showToast(
+                              `Moved 2D/3D Rack Column to (${drag.curX.toFixed(2)}m, ${drag.curY.toFixed(2)}m)`
+                            );
+                          } else if (drag.kind === 'depot') {
+                            handleMoveDepot(drag.curX, drag.curY);
+                            showToast(
+                              `Moved ★ Depot to (${drag.curX.toFixed(2)}m, ${drag.curY.toFixed(2)}m)`
+                            );
+                          } else if (drag.kind === 'obstacle') {
+                            handleUpdateObstacle(drag.id, {
+                              xMeters: drag.curX,
+                              yMeters: drag.curY,
+                            });
+                            showToast(
+                              `Moved Pillar/Obstacle to (${drag.curX.toFixed(2)}m, ${drag.curY.toFixed(2)}m)`
+                            );
+                          } else if (drag.kind === 'prop') {
+                            handleUpdateInteriorProp(drag.id, {
+                              xMeters: drag.curX,
+                              yMeters: drag.curY,
+                            });
+                            showToast(
+                              `Moved 3D Furniture Prop to (${drag.curX.toFixed(2)}m, ${drag.curY.toFixed(2)}m)`
+                            );
+                          }
+                        }}
+                        onClick={(e) => {
+                          if (plan2DDidDragRef.current) {
+                            plan2DDidDragRef.current = false;
+                            return;
+                          }
+                          if (
+                            plan2DTool !== 'add_shelf' &&
+                            plan2DTool !== 'add_obstacle'
+                          ) {
+                            return;
+                          }
+                          const { wx, wy } = clientToWorld(e.clientX, e.clientY);
+                          if (plan2DTool === 'add_shelf') {
+                            handleAddBinAtFloor(wx, wy);
+                            showToast(
+                              `Added new 3D shelf at (${wx.toFixed(2)}m, ${wy.toFixed(2)}m)`
+                            );
+                          } else if (plan2DTool === 'add_obstacle') {
+                            const obs = handleAddObstacleAt(wx, wy);
+                            setSelectedObstacleId(obs.id);
+                            showToast(
+                              `Added pillar obstacle at (${wx.toFixed(2)}m, ${wy.toFixed(2)}m)`
+                            );
+                          }
+                        }}
                       >
                         <rect
                           x={sx(-1.0)}
@@ -3383,16 +3926,98 @@ export function App() {
                           strokeDasharray="5,4"
                           strokeWidth={1.2}
                         />
-                        <g>
+
+                        {effectiveInteriorProps.map((prop) => {
+                          const isDraggingProp =
+                            plan2DDragPreview?.kind === 'prop' &&
+                            plan2DDragPreview.id === prop.id;
+                          const px = isDraggingProp
+                            ? plan2DDragPreview.curX
+                            : prop.xMeters;
+                          const py = isDraggingProp
+                            ? plan2DDragPreview.curY
+                            : prop.yMeters;
+                          const isSelProp = selectedPropId === prop.id;
+                          return (
+                            <g
+                              key={prop.id}
+                              className="cursor-grab active:cursor-grabbing"
+                              onPointerDown={(e) => {
+                                if (e.button !== 0) return;
+                                e.stopPropagation();
+                                setSelectedPropId(prop.id);
+                                setSelectedBinId(null);
+                                setSelectedDepot(false);
+                                setSelectedObstacleId(null);
+                                if (plan2DTool === 'drag_edit') {
+                                  setPlan2DDragPreview({
+                                    kind: 'prop',
+                                    id: prop.id,
+                                    origX: prop.xMeters,
+                                    origY: prop.yMeters,
+                                    curX: prop.xMeters,
+                                    curY: prop.yMeters,
+                                  });
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <rect
+                                x={sx(px - 0.45)}
+                                y={sy(py + 0.35)}
+                                width={0.9 * pxPerM}
+                                height={0.7 * pxPerM}
+                                rx={4}
+                                fill="rgba(16, 185, 129, 0.22)"
+                                stroke={isSelProp ? '#facc15' : '#34d399'}
+                                strokeWidth={isSelProp ? 2 : 1.1}
+                                strokeDasharray="3,2"
+                              />
+                              <text
+                                x={sx(px)}
+                                y={sy(py) + 3}
+                                textAnchor="middle"
+                                fill="#a7f3d0"
+                                fontSize="8"
+                                fontWeight="bold"
+                              >
+                                {prop.label.split(' (')[0].slice(0, 10)}
+                              </text>
+                            </g>
+                          );
+                        })}
+
+                        <g
+                          className="cursor-grab active:cursor-grabbing"
+                          onPointerDown={(e) => {
+                            if (e.button !== 0) return;
+                            e.stopPropagation();
+                            setSelectedDepot(true);
+                            setSelectedBinId(null);
+                            setSelectedPropId(null);
+                            setSelectedObstacleId(null);
+                            if (plan2DTool === 'drag_edit') {
+                              setPlan2DDragPreview({
+                                kind: 'depot',
+                                id: 'depot',
+                                origX: activeDepotX,
+                                origY: activeDepotZ,
+                                curX: activeDepotX,
+                                curY: activeDepotZ,
+                              });
+                            }
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <rect
                             x={sx(depotX - 1.1)}
                             y={sy(depotY + 0.45)}
                             width={2.2 * pxPerM}
                             height={0.9 * pxPerM}
                             rx={4}
-                            fill="rgba(2, 132, 199, 0.4)"
-                            stroke="#38bdf8"
-                            strokeWidth={1.6}
+                            fill="rgba(2, 132, 199, 0.45)"
+                            stroke={selectedDepot ? '#facc15' : '#38bdf8'}
+                            strokeWidth={selectedDepot ? 2.2 : 1.6}
                           />
                           <text
                             x={sx(depotX)}
@@ -3402,26 +4027,79 @@ export function App() {
                             fontSize="9"
                             fontWeight="bold"
                           >
-                            ★ DEPOT
+                            ★ DEPOT (Drag)
                           </text>
                         </g>
 
-                        {(config.obstacles ?? []).map((obs) => (
-                          <g key={obs.id}>
-                            <rect
-                              x={sx(obs.xMeters - 0.35)}
-                              y={sy(obs.yMeters + 0.35)}
-                              width={0.7 * pxPerM}
-                              height={0.7 * pxPerM}
-                              fill="rgba(234,179,8,0.35)"
-                              stroke="#facc15"
-                              strokeWidth={1.4}
-                            />
-                          </g>
-                        ))}
+                        {(config.obstacles ?? []).map((obs) => {
+                          const isDraggingObs =
+                            plan2DDragPreview?.kind === 'obstacle' &&
+                            plan2DDragPreview.id === obs.id;
+                          const ox = isDraggingObs
+                            ? plan2DDragPreview.curX
+                            : obs.xMeters;
+                          const oy = isDraggingObs
+                            ? plan2DDragPreview.curY
+                            : obs.yMeters;
+                          const isSelObs = selectedObstacleId === obs.id;
+                          return (
+                            <g
+                              key={obs.id}
+                              className="cursor-grab active:cursor-grabbing"
+                              onPointerDown={(e) => {
+                                if (e.button !== 0) return;
+                                e.stopPropagation();
+                                setSelectedObstacleId(obs.id);
+                                setSelectedBinId(null);
+                                setSelectedPropId(null);
+                                setSelectedDepot(false);
+                                if (plan2DTool === 'drag_edit') {
+                                  setPlan2DDragPreview({
+                                    kind: 'obstacle',
+                                    id: obs.id,
+                                    origX: obs.xMeters,
+                                    origY: obs.yMeters,
+                                    curX: obs.xMeters,
+                                    curY: obs.yMeters,
+                                  });
+                                }
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <rect
+                                x={sx(ox - 0.35)}
+                                y={sy(oy + 0.35)}
+                                width={0.7 * pxPerM}
+                                height={0.7 * pxPerM}
+                                fill="rgba(234,179,8,0.35)"
+                                stroke={isSelObs ? '#ef4444' : '#facc15'}
+                                strokeWidth={isSelObs ? 2.2 : 1.4}
+                              />
+                              <text
+                                x={sx(ox)}
+                                y={sy(oy) + 3}
+                                textAnchor="middle"
+                                fill="#fef08a"
+                                fontSize="8"
+                                fontWeight="bold"
+                              >
+                                🧱
+                              </text>
+                            </g>
+                          );
+                        })}
 
                         {[...byPos.entries()].map(([posKey, stack]) => {
                           const topBin = stack[0].bin;
+                          const isDraggingCol =
+                            plan2DDragPreview?.kind === 'rack_col' &&
+                            plan2DDragPreview.id === posKey;
+                          const dispX = isDraggingCol
+                            ? plan2DDragPreview.curX
+                            : topBin.xMeters;
+                          const dispY = isDraggingCol
+                            ? plan2DDragPreview.curY
+                            : topBin.yMeters;
                           const totalBoxes = stack.reduce(
                             (s, a) => s + a.boxes.length,
                             0
@@ -3433,46 +4111,78 @@ export function App() {
                             stack.find((a) => a.bin.isGoldenZone) ?? stack[0];
                           const wM = topBin.binWidthCm / 100;
                           const lM = topBin.binLengthCm / 100;
-                          const rx = sx(topBin.xMeters - wM / 2);
-                          const ry = sy(topBin.yMeters + lM / 2);
+                          const rx = sx(dispX - wM / 2);
+                          const ry = sy(dispY + lM / 2);
                           const rw = wM * pxPerM;
                           const rh = lM * pxPerM;
                           const stopIdx = shownResult.pickRoute.findIndex((wp) =>
                             stack.some((a) => a.bin.id === wp.binId)
                           );
+
+                          const toggleRouteStopForStack = () => {
+                            const curRoute =
+                              config.customRouteBinIds &&
+                              config.customRouteBinIds.length > 0
+                                ? [...config.customRouteBinIds]
+                                : shownResult.pickRoute.map((w) => w.binId);
+                            const existingIdx = curRoute.findIndex((id) =>
+                              stack.some((a) => a.bin.id === id)
+                            );
+                            const nextRoute =
+                              existingIdx !== -1
+                                ? curRoute.filter((_, i) => i !== existingIdx)
+                                : [...curRoute, targetAlloc.bin.id];
+                            pushWorkspaceUndo();
+                            setConfigPatch((prev) => ({
+                              ...prev,
+                              customRouteBinIds: nextRoute,
+                            }));
+                            showToast(
+                              existingIdx !== -1
+                                ? `Removed [${targetAlloc.bin.id}] from Pick Route`
+                                : `Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`
+                            );
+                          };
+
                           return (
                             <g
                               key={posKey}
-                              className="cursor-pointer"
-                              onClick={() => {
+                              className={
+                                plan2DTool === 'route_toggle'
+                                  ? 'cursor-pointer'
+                                  : 'cursor-grab active:cursor-grabbing'
+                              }
+                              onPointerDown={(e) => {
+                                if (e.button !== 0) return;
+                                e.stopPropagation();
+                                handleSelectBin(targetAlloc);
+                                setSelectedPropId(null);
+                                setSelectedDepot(false);
+                                setSelectedObstacleId(null);
+                                if (plan2DTool === 'route_toggle') {
+                                  toggleRouteStopForStack();
+                                  return;
+                                }
+                                if (plan2DTool === 'drag_edit') {
+                                  setPlan2DDragPreview({
+                                    kind: 'rack_col',
+                                    id: posKey,
+                                    origX: topBin.xMeters,
+                                    origY: topBin.yMeters,
+                                    curX: topBin.xMeters,
+                                    curY: topBin.yMeters,
+                                  });
+                                }
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 handleSelectBin(targetAlloc);
                                 setCameraFocusTick((n) => n + 1);
                               }}
                               onContextMenu={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                const curRoute =
-                                  config.customRouteBinIds &&
-                                  config.customRouteBinIds.length > 0
-                                    ? [...config.customRouteBinIds]
-                                    : shownResult.pickRoute.map((w) => w.binId);
-                                const existingIdx = curRoute.findIndex((id) =>
-                                  stack.some((a) => a.bin.id === id)
-                                );
-                                const nextRoute =
-                                  existingIdx !== -1
-                                    ? curRoute.filter((_, i) => i !== existingIdx)
-                                    : [...curRoute, targetAlloc.bin.id];
-                                pushWorkspaceUndo();
-                                setConfigPatch((prev) => ({
-                                  ...prev,
-                                  customRouteBinIds: nextRoute,
-                                }));
-                                showToast(
-                                  existingIdx !== -1
-                                    ? (`Removed [${targetAlloc.bin.id}] from Pick Route`)
-                                    : (`Added [${targetAlloc.bin.id}] as Route Stop #${nextRoute.length}`)
-                                );
+                                toggleRouteStopForStack();
                               }}
                             >
                               {isSelectedStack && (
@@ -3495,9 +4205,11 @@ export function App() {
                                 height={rh}
                                 rx={3}
                                 fill={
-                                  totalBoxes > 0
-                                    ? 'rgba(34, 211, 238, 0.28)'
-                                    : 'rgba(51, 65, 85, 0.35)'
+                                  isDraggingCol
+                                    ? 'rgba(250, 204, 21, 0.35)'
+                                    : totalBoxes > 0
+                                      ? 'rgba(34, 211, 238, 0.28)'
+                                      : 'rgba(51, 65, 85, 0.35)'
                                 }
                                 stroke={
                                   isSelectedStack
@@ -3582,6 +4294,8 @@ export function App() {
                     );
                   })()}
                 </div>
+                  </>
+                )}
               </div>
             )}
           </div>

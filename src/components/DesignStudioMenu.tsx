@@ -47,6 +47,18 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
 }) => {
   const [filterMode, setFilterMode] = useState<'all' | 'dark' | 'light'>('all');
 
+  React.useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   const filteredThemes = DESIGN_THEMES.filter((t) =>
@@ -61,10 +73,12 @@ export const DesignStudioMenu: React.FC<DesignStudioMenuProps> = ({
     } else if (preset === 'cinema_3d') {
       onChange({
         ...settings,
+        uiScalePct: 100,
         leftPanelPx: 260,
         rightPanelPx: 290,
         viewportMinHeightPx: 680,
         showMapStrip: false,
+        showKpiBar: true,
       });
     } else if (preset === 'compact_dense') {
       onChange({

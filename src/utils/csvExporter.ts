@@ -10,7 +10,14 @@ const PALETTE = [
 ];
 
 function escapeCsvCell(val: string | number | boolean): string {
-  const s = String(val ?? '');
+  let s = String(val ?? '');
+  if (
+    typeof val === 'string' &&
+    /^[=+\-@\t\r]/.test(s) &&
+    !/^-[0-9]+(\.[0-9]+)?$/.test(s)
+  ) {
+    s = `'${s}`;
+  }
   if (/[",\r\n]/.test(s)) {
     return `"${s.replace(/"/g, '""')}"`;
   }
@@ -152,14 +159,16 @@ export function exportSlottingResultToCSV(
   );
 }
 
-function splitCsvLine(line: string): string[] {
-  const cells: string[] = [];
+function parseCsvRecords(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
   let cur = '';
   let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
     if (inQuotes) {
-      if (ch === '"' && line[i + 1] === '"') {
+      if (ch === '"' && text[i + 1] === '"') {
         cur += '"';
         i++;
       } else if (ch === '"') {
@@ -170,89 +179,132 @@ function splitCsvLine(line: string): string[] {
     } else if (ch === '"') {
       inQuotes = true;
     } else if (ch === ',') {
-      cells.push(cur.trim());
+      row.push(cur.trim());
       cur = '';
+    } else if (ch === '\r' || ch === '\n') {
+      if (ch === '\r' && text[i + 1] === '\n') {
+        i++;
+      }
+      row.push(cur.trim());
+      cur = '';
+      if (row.some((c) => c.length > 0)) {
+        rows.push(row);
+      }
+      row = [];
     } else {
       cur += ch;
     }
   }
-  cells.push(cur.trim());
-  return cells;
+  row.push(cur.trim());
+  if (row.some((c) => c.length > 0)) {
+    rows.push(row);
+  }
+  return rows;
 }
 
 export function parseSkusFromCSV(
   rawText: string,
-  maxDims = { maxL: 118, maxW: 88, maxH: 68 }
+  maxDims = { maxL: 280, maxW: 280, maxH: 240 }
 ): SKUItem[] {
   const cleaned = rawText.replace(/^\uFEFF/, '').trim();
   if (!cleaned) return [];
 
-  const lines = cleaned
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean);
-  if (lines.length < 2) return [];
+  const records = parseCsvRecords(cleaned);
+  if (records.length < 2) return [];
 
-  const headerCells = splitCsvLine(lines[0]).map((h) =>
+  const headerCells = records[0].map((h) =>
     h.toLowerCase().replace(/[^a-z0-9]/g, '')
   );
 
-  const findCol = (aliases: string[], fallbackIdx: number) => {
-    const idx = headerCells.findIndex((h) => aliases.includes(h));
-    return idx >= 0 ? idx : fallbackIdx;
+  const claimedCols = new Set<number>();
+  const matchHeader = (aliases: string[]): number => {
+    const idx = headerCells.findIndex(
+      (h, i) => !claimedCols.has(i) && aliases.includes(h)
+    );
+    if (idx >= 0) claimedCols.add(idx);
+    return idx;
   };
 
-  const colCode = findCol(['skucode', 'code', 'sku', 'itemcode'], 0);
-  const colName = findCol(['name', 'skuname', 'item', 'itemname', 'title'], 1);
-  const colCat = findCol(['category', 'cat', 'group', 'type'], 2);
-  const colAbc = findCol(['abcclass', 'abc', 'class', 'grade'], 3);
-  const colPicks = findCol(['dailypicks', 'picks', 'velocity', 'demand'], 4);
-  const colL = findCol(['lengthcm', 'length', 'l', 'depthcm'], 5);
-  const colW = findCol(['widthcm', 'width', 'w'], 6);
-  const colH = findCol(['heightcm', 'height', 'h'], 7);
-  const colKg = findCol(['weightkg', 'weight', 'kg', 'mass'], 8);
-  const colQty = findCol(['quantity', 'qty', 'count', 'units'], 9);
-  const colFragile = findCol(['fragile', 'breakable'], 10);
-  const colColor = findCol(['color', 'hex'], 11);
+  const matchedCode = matchHeader(['skucode', 'code', 'sku', 'itemcode']);
+  const matchedName = matchHeader(['name', 'skuname', 'item', 'itemname', 'title']);
+  const matchedCat = matchHeader(['category', 'cat', 'group', 'type']);
+  const matchedAbc = matchHeader(['abcclass', 'abc', 'class', 'grade']);
+  const matchedPicks = matchHeader(['dailypicks', 'picks', 'velocity', 'demand', 'dailypicksshare']);
+  const matchedL = matchHeader(['lengthcm', 'length', 'l', 'depthcm', 'boxlengthcm']);
+  const matchedW = matchHeader(['widthcm', 'width', 'w', 'boxwidthcm']);
+  const matchedH = matchHeader(['heightcm', 'height', 'h', 'boxheightcm']);
+  const matchedKg = matchHeader(['weightkg', 'weight', 'kg', 'mass', 'boxweightkg']);
+  const matchedQty = matchHeader(['quantity', 'qty', 'count', 'units']);
+  const matchedFragile = matchHeader(['fragile', 'breakable']);
+  const matchedColor = matchHeader(['color', 'hex']);
+
+  const hasAnyKnownHeader = claimedCols.size > 0;
+  const fallbackCol = (matched: number, fallbackIdx: number) =>
+    matched >= 0
+      ? matched
+      : !hasAnyKnownHeader && !claimedCols.has(fallbackIdx)
+        ? fallbackIdx
+        : -1;
+
+  const colCode = fallbackCol(matchedCode, 0);
+  const colName = fallbackCol(matchedName, 1);
+  const colCat = fallbackCol(matchedCat, 2);
+  const colAbc = fallbackCol(matchedAbc, 3);
+  const colPicks = fallbackCol(matchedPicks, 4);
+  const colL = fallbackCol(matchedL, 5);
+  const colW = fallbackCol(matchedW, 6);
+  const colH = fallbackCol(matchedH, 7);
+  const colKg = fallbackCol(matchedKg, 8);
+  const colQty = fallbackCol(matchedQty, 9);
+  const colFragile = fallbackCol(matchedFragile, 10);
+  const colColor = fallbackCol(matchedColor, 11);
+
+  const cellAt = (row: string[], idx: number): string | undefined =>
+    idx >= 0 && idx < row.length ? row[idx]?.replace(/^'(?=[=+\-@\t\r])/, '') : undefined;
+
+  const limitL = Math.max(118, maxDims.maxL);
+  const limitW = Math.max(88, maxDims.maxW);
+  const limitH = Math.max(68, maxDims.maxH);
 
   const parsed: SKUItem[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const row = splitCsvLine(lines[i]);
+  for (let i = 1; i < records.length; i++) {
+    const row = records[i];
     if (row.length < 2) continue;
 
-    const rawAbc = (row[colAbc] ?? 'B').toUpperCase();
+    const rawAbc = (cellAt(row, colAbc) ?? 'B').toUpperCase();
     const abcClass: ABCClass =
       rawAbc === 'A' || rawAbc === 'B' || rawAbc === 'C' ? rawAbc : 'B';
 
-    const num = (val: string | undefined, def: number) => {
+    const num = (val: string | undefined, def: number, allowZero = false) => {
+      if (val === undefined || val.trim() === '') return def;
       const n = Number(val);
-      return Number.isFinite(n) && n > 0 ? n : def;
+      return Number.isFinite(n) && (allowZero ? n >= 0 : n > 0) ? n : def;
     };
 
-    const rawFragile = (row[colFragile] ?? '').toLowerCase();
+    const rawFragile = (cellAt(row, colFragile) ?? '').toLowerCase();
     const fragile =
       rawFragile === 'true' ||
       rawFragile === '1' ||
       rawFragile === 'yes' ||
       rawFragile === 'y';
 
-    const rawColor = row[colColor] ?? '';
+    const rawColor = cellAt(row, colColor) ?? '';
     const color = /^#[0-9a-fA-F]{6}$/.test(rawColor)
       ? rawColor
       : PALETTE[(i - 1) % PALETTE.length];
 
     parsed.push({
       id: `sku-csv-${Date.now()}-${i}`,
-      skuCode: (row[colCode] || `SKU-${100 + i}`).slice(0, 24),
-      name: (row[colName] || `Imported Item ${i}`).slice(0, 80),
-      category: row[colCat] || 'CSV Imported',
+      skuCode: (cellAt(row, colCode) || `SKU-${100 + i}`).slice(0, 24),
+      name: (cellAt(row, colName) || `Imported Item ${i}`).slice(0, 80),
+      category: cellAt(row, colCat) || 'CSV Imported',
       abcClass,
-      dailyPicks: Math.max(1, Math.min(2000, Math.round(num(row[colPicks], 50)))),
-      lengthCm: Math.max(8, Math.min(maxDims.maxL, Math.round(num(row[colL], 36)))),
-      widthCm: Math.max(8, Math.min(maxDims.maxW, Math.round(num(row[colW], 28)))),
-      heightCm: Math.max(8, Math.min(maxDims.maxH, Math.round(num(row[colH], 24)))),
-      weightKg: Number(Math.max(0.2, Math.min(400, num(row[colKg], 5))).toFixed(1)),
-      quantity: Math.max(1, Math.min(60, Math.round(num(row[colQty], 4)))),
+      dailyPicks: Math.max(0, Math.min(2000, Math.round(num(cellAt(row, colPicks), 50, true)))),
+      lengthCm: Math.max(5, Math.min(limitL, Math.round(num(cellAt(row, colL), 36)))),
+      widthCm: Math.max(5, Math.min(limitW, Math.round(num(cellAt(row, colW), 28)))),
+      heightCm: Math.max(5, Math.min(limitH, Math.round(num(cellAt(row, colH), 24)))),
+      weightKg: Number(Math.max(0.1, Math.min(1000, num(cellAt(row, colKg), 5))).toFixed(1)),
+      quantity: Math.max(1, Math.min(200, Math.round(num(cellAt(row, colQty), 4)))),
       fragile,
       color,
     });

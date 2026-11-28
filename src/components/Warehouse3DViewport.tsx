@@ -129,6 +129,9 @@ function disposeObjectTree(root: THREE.Object3D): void {
   const materials = new Set<THREE.Material>();
 
   root.traverse((obj) => {
+    if ((obj as THREE.InstancedMesh).isInstancedMesh) {
+      (obj as THREE.InstancedMesh).dispose();
+    }
     const mesh = obj as THREE.Mesh;
     if (mesh.geometry) {
       geometries.add(mesh.geometry);
@@ -322,6 +325,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
   const routeCurveRef = useRef<THREE.CatmullRomCurve3 | null>(null);
   const animateRouteRef = useRef<boolean>(animateRoute);
   animateRouteRef.current = animateRoute;
+  const configRef = useRef<WarehouseConfig>(config);
+  configRef.current = config;
+  const wakeRenderRef = useRef<() => void>(() => {});
 
   const aisleSpacingM = config.aisleSpacingM ?? 3.4;
   const baySpacingM = config.baySpacingM ?? 1.45;
@@ -451,6 +457,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     keyLight.position.set(14, 22, 14);
     keyLight.castShadow = sceneBg.enableShadows;
     keyLight.shadow.mapSize.set(1024, 1024);
+    keyLight.shadow.camera.near = 0.5;
+    keyLight.shadow.camera.far = 75;
+    keyLight.shadow.camera.left = -26;
+    keyLight.shadow.camera.right = 26;
+    keyLight.shadow.camera.top = 26;
+    keyLight.shadow.camera.bottom = -26;
+    keyLight.shadow.camera.updateProjectionMatrix();
     scene.add(keyLight);
     keyLightRef.current = keyLight;
 
@@ -537,7 +550,179 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       grabFloorZ: number;
     } | null = null;
 
+    const clampWorldCoord = (v: number) =>
+      Number(Math.max(-25, Math.min(65, v)).toFixed(2));
+
+    type RayHitCandidate =
+      | {
+          kind: 'prop';
+          dist: number;
+          mesh: THREE.Object3D;
+          point: THREE.Vector3;
+          prop: InteriorProp;
+        }
+      | {
+          kind: 'obstacle';
+          dist: number;
+          mesh: THREE.Object3D;
+          point: THREE.Vector3;
+          obs: WarehouseObstacle;
+        }
+      | {
+          kind: 'depot';
+          dist: number;
+          mesh: THREE.Object3D;
+          point: THREE.Vector3;
+          depot: { xMeters: number; yMeters: number; group: THREE.Object3D };
+        }
+      | {
+          kind: 'cargo';
+          dist: number;
+          mesh: THREE.Object3D;
+          point: THREE.Vector3;
+          entry: {
+            alloc: BinAllocation;
+            box: PackedBox;
+            boxIndex: number;
+            cargoGroup: THREE.Object3D;
+          };
+        }
+      | {
+          kind: 'bin';
+          dist: number;
+          mesh: THREE.Object3D;
+          point: THREE.Vector3;
+          alloc: BinAllocation;
+        };
+
+    const pickNearestHit = (includeCargo = true): RayHitCandidate | null => {
+      const cached = hitTargetsCacheRef.current;
+      const candidates: RayHitCandidate[] = [];
+
+      const binHits = raycaster.intersectObjects(cached.bins, false);
+      let closestBin: {
+        dist: number;
+        mesh: THREE.Object3D;
+        point: THREE.Vector3;
+        alloc: BinAllocation;
+      } | null = null;
+      for (const h of binHits) {
+        const alloc = hitMeshesRef.current.get(h.object);
+        if (alloc) {
+          closestBin = {
+            dist: h.distance,
+            mesh: h.object,
+            point: h.point,
+            alloc,
+          };
+          candidates.push({
+            kind: 'bin',
+            dist: h.distance,
+            mesh: h.object,
+            point: h.point,
+            alloc,
+          });
+          break;
+        }
+      }
+
+      if (includeCargo) {
+        const cargoHits = raycaster.intersectObjects(cached.cargo, false);
+        for (const h of cargoHits) {
+          const entry = cargoHitMeshesRef.current.get(h.object);
+          if (entry) {
+            const effDist =
+              closestBin && entry.alloc.bin.id === closestBin.alloc.bin.id
+                ? Math.min(h.distance, closestBin.dist - 0.02)
+                : h.distance;
+            candidates.push({
+              kind: 'cargo',
+              dist: effDist,
+              mesh: h.object,
+              point: h.point,
+              entry,
+            });
+            break;
+          }
+        }
+      }
+
+      const propHits = raycaster.intersectObjects(cached.props, false);
+      for (const h of propHits) {
+        const prop = propHitMeshesRef.current.get(h.object);
+        if (prop) {
+          candidates.push({
+            kind: 'prop',
+            dist: h.distance,
+            mesh: h.object,
+            point: h.point,
+            prop,
+          });
+          break;
+        }
+      }
+
+      const obsHits = raycaster.intersectObjects(cached.obstacles, false);
+      for (const h of obsHits) {
+        const obs = obstacleHitMeshesRef.current.get(h.object);
+        if (obs) {
+          candidates.push({
+            kind: 'obstacle',
+            dist: h.distance,
+            mesh: h.object,
+            point: h.point,
+            obs,
+          });
+          break;
+        }
+      }
+
+      const depotHits = raycaster.intersectObjects(cached.depot, false);
+      for (const h of depotHits) {
+        const depot = depotHitMeshesRef.current.get(h.object);
+        if (depot) {
+          candidates.push({
+            kind: 'depot',
+            dist: h.distance,
+            mesh: h.object,
+            point: h.point,
+            depot,
+          });
+          break;
+        }
+      }
+
+      if (candidates.length === 0) return null;
+      candidates.sort((a, b) => a.dist - b.dist);
+      return candidates[0];
+    };
+
+    const cancelActive3DDrag = () => {
+      if (!active3DDrag) return;
+      const aborted = active3DDrag;
+      active3DDrag = null;
+      dragGhost.visible = false;
+      dragGhostMat.color.set('#38bdf8');
+      setDragFitStatus(null);
+      if (aborted.cargoObject) {
+        aborted.cargoObject.visible = true;
+      }
+      if (aborted.propObject) {
+        aborted.propObject.position.set(aborted.oldX, 0, aborted.oldY);
+      }
+      if (aborted.obstacleObject) {
+        aborted.obstacleObject.position.set(aborted.oldX, 0, aborted.oldY);
+      }
+      if (aborted.depotObject) {
+        aborted.depotObject.position.set(aborted.oldX, 0, aborted.oldY);
+      }
+      dynamicGroup.position.set(0, 0, 0);
+      controls.enabled = true;
+      wakeRenderRef.current();
+    };
+
     const onPointerDown = (e: PointerEvent) => {
+      wakeRenderRef.current();
       pointerDownPos = { x: e.clientX, y: e.clientY };
       if (e.button === 0) {
         const rect = renderer.domElement.getBoundingClientRect();
@@ -548,8 +733,8 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         const hasFloorHit = Boolean(
           raycaster.ray.intersectPlane(floorPlane, floorHitVec)
         );
-        const grabFloorX = hasFloorHit ? floorHitVec.x : 0;
-        const grabFloorZ = hasFloorHit ? floorHitVec.z : 0;
+        const grabFloorX = hasFloorHit ? clampWorldCoord(floorHitVec.x) : 0;
+        const grabFloorZ = hasFloorHit ? clampWorldCoord(floorHitVec.z) : 0;
 
         if (
           dragMoveModeRef.current &&
@@ -580,124 +765,164 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           }
         }
 
-        const cachedTargets = hitTargetsCacheRef.current;
-        const propHits = raycaster.intersectObjects(cachedTargets.props, false);
-        if (propHits.length > 0 && hasFloorHit) {
-          const hitMesh = propHits[0].object;
-          const prop = propHitMeshesRef.current.get(hitMesh);
-          if (prop) {
-            onSelectPropRef.current?.(prop.id);
-            onSelectObstacleRef.current?.(null);
-            onSelectDepotRef.current?.(false);
-            onSelectCargoRef.current?.(null);
-            onSelectBinRef.current(null);
+        const allowCargoGrab =
+          !dragMoveModeRef.current || dragScopeRef.current === 'single_cargo';
+        const nearest = pickNearestHit(allowCargoGrab);
+        if (!nearest || !hasFloorHit) return;
+
+        if (nearest.kind === 'prop') {
+          const { prop, mesh: hitMesh } = nearest;
+          onSelectPropRef.current?.(prop.id);
+          onSelectObstacleRef.current?.(null);
+          onSelectDepotRef.current?.(false);
+          onSelectCargoRef.current?.(null);
+          onSelectBinRef.current(null);
+          controls.enabled = false;
+          let rootPropObj: THREE.Object3D = hitMesh;
+          while (
+            rootPropObj.parent &&
+            rootPropObj.parent !== dynamicGroup
+          ) {
+            rootPropObj = rootPropObj.parent;
+          }
+          active3DDrag = {
+            kind: 'prop',
+            propId: prop.id,
+            propObject: rootPropObj,
+            oldX: prop.xMeters,
+            oldY: prop.yMeters,
+            newX: prop.xMeters,
+            newY: prop.yMeters,
+            grabFloorX,
+            grabFloorZ,
+          };
+          return;
+        }
+
+        if (nearest.kind === 'obstacle') {
+          const { obs, mesh: hitMesh } = nearest;
+          onSelectObstacleRef.current?.(obs.id);
+          onSelectPropRef.current?.(null);
+          onSelectDepotRef.current?.(false);
+          onSelectCargoRef.current?.(null);
+          onSelectBinRef.current(null);
+          controls.enabled = false;
+          let rootObsObj: THREE.Object3D = hitMesh;
+          while (
+            rootObsObj.parent &&
+            rootObsObj.parent !== dynamicGroup
+          ) {
+            rootObsObj = rootObsObj.parent;
+          }
+          active3DDrag = {
+            kind: 'obstacle',
+            obstacleId: obs.id,
+            obstacleObject: rootObsObj,
+            oldX: obs.xMeters,
+            oldY: obs.yMeters,
+            newX: obs.xMeters,
+            newY: obs.yMeters,
+            grabFloorX,
+            grabFloorZ,
+          };
+          return;
+        }
+
+        if (nearest.kind === 'depot') {
+          const { depot: depotInfo } = nearest;
+          onSelectDepotRef.current?.(true);
+          onSelectObstacleRef.current?.(null);
+          onSelectPropRef.current?.(null);
+          onSelectCargoRef.current?.(null);
+          onSelectBinRef.current(null);
+          controls.enabled = false;
+          active3DDrag = {
+            kind: 'depot',
+            depotObject: depotInfo.group,
+            oldX: depotInfo.xMeters,
+            oldY: depotInfo.yMeters,
+            newX: depotInfo.xMeters,
+            newY: depotInfo.yMeters,
+            grabFloorX,
+            grabFloorZ,
+          };
+          return;
+        }
+
+        if (nearest.kind === 'cargo') {
+          const { alloc, box, boxIndex, cargoGroup } = nearest.entry;
+          controls.enabled = false;
+          const boxW = box.widthCm / 100;
+          const boxH = box.heightCm / 100;
+          const boxL = box.lengthCm / 100;
+          dragGhostMat.color.set(box.color || '#38bdf8');
+          dragGhost.scale.set(
+            Math.max(0.18, boxW / 0.95),
+            Math.max(0.03, boxH / 3.6),
+            Math.max(0.18, boxL / 1.25)
+          );
+          dragGhost.position.copy(cargoGroup.position);
+          active3DDrag = {
+            kind: 'cargo',
+            sourceBinId: alloc.bin.id,
+            sourceAlloc: alloc,
+            targetBinId: alloc.bin.id,
+            cargoObject: cargoGroup,
+            boxH,
+            moveBatch: e.shiftKey,
+            cargoInfo: {
+              binId: alloc.bin.id,
+              boxIndex,
+              skuId: box.skuId,
+              skuCode: box.skuCode,
+              name: box.name,
+              weightKg: box.weightKg,
+              lengthCm: box.lengthCm,
+              widthCm: box.widthCm,
+              heightCm: box.heightCm,
+              color: box.color,
+            },
+            oldX: alloc.bin.xMeters,
+            oldY: alloc.bin.yMeters,
+            newX: alloc.bin.xMeters,
+            newY: alloc.bin.yMeters,
+            grabFloorX,
+            grabFloorZ,
+          };
+          return;
+        }
+
+        if (nearest.kind === 'bin') {
+          const { alloc } = nearest;
+          if (dragMoveModeRef.current || e.altKey) {
             controls.enabled = false;
-            let rootPropObj: THREE.Object3D = hitMesh;
-            while (
-              rootPropObj.parent &&
-              rootPropObj.parent !== dynamicGroup
+            if (
+              dragMoveModeRef.current &&
+              dragScopeRef.current === 'single_cargo' &&
+              alloc.boxes.length > 0
             ) {
-              rootPropObj = rootPropObj.parent;
-            }
-            active3DDrag = {
-              kind: 'prop',
-              propId: prop.id,
-              propObject: rootPropObj,
-              oldX: prop.xMeters,
-              oldY: prop.yMeters,
-              newX: prop.xMeters,
-              newY: prop.yMeters,
-              grabFloorX,
-              grabFloorZ,
-            };
-            return;
-          }
-        }
-
-        const obsHits = raycaster.intersectObjects(cachedTargets.obstacles, false);
-        if (obsHits.length > 0 && hasFloorHit) {
-          const hitMesh = obsHits[0].object;
-          const obs = obstacleHitMeshesRef.current.get(hitMesh);
-          if (obs) {
-            onSelectObstacleRef.current?.(obs.id);
-            onSelectPropRef.current?.(null);
-            onSelectDepotRef.current?.(false);
-            onSelectCargoRef.current?.(null);
-            onSelectBinRef.current(null);
-            controls.enabled = false;
-            let rootObsObj: THREE.Object3D = hitMesh;
-            while (
-              rootObsObj.parent &&
-              rootObsObj.parent !== dynamicGroup
-            ) {
-              rootObsObj = rootObsObj.parent;
-            }
-            active3DDrag = {
-              kind: 'obstacle',
-              obstacleId: obs.id,
-              obstacleObject: rootObsObj,
-              oldX: obs.xMeters,
-              oldY: obs.yMeters,
-              newX: obs.xMeters,
-              newY: obs.yMeters,
-              grabFloorX,
-              grabFloorZ,
-            };
-            return;
-          }
-        }
-
-        const depotHits = raycaster.intersectObjects(cachedTargets.depot, false);
-        if (depotHits.length > 0 && hasFloorHit) {
-          const hitMesh = depotHits[0].object;
-          const depotInfo = depotHitMeshesRef.current.get(hitMesh);
-          if (depotInfo) {
-            onSelectDepotRef.current?.(true);
-            onSelectObstacleRef.current?.(null);
-            onSelectPropRef.current?.(null);
-            onSelectCargoRef.current?.(null);
-            onSelectBinRef.current(null);
-            controls.enabled = false;
-            active3DDrag = {
-              kind: 'depot',
-              depotObject: depotInfo.group,
-              oldX: depotInfo.xMeters,
-              oldY: depotInfo.yMeters,
-              newX: depotInfo.xMeters,
-              newY: depotInfo.yMeters,
-              grabFloorX,
-              grabFloorZ,
-            };
-            return;
-          }
-        }
-
-        if (
-          hasFloorHit &&
-          (!dragMoveModeRef.current || dragScopeRef.current === 'single_cargo')
-        ) {
-          const cargoHits = raycaster.intersectObjects(cachedTargets.cargo, false);
-          if (cargoHits.length > 0) {
-            const hitEntry = cargoHitMeshesRef.current.get(cargoHits[0].object);
-            if (hitEntry) {
-              controls.enabled = false;
-              const { alloc, box, boxIndex, cargoGroup } = hitEntry;
+              const box = alloc.boxes[alloc.boxes.length - 1];
+              const boxIndex = alloc.boxes.length - 1;
               const boxW = box.widthCm / 100;
               const boxH = box.heightCm / 100;
               const boxL = box.lengthCm / 100;
               dragGhostMat.color.set(box.color || '#38bdf8');
               dragGhost.scale.set(
                 Math.max(0.18, boxW / 0.95),
-                Math.max(0.08, boxH / 3.6),
+                Math.max(0.03, boxH / 3.6),
                 Math.max(0.18, boxL / 1.25)
               );
-              dragGhost.position.copy(cargoGroup.position);
+              dragGhost.position.set(
+                alloc.bin.xMeters,
+                alloc.bin.zMeters + boxH / 2 + 0.04,
+                alloc.bin.yMeters
+              );
+              dragGhost.visible = true;
               active3DDrag = {
                 kind: 'cargo',
                 sourceBinId: alloc.bin.id,
                 sourceAlloc: alloc,
                 targetBinId: alloc.bin.id,
-                cargoObject: cargoGroup,
                 boxH,
                 moveBatch: e.shiftKey,
                 cargoInfo: {
@@ -719,105 +944,40 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
                 grabFloorX,
                 grabFloorZ,
               };
+              onSelectBinRef.current(alloc);
               return;
             }
-          }
-        }
 
-        if (hasFloorHit) {
-          const hits = raycaster.intersectObjects(cachedTargets.bins, false);
-          if (hits.length > 0) {
-            const alloc = hitMeshesRef.current.get(hits[0].object);
-            if (
-              alloc &&
-              (dragMoveModeRef.current ||
-                e.altKey ||
-                alloc.bin.id === selectedBinIdRef.current)
-            ) {
-              controls.enabled = false;
-              if (
-                dragMoveModeRef.current &&
-                dragScopeRef.current === 'single_cargo' &&
-                alloc.boxes.length > 0
-              ) {
-                const box = alloc.boxes[alloc.boxes.length - 1];
-                const boxIndex = alloc.boxes.length - 1;
-                const boxW = box.widthCm / 100;
-                const boxH = box.heightCm / 100;
-                const boxL = box.lengthCm / 100;
-                dragGhostMat.color.set(box.color || '#38bdf8');
-                dragGhost.scale.set(
-                  Math.max(0.18, boxW / 0.95),
-                  Math.max(0.08, boxH / 3.6),
-                  Math.max(0.18, boxL / 1.25)
-                );
-                dragGhost.position.set(
-                  alloc.bin.xMeters,
-                  alloc.bin.zMeters + boxH / 2 + 0.04,
-                  alloc.bin.yMeters
-                );
-                dragGhost.visible = true;
-                active3DDrag = {
-                  kind: 'cargo',
-                  sourceBinId: alloc.bin.id,
-                  sourceAlloc: alloc,
-                  targetBinId: alloc.bin.id,
-                  boxH,
-                  cargoInfo: {
-                    binId: alloc.bin.id,
-                    boxIndex,
-                    skuId: box.skuId,
-                    skuCode: box.skuCode,
-                    name: box.name,
-                    weightKg: box.weightKg,
-                    lengthCm: box.lengthCm,
-                    widthCm: box.widthCm,
-                    heightCm: box.heightCm,
-                    color: box.color,
-                  },
-                  oldX: alloc.bin.xMeters,
-                  oldY: alloc.bin.yMeters,
-                  newX: alloc.bin.xMeters,
-                  newY: alloc.bin.yMeters,
-                  grabFloorX,
-                  grabFloorZ,
-                };
-                onSelectBinRef.current(alloc);
-                return;
-              }
-
-              const isSingleBin = dragScopeRef.current === 'single_bin';
-              const binH = alloc.bin.binHeightCm / 100;
-              const binW = alloc.bin.binWidthCm / 100;
-              const binL = alloc.bin.binLengthCm / 100;
-              dragGhostMat.color.set(isSingleBin ? '#38bdf8' : '#22d3ee');
-              active3DDrag = {
-                kind: isSingleBin ? 'single_bin' : 'rack',
-                binId: alloc.bin.id,
-                binZ: alloc.bin.zMeters,
-                binH,
-                binW,
-                binL,
-                oldX: alloc.bin.xMeters,
-                oldY: alloc.bin.yMeters,
-                newX: alloc.bin.xMeters,
-                newY: alloc.bin.yMeters,
-                grabFloorX,
-                grabFloorZ,
-              };
-              dragGhost.scale.set(
-                alloc.bin.binWidthCm / 95,
-                isSingleBin ? binH / 3.6 : 1,
-                alloc.bin.binLengthCm / 125
-              );
-              dragGhost.position.set(
-                alloc.bin.xMeters,
-                isSingleBin ? alloc.bin.zMeters + binH / 2 : 1.8,
-                alloc.bin.yMeters
-              );
-              dragGhost.visible = true;
-              onSelectBinRef.current(alloc);
-            }
+            const isSingleBin = dragScopeRef.current === 'single_bin';
+            const binH = alloc.bin.binHeightCm / 100;
+            const binW = alloc.bin.binWidthCm / 100;
+            const binL = alloc.bin.binLengthCm / 100;
+            dragGhostMat.color.set(isSingleBin ? '#38bdf8' : '#22d3ee');
+            active3DDrag = {
+              kind: isSingleBin ? 'single_bin' : 'rack',
+              binId: alloc.bin.id,
+              binZ: alloc.bin.zMeters,
+              binH,
+              binW,
+              binL,
+              oldX: alloc.bin.xMeters,
+              oldY: alloc.bin.yMeters,
+              newX: alloc.bin.xMeters,
+              newY: alloc.bin.yMeters,
+              grabFloorX,
+              grabFloorZ,
+            };
+            dragGhost.scale.set(
+              alloc.bin.binWidthCm / 95,
+              isSingleBin ? binH / 3.6 : 1,
+              alloc.bin.binLengthCm / 125
+            );
+            dragGhost.position.set(
+              alloc.bin.xMeters,
+              isSingleBin ? alloc.bin.zMeters + binH / 2 : 1.8,
+              alloc.bin.yMeters
+            );
+            onSelectBinRef.current(alloc);
           }
         }
       }
@@ -826,6 +986,10 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     let hoverRafId = 0;
 
     const onPointerMove = (e: PointerEvent) => {
+      if (active3DDrag && e.buttons === 0) {
+        cancelActive3DDrag();
+        return;
+      }
       const rect = renderer.domElement.getBoundingClientRect();
       if (
         e.clientX < rect.left ||
@@ -833,25 +997,31 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         e.clientY < rect.top ||
         e.clientY > rect.bottom
       ) {
-        if (!active3DDrag) setHoveredBin(null);
+        if (!active3DDrag) {
+          setHoveredBin(null);
+          setHoveredCargo(null);
+          setHoveredOtherLabel(null);
+        }
         return;
       }
       pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
       if (active3DDrag) {
+        wakeRenderRef.current();
         const dragDist = Math.hypot(
           e.clientX - pointerDownPos.x,
           e.clientY - pointerDownPos.y
         );
+        if (dragDist <= 6) {
+          return;
+        }
         raycaster.setFromCamera(pointer, camera);
 
         if (active3DDrag.kind === 'cargo') {
-          if (dragDist > 5) {
-            dragGhost.visible = true;
-            if (active3DDrag.cargoObject) {
-              active3DDrag.cargoObject.visible = false;
-            }
+          dragGhost.visible = true;
+          if (active3DDrag.cargoObject) {
+            active3DDrag.cargoObject.visible = false;
           }
           const binHits = raycaster.intersectObjects(
             hitTargetsCacheRef.current.bins,
@@ -859,10 +1029,23 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           );
           const boxH = active3DDrag.boxH ?? 0.25;
           const info = active3DDrag.cargoInfo;
+          const isBatch = Boolean(active3DDrag.moveBatch || e.shiftKey);
+          const batchUnits =
+            isBatch && info && active3DDrag.sourceAlloc
+              ? Math.max(
+                  1,
+                  active3DDrag.sourceAlloc.boxes.filter(
+                    (b) => b.skuId === info.skuId
+                  ).length
+                )
+              : 1;
           const itemVol = info
-            ? info.lengthCm * info.widthCm * info.heightCm
+            ? info.lengthCm * info.widthCm * info.heightCm * batchUnits
             : 0;
-          const itemWeight = info?.weightKg ?? 0;
+          const itemWeight = (info?.weightKg ?? 0) * batchUnits;
+          const singleWeight = info?.weightKg ?? 0;
+          const heavyCutoffKg =
+            configRef.current.optimizationPreset === 'safety' ? 10 : 16;
 
           if (binHits.length > 0) {
             const targetAlloc = hitMeshesRef.current.get(binHits[0].object) ?? null;
@@ -877,7 +1060,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               );
 
               const isUpperHeavyHazard =
-                itemWeight > 16 && targetAlloc.bin.level >= 3;
+                singleWeight > heavyCutoffKg && targetAlloc.bin.level >= 3;
               const isNearFull =
                 targetAlloc.usedVolumeCm3 + itemVol >
                   targetAlloc.totalVolumeCm3 * 0.92 ||
@@ -905,13 +1088,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
             }
           }
           if (raycaster.ray.intersectPlane(floorPlane, floorHitVec)) {
-            const deltaX = floorHitVec.x - active3DDrag.grabFloorX;
-            const deltaZ = floorHitVec.z - active3DDrag.grabFloorZ;
-            const snapX = Number(
-              (Math.round((active3DDrag.oldX + deltaX) / 0.25) * 0.25).toFixed(2)
+            const deltaX = clampWorldCoord(floorHitVec.x) - active3DDrag.grabFloorX;
+            const deltaZ = clampWorldCoord(floorHitVec.z) - active3DDrag.grabFloorZ;
+            const snapX = clampWorldCoord(
+              Math.round((active3DDrag.oldX + deltaX) / 0.25) * 0.25
             );
-            const snapZ = Number(
-              (Math.round((active3DDrag.oldY + deltaZ) / 0.25) * 0.25).toFixed(2)
+            const snapZ = clampWorldCoord(
+              Math.round((active3DDrag.oldY + deltaZ) / 0.25) * 0.25
             );
             active3DDrag.targetBinId = undefined;
             active3DDrag.newX = snapX;
@@ -925,13 +1108,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
 
         if (raycaster.ray.intersectPlane(floorPlane, floorHitVec)) {
-          const deltaX = floorHitVec.x - active3DDrag.grabFloorX;
-          const deltaZ = floorHitVec.z - active3DDrag.grabFloorZ;
-          const snapX = Number(
-            (Math.round((active3DDrag.oldX + deltaX) / 0.25) * 0.25).toFixed(2)
+          const deltaX = clampWorldCoord(floorHitVec.x) - active3DDrag.grabFloorX;
+          const deltaZ = clampWorldCoord(floorHitVec.z) - active3DDrag.grabFloorZ;
+          const snapX = clampWorldCoord(
+            Math.round((active3DDrag.oldX + deltaX) / 0.25) * 0.25
           );
-          const snapZ = Number(
-            (Math.round((active3DDrag.oldY + deltaZ) / 0.25) * 0.25).toFixed(2)
+          const snapZ = clampWorldCoord(
+            Math.round((active3DDrag.oldY + deltaZ) / 0.25) * 0.25
           );
           active3DDrag.newX = snapX;
           active3DDrag.newY = snapZ;
@@ -958,6 +1141,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           ) {
             active3DDrag.depotObject.position.set(snapX, 0, snapZ);
           } else if (active3DDrag.kind === 'single_bin' || active3DDrag.kind === 'rack') {
+            dragGhost.visible = true;
             const dragW = active3DDrag.binW ?? 0.95;
             const dragL = active3DDrag.binL ?? 1.25;
             const dragH = active3DDrag.binH ?? 0.72;
@@ -1030,32 +1214,28 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       hoverRafId = requestAnimationFrame(() => {
         hoverRafId = 0;
         raycaster.setFromCamera(pointer, camera);
-        const cachedTargets = hitTargetsCacheRef.current;
+        const nearest = pickNearestHit(true);
 
-        const propHits = raycaster.intersectObjects(cachedTargets.props, false);
-        if (propHits.length > 0) {
-          const prop = propHitMeshesRef.current.get(propHits[0].object);
-          if (prop) {
-            setHoveredOtherLabel(prop.label);
-            setHoveredBin(null);
-            setHoveredCargo(null);
-            return;
-          }
+        if (!nearest) {
+          setHoveredOtherLabel((prev) => (prev === null ? null : null));
+          setHoveredCargo((prev) => (prev === null ? null : null));
+          setHoveredBin((prev) => (prev === null ? null : null));
+          return;
         }
 
-        const obsHits = raycaster.intersectObjects(cachedTargets.obstacles, false);
-        if (obsHits.length > 0) {
-          const obs = obstacleHitMeshesRef.current.get(obsHits[0].object);
-          if (obs) {
-            setHoveredOtherLabel(`Pillar / Obstacle (${obs.label})`);
-            setHoveredBin(null);
-            setHoveredCargo(null);
-            return;
-          }
+        if (nearest.kind === 'prop') {
+          setHoveredOtherLabel(nearest.prop.label);
+          setHoveredBin(null);
+          setHoveredCargo(null);
+          return;
         }
-
-        const depotHits = raycaster.intersectObjects(cachedTargets.depot, false);
-        if (depotHits.length > 0) {
+        if (nearest.kind === 'obstacle') {
+          setHoveredOtherLabel(`Pillar / Obstacle (${nearest.obs.label})`);
+          setHoveredBin(null);
+          setHoveredCargo(null);
+          return;
+        }
+        if (nearest.kind === 'depot') {
           setHoveredOtherLabel('★ I/O Depot (Pick Start Point)');
           setHoveredBin(null);
           setHoveredCargo(null);
@@ -1063,48 +1243,42 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
         setHoveredOtherLabel((prev) => (prev === null ? null : null));
 
-        const cargoHits = raycaster.intersectObjects(cachedTargets.cargo, false);
-        if (cargoHits.length > 0) {
-          const entry = cargoHitMeshesRef.current.get(cargoHits[0].object);
-          if (entry) {
-            setHoveredBin((prev) =>
-              prev?.bin.id === entry.alloc.bin.id ? prev : entry.alloc
-            );
-            setHoveredCargo((prev) =>
-              prev?.binId === entry.alloc.bin.id &&
-              prev?.boxIndex === entry.boxIndex
-                ? prev
-                : {
-                    binId: entry.alloc.bin.id,
-                    boxIndex: entry.boxIndex,
-                    skuId: entry.box.skuId,
-                    skuCode: entry.box.skuCode,
-                    name: entry.box.name,
-                    weightKg: entry.box.weightKg,
-                    lengthCm: entry.box.lengthCm,
-                    widthCm: entry.box.widthCm,
-                    heightCm: entry.box.heightCm,
-                    color: entry.box.color,
-                  }
-            );
-            return;
-          }
-        }
-        setHoveredCargo((prev) => (prev === null ? null : null));
-
-        const hits = raycaster.intersectObjects(cachedTargets.bins, false);
-        if (hits.length > 0) {
-          const hitAlloc = hitMeshesRef.current.get(hits[0].object) ?? null;
+        if (nearest.kind === 'cargo') {
+          const { entry } = nearest;
           setHoveredBin((prev) =>
-            prev?.bin.id === hitAlloc?.bin.id ? prev : hitAlloc
+            prev?.bin.id === entry.alloc.bin.id ? prev : entry.alloc
           );
-        } else {
-          setHoveredBin((prev) => (prev === null ? null : null));
+          setHoveredCargo((prev) =>
+            prev?.binId === entry.alloc.bin.id &&
+            prev?.boxIndex === entry.boxIndex
+              ? prev
+              : {
+                  binId: entry.alloc.bin.id,
+                  boxIndex: entry.boxIndex,
+                  skuId: entry.box.skuId,
+                  skuCode: entry.box.skuCode,
+                  name: entry.box.name,
+                  weightKg: entry.box.weightKg,
+                  lengthCm: entry.box.lengthCm,
+                  widthCm: entry.box.widthCm,
+                  heightCm: entry.box.heightCm,
+                  color: entry.box.color,
+                }
+          );
+          return;
+        }
+
+        setHoveredCargo((prev) => (prev === null ? null : null));
+        if (nearest.kind === 'bin') {
+          setHoveredBin((prev) =>
+            prev?.bin.id === nearest.alloc.bin.id ? prev : nearest.alloc
+          );
         }
       });
     };
 
     const onPointerUp = (e: PointerEvent) => {
+      wakeRenderRef.current();
       const dist = Math.hypot(
         e.clientX - pointerDownPos.x,
         e.clientY - pointerDownPos.y
@@ -1157,8 +1331,9 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
 
         if (
-          Math.abs(finished.newX - finished.oldX) > 0.05 ||
-          Math.abs(finished.newY - finished.oldY) > 0.05
+          dist > 6 &&
+          (Math.abs(finished.newX - finished.oldX) > 0.05 ||
+            Math.abs(finished.newY - finished.oldY) > 0.05)
         ) {
           if (finished.kind === 'whole_template') {
             onMoveWholeTemplateRef.current?.(
@@ -1193,6 +1368,16 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
               finished.newY
             );
           }
+        } else {
+          if (finished.propObject) {
+            finished.propObject.position.set(finished.oldX, 0, finished.oldY);
+          }
+          if (finished.obstacleObject) {
+            finished.obstacleObject.position.set(finished.oldX, 0, finished.oldY);
+          }
+          if (finished.depotObject) {
+            finished.depotObject.position.set(finished.oldX, 0, finished.oldY);
+          }
         }
         return;
       }
@@ -1204,36 +1389,34 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(pointer, camera);
-      const cachedTargets = hitTargetsCacheRef.current;
+      const nearest = pickNearestHit(true);
 
-      const propHits = raycaster.intersectObjects(cachedTargets.props, false);
-      if (propHits.length > 0) {
-        const prop = propHitMeshesRef.current.get(propHits[0].object) ?? null;
-        if (prop) {
-          onSelectPropRef.current?.(prop.id);
-          onSelectObstacleRef.current?.(null);
-          onSelectDepotRef.current?.(false);
-          onSelectCargoRef.current?.(null);
-          onSelectBinRef.current(null);
-          return;
-        }
+      if (!nearest) {
+        onSelectBinRef.current(null);
+        onSelectPropRef.current?.(null);
+        onSelectObstacleRef.current?.(null);
+        onSelectDepotRef.current?.(false);
+        onSelectCargoRef.current?.(null);
+        return;
       }
 
-      const obsHits = raycaster.intersectObjects(cachedTargets.obstacles, false);
-      if (obsHits.length > 0) {
-        const obs = obstacleHitMeshesRef.current.get(obsHits[0].object) ?? null;
-        if (obs) {
-          onSelectObstacleRef.current?.(obs.id);
-          onSelectPropRef.current?.(null);
-          onSelectDepotRef.current?.(false);
-          onSelectCargoRef.current?.(null);
-          onSelectBinRef.current(null);
-          return;
-        }
+      if (nearest.kind === 'prop') {
+        onSelectPropRef.current?.(nearest.prop.id);
+        onSelectObstacleRef.current?.(null);
+        onSelectDepotRef.current?.(false);
+        onSelectCargoRef.current?.(null);
+        onSelectBinRef.current(null);
+        return;
       }
-
-      const depotHits = raycaster.intersectObjects(cachedTargets.depot, false);
-      if (depotHits.length > 0) {
+      if (nearest.kind === 'obstacle') {
+        onSelectObstacleRef.current?.(nearest.obs.id);
+        onSelectPropRef.current?.(null);
+        onSelectDepotRef.current?.(false);
+        onSelectCargoRef.current?.(null);
+        onSelectBinRef.current(null);
+        return;
+      }
+      if (nearest.kind === 'depot') {
         onSelectDepotRef.current?.(true);
         onSelectObstacleRef.current?.(null);
         onSelectPropRef.current?.(null);
@@ -1241,42 +1424,28 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         onSelectBinRef.current(null);
         return;
       }
-
-      const cargoHits = raycaster.intersectObjects(cachedTargets.cargo, false);
-      if (cargoHits.length > 0) {
-        const hitEntry = cargoHitMeshesRef.current.get(cargoHits[0].object);
-        if (hitEntry) {
-          const { alloc, box, boxIndex } = hitEntry;
-          onSelectBinRef.current(alloc);
-          onSelectPropRef.current?.(null);
-          onSelectObstacleRef.current?.(null);
-          onSelectDepotRef.current?.(false);
-          onSelectCargoRef.current?.({
-            binId: alloc.bin.id,
-            boxIndex,
-            skuId: box.skuId,
-            skuCode: box.skuCode,
-            name: box.name,
-            weightKg: box.weightKg,
-            lengthCm: box.lengthCm,
-            widthCm: box.widthCm,
-            heightCm: box.heightCm,
-            color: box.color,
-          });
-          return;
-        }
-      }
-
-      const hits = raycaster.intersectObjects(cachedTargets.bins, false);
-      if (hits.length > 0) {
-        const alloc = hitMeshesRef.current.get(hits[0].object) ?? null;
+      if (nearest.kind === 'cargo') {
+        const { alloc, box, boxIndex } = nearest.entry;
         onSelectBinRef.current(alloc);
         onSelectPropRef.current?.(null);
         onSelectObstacleRef.current?.(null);
         onSelectDepotRef.current?.(false);
-        onSelectCargoRef.current?.(null);
-      } else {
-        onSelectBinRef.current(null);
+        onSelectCargoRef.current?.({
+          binId: alloc.bin.id,
+          boxIndex,
+          skuId: box.skuId,
+          skuCode: box.skuCode,
+          name: box.name,
+          weightKg: box.weightKg,
+          lengthCm: box.lengthCm,
+          widthCm: box.widthCm,
+          heightCm: box.heightCm,
+          color: box.color,
+        });
+        return;
+      }
+      if (nearest.kind === 'bin') {
+        onSelectBinRef.current(nearest.alloc);
         onSelectPropRef.current?.(null);
         onSelectObstacleRef.current?.(null);
         onSelectDepotRef.current?.(false);
@@ -1297,30 +1466,29 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
 
       const hitFloor = raycaster.ray.intersectPlane(floorPlane, floorHitVec);
       const floorPt = hitFloor
-        ? { x: Number(floorHitVec.x.toFixed(2)), z: Number(floorHitVec.z.toFixed(2)) }
+        ? {
+            x: clampWorldCoord(floorHitVec.x),
+            z: clampWorldCoord(floorHitVec.z),
+          }
         : null;
-      const cachedTargets = hitTargetsCacheRef.current;
+      const nearest = pickNearestHit(true);
 
-      const propHits = raycaster.intersectObjects(cachedTargets.props, false);
-      if (propHits.length > 0) {
-        const prop = propHitMeshesRef.current.get(propHits[0].object) ?? null;
-        if (prop) {
-          onSelectPropRef.current?.(prop.id);
-          handler({
-            clientX: e.clientX,
-            clientY: e.clientY,
-            binAlloc: null,
-            interiorProp: prop,
-            floorPoint: floorPt,
-          });
-          return;
-        }
+      if (nearest?.kind === 'prop') {
+        onSelectPropRef.current?.(nearest.prop.id);
+        handler({
+          clientX: e.clientX,
+          clientY: e.clientY,
+          binAlloc: null,
+          interiorProp: nearest.prop,
+          floorPoint: floorPt,
+        });
+        return;
       }
 
-      const hits = raycaster.intersectObjects(cachedTargets.bins, false);
-      if (hits.length > 0) {
-        const alloc = hitMeshesRef.current.get(hits[0].object) ?? null;
-        if (alloc) onSelectBinRef.current(alloc);
+      if (nearest?.kind === 'cargo' || nearest?.kind === 'bin') {
+        const alloc =
+          nearest.kind === 'cargo' ? nearest.entry.alloc : nearest.alloc;
+        onSelectBinRef.current(alloc);
         handler({
           clientX: e.clientX,
           clientY: e.clientY,
@@ -1329,6 +1497,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
           floorPoint: floorPt,
         });
         return;
+      }
+
+      if (nearest?.kind === 'obstacle') {
+        onSelectObstacleRef.current?.(nearest.obs.id);
+      } else if (nearest?.kind === 'depot') {
+        onSelectDepotRef.current?.(true);
       }
 
       handler({
@@ -1416,30 +1590,50 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     renderer.domElement.addEventListener('pointerdown', onPointerDown);
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', cancelActive3DDrag);
+    window.addEventListener('blur', cancelActive3DDrag);
     renderer.domElement.addEventListener('contextmenu', onContextMenu);
     renderer.domElement.addEventListener('dblclick', onDoubleClick);
 
+    let idleFramesLeft = 90;
+    wakeRenderRef.current = () => {
+      idleFramesLeft = 90;
+    };
+    controls.addEventListener('change', wakeRenderRef.current);
+
     const handleResize = () => {
       if (!container) return;
-      camera.aspect = container.clientWidth / Math.max(1, container.clientHeight);
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      if (w <= 0 || h <= 0) return;
+      camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h);
+      wakeRenderRef.current();
     };
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(container);
 
     let rafId = 0;
     const clock = new THREE.Clock();
+    const followTargetVec = new THREE.Vector3();
+    const followCamPosVec = new THREE.Vector3();
 
     const animate = () => {
       rafId = requestAnimationFrame(animate);
+      if (typeof document !== 'undefined' && document.hidden) {
+        return;
+      }
       const elapsed = clock.getElapsedTime();
+      let activeFrame = false;
 
       if (
         animateRouteRef.current &&
         routeCurveRef.current &&
         pickerMarkerRef.current
       ) {
+        activeFrame = true;
         const t = (elapsed * 0.14 * routeSpeedRef.current) % 1;
         const pos = routeCurveRef.current.getPointAt(t);
         pickerMarkerRef.current.position.copy(pos);
@@ -1448,24 +1642,28 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         if (followPickerCamRef.current) {
           const aheadT = (t + 0.035) % 1;
           const aheadPos = routeCurveRef.current.getPointAt(aheadT);
-          const followTarget = new THREE.Vector3(
+          followTargetVec.set(
             aheadPos.x,
             Math.max(0.95, pos.y + 0.25),
             aheadPos.z
           );
-          const followCamPos = new THREE.Vector3(
+          followCamPosVec.set(
             pos.x + 2.45,
             Math.max(2.35, pos.y + 1.55),
             pos.z + 2.65
           );
-          camera.position.lerp(followCamPos, 0.085);
-          controls.target.lerp(followTarget, 0.11);
+          camera.position.lerp(followCamPosVec, 0.085);
+          controls.target.lerp(followTargetVec, 0.11);
         }
       } else if (pickerMarkerRef.current) {
-        pickerMarkerRef.current.visible = false;
+        if (pickerMarkerRef.current.visible) {
+          pickerMarkerRef.current.visible = false;
+          activeFrame = true;
+        }
       }
 
       if (cameraGoalRef.current && !followPickerCamRef.current) {
+        activeFrame = true;
         const goal = cameraGoalRef.current;
         camera.position.lerp(goal.position, 0.22);
         controls.target.lerp(goal.target, 0.24);
@@ -1479,8 +1677,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         }
       }
 
-      controls.update();
-      renderer.render(scene, camera);
+      if (activeFrame || idleFramesLeft > 0) {
+        if (!activeFrame && idleFramesLeft > 0) {
+          idleFramesLeft--;
+        }
+        controls.update();
+        renderer.render(scene, camera);
+      }
     };
     animate();
 
@@ -1490,10 +1693,13 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       resizeObserver.disconnect();
       controls.removeEventListener('start', onCancelAutoGlide);
       controls.removeEventListener('change', onControlsChange);
+      controls.removeEventListener('change', wakeRenderRef.current);
       renderer.domElement.removeEventListener('wheel', onCancelAutoGlide);
       renderer.domElement.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', cancelActive3DDrag);
+      window.removeEventListener('blur', cancelActive3DDrag);
       renderer.domElement.removeEventListener('contextmenu', onContextMenu);
       renderer.domElement.removeEventListener('dblclick', onDoubleClick);
       disposeObjectTree(envGroup);
@@ -1503,6 +1709,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       dragGhostMat.dispose();
       pickerGeo.dispose();
       pickerMat.dispose();
+      keyLight.shadow.map?.dispose();
       controls.dispose();
       renderer.dispose();
     };
@@ -1555,6 +1762,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       mat.color.set(theme.scene.route);
       mat.emissive.set(theme.scene.route);
     }
+    wakeRenderRef.current();
   }, [theme, sceneBg]);
 
   useEffect(() => {
@@ -2605,17 +2813,34 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
         points.push(new THREE.Vector3(depotX, 0.35, depotZ));
       }
 
-      const curve = new THREE.CatmullRomCurve3(points, false, 'catmullrom', 0.08);
-      routeCurveRef.current = curve;
+      const uniquePoints: THREE.Vector3[] = [];
+      for (const pt of points) {
+        const prevPt = uniquePoints[uniquePoints.length - 1];
+        if (!prevPt || prevPt.distanceToSquared(pt) > 0.0004) {
+          uniquePoints.push(pt);
+        }
+      }
 
-      const tubeGeo = new THREE.TubeGeometry(curve, 120, 0.045, 8, false);
-      const tubeMat = new THREE.MeshBasicMaterial({
-        color: theme.scene.route,
-        transparent: true,
-        opacity: 0.85,
-      });
-      const tube = new THREE.Mesh(tubeGeo, tubeMat);
-      group.add(tube);
+      if (uniquePoints.length >= 2) {
+        const curve = new THREE.CatmullRomCurve3(
+          uniquePoints,
+          false,
+          'catmullrom',
+          0.08
+        );
+        routeCurveRef.current = curve;
+
+        const tubeGeo = new THREE.TubeGeometry(curve, 120, 0.045, 8, false);
+        const tubeMat = new THREE.MeshBasicMaterial({
+          color: theme.scene.route,
+          transparent: true,
+          opacity: 0.85,
+        });
+        const tube = new THREE.Mesh(tubeGeo, tubeMat);
+        group.add(tube);
+      } else {
+        routeCurveRef.current = null;
+      }
     } else {
       routeCurveRef.current = null;
     }
@@ -2627,6 +2852,7 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       depot: Array.from(depotHitMeshesRef.current.keys()),
       cargo: Array.from(cargoHitMeshesRef.current.keys()),
     };
+    wakeRenderRef.current();
   }, [
     allocations,
     pickRoute,
@@ -2642,7 +2868,12 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
     depotX,
     depotZ,
     theme,
-    sceneBg,
+    sceneBg.useThemeDefault,
+    sceneBg.rackFrameColor,
+    sceneBg.xrayBins,
+    sceneBg.showBoxOutlines,
+    sceneBg.showHeaderSign,
+    sceneBg.showRoomProps,
   ]);
 
   useEffect(() => {
@@ -2959,14 +3190,26 @@ export const Warehouse3DViewport: React.FC<Warehouse3DViewportProps> = ({
       50
     );
 
-    ctx.drawImage(glCanvas, 0, 64, outW, outH - 116);
+    const viewportH = outH - 116;
+    const scaleFit = Math.min(
+      outW / Math.max(1, glCanvas.width),
+      viewportH / Math.max(1, glCanvas.height)
+    );
+    const drawW = Math.round(glCanvas.width * scaleFit);
+    const drawH = Math.round(glCanvas.height * scaleFit);
+    const drawX = Math.round((outW - drawW) / 2);
+    const drawY = 64 + Math.round((viewportH - drawH) / 2);
+    ctx.drawImage(glCanvas, drawX, drawY, drawW, drawH);
 
+    const effFloorHex = sceneBg.useThemeDefault
+      ? theme.scene.floor
+      : sceneBg.floorColor;
     ctx.fillStyle = '#090d16';
     ctx.fillRect(0, outH - 52, outW, 52);
     ctx.fillStyle = '#34d399';
     ctx.font = 'bold 13px "Segoe UI", sans-serif';
     ctx.fillText(
-      `Equipment: ${config.equipmentMode === 'asrs_crane' ? 'AS/RS Crane (Chebyshev)' : 'Electric Reach-Truck'}  ·  Preset: ${config.optimizationPreset ?? 'balanced'}  ·  6-Axis Co-Pack: ${config.allowRotationAndCoPack !== false ? 'ON' : 'OFF'}  ·  Floor: ${sceneBg.floorColor}  ·  Waypoints: ${pickRoute.length}`,
+      `Equipment: ${config.equipmentMode === 'asrs_crane' ? 'AS/RS Crane (Chebyshev)' : 'Electric Reach-Truck'}  ·  Preset: ${config.optimizationPreset ?? 'balanced'}  ·  6-Axis Co-Pack: ${config.allowRotationAndCoPack !== false ? 'ON' : 'OFF'}  ·  Floor: ${effFloorHex}  ·  Waypoints: ${pickRoute.length}`,
       20,
       outH - 22
     );

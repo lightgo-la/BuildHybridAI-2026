@@ -45,6 +45,36 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
     planLevelFilter: 'all',
   });
 
+  const maxLevel = useMemo(
+    () =>
+      result.allocations.reduce(
+        (max, a) => Math.max(max, a.bin.level),
+        config.levels
+      ),
+    [result.allocations, config.levels]
+  );
+
+  React.useEffect(() => {
+    if (
+      options.planLevelFilter !== 'all' &&
+      options.planLevelFilter > maxLevel
+    ) {
+      setOptions((prev) => ({ ...prev, planLevelFilter: 'all' }));
+    }
+  }, [maxLevel, options.planLevelFilter]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   const svgMarkup = useMemo(
     () =>
       open ? generateWarehouseSVG(result, config, scenarioName, options) : '',
@@ -90,12 +120,19 @@ export const CadPreviewModal: React.FC<CadPreviewModalProps> = ({
       `<!doctype html><html><head><title>CubiSlot 2D CAD - ${escapeHtml(scenarioName)}</title><style>body{margin:0;background:#071326;display:flex;justify-content:center;align-items:center;min-height:100vh}svg{max-width:100%;height:auto}</style></head><body>${svgMarkup}</body></html>`
     );
     win.document.close();
-    win.focus();
-    win.print();
+    win.setTimeout(() => {
+      win.focus();
+      win.print();
+    }, 120);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--t-border)] px-4 py-3">
           <div className="flex items-center gap-2">

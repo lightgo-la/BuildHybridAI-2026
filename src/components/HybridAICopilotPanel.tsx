@@ -89,28 +89,51 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [promptInput, setPromptInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
   const [history, setHistory] = useState<
-    Array<{ question: string; answer: HybridAIResponse }>
+    Array<{ id: number; question: string; answer: HybridAIResponse }>
   >([]);
   const lastExtIdRef = useRef<number>(0);
+  const activeReqIdRef = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const copyTimerRef = useRef<number | null>(null);
 
-  const handleCopyReport = async (text: string, idx: number) => {
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleCopyReport = async (text: string, itemId: number) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopiedIdx(idx);
-      window.setTimeout(() => setCopiedIdx(null), 1800);
+      setCopiedId(itemId);
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current);
+      }
+      copyTimerRef.current = window.setTimeout(() => setCopiedId(null), 1800);
     } catch {
+      // clipboard unavailable
     }
   };
 
   const executeQuery = async (
     question: string,
     overrideMode?: HybridModeChoice,
-    useLite = false
+    useLite = false,
+    forceInterrupt = false
   ) => {
     const trimmed = question.trim();
-    if (!trimmed || loading) return;
+    if (!trimmed) return;
+    if (loading && !forceInterrupt) return;
+
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    const reqId = ++activeReqIdRef.current;
 
     const chosenMode = overrideMode ?? modeChoice;
     setLoading(true);
@@ -127,9 +150,18 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
       context,
       modeChoice: chosenMode,
       useLiteModel: useLite,
+      config,
+      signal: controller.signal,
     });
 
-    setHistory((prev) => [{ question: trimmed, answer: res }, ...prev]);
+    if (controller.signal.aborted || reqId !== activeReqIdRef.current) {
+      return;
+    }
+
+    setHistory((prev) => [
+      { id: Date.now() + reqId, question: trimmed, answer: res },
+      ...prev,
+    ]);
     if (res.inferenceSource !== 'not_executed' && onLastInferenceSource) {
       onLastInferenceSource(res.inferenceSource);
     }
@@ -143,7 +175,12 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
     ) {
       lastExtIdRef.current = externalPromptRequest.id;
       setModeChoice(externalPromptRequest.mode);
-      void executeQuery(externalPromptRequest.prompt, externalPromptRequest.mode);
+      void executeQuery(
+        externalPromptRequest.prompt,
+        externalPromptRequest.mode,
+        false,
+        true
+      );
     }
   }, [externalPromptRequest]);
 
@@ -167,7 +204,12 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
             {history.length > 0 && (
               <button
                 type="button"
-                onClick={() => setHistory([])}
+                onClick={() => {
+                  abortControllerRef.current?.abort();
+                  activeReqIdRef.current++;
+                  setLoading(false);
+                  setHistory([]);
+                }}
                 className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[10px] text-slate-400 hover:border-rose-500/40 hover:text-rose-300"
                 title={'Clear History'}
               >
@@ -275,20 +317,20 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
           </div>
         )}
 
-        {history.map((item, idx) => (
+        {history.map((item) => (
           <div
-            key={idx}
+            key={item.id}
             className="space-y-2 rounded-lg border border-slate-800 bg-slate-950/80 p-3"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="font-medium text-cyan-300">Q: {item.question}</div>
               <button
                 type="button"
-                onClick={() => handleCopyReport(item.answer.text, idx)}
+                onClick={() => handleCopyReport(item.answer.text, item.id)}
                 className="inline-flex shrink-0 items-center gap-1 rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-cyan-500/50"
                 title={'Copy Audit Report'}
               >
-                {copiedIdx === idx ? (
+                {copiedId === item.id ? (
                   <>
                     <Check className="h-2.5 w-2.5 text-emerald-400" />
                     {'Copied'}
@@ -325,11 +367,13 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
               <span className="text-slate-500">{item.answer.latencyMs} ms</span>
             </div>
 
-            {item.answer.error ? (
-              <div className="rounded border border-rose-500/30 bg-rose-950/40 p-2 text-[11px] text-rose-200">
+            {item.answer.error && (
+              <div className="rounded border border-rose-500/30 bg-rose-950/40 p-2 text-[11px] text-rose-300">
                 {item.answer.error}
               </div>
-            ) : (
+            )}
+
+            {item.answer.text && (
               <div className="space-y-2">
                 <div className="whitespace-pre-wrap leading-relaxed text-slate-200">
                   {item.answer.text}
@@ -382,6 +426,7 @@ export const HybridAICopilotPanel: React.FC<HybridAICopilotPanelProps> = ({
       <form
         onSubmit={(e) => {
           e.preventDefault();
+          if (loading || !promptInput.trim()) return;
           const q = promptInput;
           setPromptInput('');
           void executeQuery(q);

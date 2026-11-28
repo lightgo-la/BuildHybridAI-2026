@@ -53,10 +53,27 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
     });
   }, [personaFilter, categoryFilter, search]);
 
+  React.useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-[var(--t-border)] bg-[var(--t-surface)] text-[var(--t-text)] shadow-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--t-border)] px-5 py-3.5">
           <div className="flex items-center gap-2.5">
@@ -149,6 +166,24 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
           </div>
         </div>
 
+        {filtered.length === 0 ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-10 text-center">
+            <p className="text-xs text-[var(--t-muted)]">
+              No templates matched your current filter or search query.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setPersonaFilter('all');
+                setCategoryFilter('all');
+                setSearch('');
+              }}
+              className="rounded-lg border border-[var(--t-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--t-accent)] hover:opacity-80"
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
         <div className="grid flex-1 grid-cols-1 gap-3 overflow-y-auto p-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((tpl) => {
             const isSelected = tpl.id === activeTemplateId;
@@ -237,6 +272,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );

@@ -142,6 +142,22 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
     useState<ShelfResizeScope>('single');
   const [resizingSkuId, setResizingSkuId] = useState<string | null>(null);
   const [showAllExistingSkus, setShowAllExistingSkus] = useState(false);
+  const flashTimerRef = React.useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current !== null) {
+        window.clearTimeout(flashTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedBin) return;
+    setBoxL((prev) => Math.min(prev, Math.max(10, selectedBin.bin.binLengthCm - 4)));
+    setBoxW((prev) => Math.min(prev, Math.max(10, selectedBin.bin.binWidthCm - 4)));
+    setBoxH((prev) => Math.min(prev, Math.max(10, selectedBin.bin.binHeightCm - 4)));
+  }, [selectedBin?.bin.id]);
 
   useEffect(() => {
     if (selectedCargo?.skuId) {
@@ -150,6 +166,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
   }, [selectedCargo?.skuId]);
 
   const clampNum = (val: string, fallback: number, min: number, max: number) => {
+    if (typeof val !== 'string' || val.trim() === '') return fallback;
     const parsed = Number(val);
     if (!Number.isFinite(parsed)) return fallback;
     return Math.max(min, Math.min(max, Math.round(parsed)));
@@ -161,6 +178,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
     min: number,
     max: number
   ) => {
+    if (typeof val !== 'string' || val.trim() === '') return fallback;
     const parsed = Number(val);
     if (!Number.isFinite(parsed)) return fallback;
     return Math.max(min, Math.min(max, Number(parsed.toFixed(1))));
@@ -268,7 +286,13 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
     Math.floor(binW / Math.max(1, boxL)) *
     Math.floor(binH / Math.max(1, boxH));
   const maxBoxesPerEmptyBin = Math.max(fitOrient1, fitOrient2);
-  const exceedsBinBounds = boxL > binL || boxW > binW || boxH > binH;
+  const fitsSingleOriented =
+    (boxL <= binL && boxW <= binW && boxH <= binH) ||
+    (boxW <= binL && boxL <= binW && boxH <= binH);
+  const exceedsBinBounds =
+    !fitsSingleOriented ||
+    projectedFillPct > 92 ||
+    selectedBin.currentWeightKg + boxKg * boxQty > selectedBin.bin.maxWeightKg;
 
   const handleSubmitCustomBox = (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,7 +315,13 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
       BOX_COLORS[(BOX_COLORS.indexOf(boxColor) + 1) % BOX_COLORS.length]
     );
     setJustAddedFlash(true);
-    window.setTimeout(() => setJustAddedFlash(false), 1200);
+    if (flashTimerRef.current !== null) {
+      window.clearTimeout(flashTimerRef.current);
+    }
+    flashTimerRef.current = window.setTimeout(
+      () => setJustAddedFlash(false),
+      1200
+    );
   };
 
   return (
@@ -1015,13 +1045,14 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                   min={0}
                   max={100}
                   value={selectedBin.boxes.length}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    if (e.target.value.trim() === '') return;
                     onSetBinTotalBoxQuota(
                       selectedBin.bin.id,
                       clampNum(e.target.value, selectedBin.boxes.length, 0, 100),
                       skus[0]?.id
-                    )
-                  }
+                    );
+                  }}
                   className="w-12 rounded border border-cyan-500/50 bg-slate-950 px-1 py-0.5 text-center font-mono text-xs font-bold text-amber-300"
                   title={
                     'Enter exact total box count for this shelf bin'
@@ -1088,6 +1119,7 @@ export const BinInspectorPanel: React.FC<BinInspectorPanelProps> = ({
                       max={100}
                       value={countInBin}
                       onChange={(e) => {
+                        if (e.target.value.trim() === '') return;
                         const nextCnt = clampNum(
                           e.target.value,
                           countInBin,

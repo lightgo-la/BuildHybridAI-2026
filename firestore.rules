@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /slotting_runs/{runId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll([
+        'scenarioName',
+        'equipmentMode',
+        'baselineKpis',
+        'optimizedKpis',
+        'userId',
+        'createdAt'
+      ]) && request.resource.data.scenarioName is string;
+      allow update, delete: if false;
+    }
+  }
+}

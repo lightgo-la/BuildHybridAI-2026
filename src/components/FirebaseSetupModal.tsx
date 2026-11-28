@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { KeyRound, ShieldCheck, X } from 'lucide-react';
 import { type LangCode } from '../i18n/translations';
 import {
@@ -23,20 +23,57 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
     loadEnvOrStoredConfig()
   );
   const [saving, setSaving] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
 
   if (!open) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    saveRuntimeConfig(form);
-    await onApplyConfig(form);
-    setSaving(false);
-    onClose();
+    setErrorMsg(null);
+    const cleaned: FirebaseRuntimeConfig = {
+      apiKey: (form.apiKey ?? '').trim(),
+      authDomain: (form.authDomain ?? '').trim(),
+      projectId: (form.projectId ?? '').trim(),
+      storageBucket: (form.storageBucket ?? '').trim(),
+      messagingSenderId: (form.messagingSenderId ?? '').trim(),
+      appId: (form.appId ?? '').trim(),
+      recaptchaSiteKey: (form.recaptchaSiteKey ?? '').trim(),
+      debugToken: Boolean(form.debugToken),
+    };
+    try {
+      saveRuntimeConfig(cleaned);
+      setForm(cleaned);
+      await onApplyConfig(cleaned);
+      onClose();
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : 'Unable to save Firebase config.'
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <div className="flex items-center gap-2">
@@ -58,12 +95,20 @@ export const FirebaseSetupModal: React.FC<FirebaseSetupModalProps> = ({
           {'Connect your Firebase project to activate Firebase AI Logic (Cloud Fallback), App Check, Remote Config, and Firestore persistence. Values are stored locally in your browser or loaded from .env.'}
         </p>
 
+        {errorMsg && (
+          <div className="mt-3 rounded-lg border border-rose-500/40 bg-rose-950/40 p-2 text-xs text-rose-300">
+            {errorMsg}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mt-4 space-y-2.5 text-xs">
           {(
             [
               ['apiKey', 'API Key'],
               ['authDomain', 'Auth Domain'],
               ['projectId', 'Project ID'],
+              ['storageBucket', 'Storage Bucket (optional)'],
+              ['messagingSenderId', 'Messaging Sender ID (optional)'],
               ['appId', 'App ID'],
               ['recaptchaSiteKey', 'App Check reCAPTCHA v3 Site Key (optional if Debug Token)'],
             ] as const

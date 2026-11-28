@@ -591,7 +591,7 @@ export function buildTemplateEnvironmentProps(params: {
 
   const aisleSp = config.aisleSpacingM ?? 3.4;
   const frontMarkerZ = bounds.minZ + 1.05;
-  const baseAisleX = bounds.minX + 1.2;
+  const baseAisleX = 0;
   for (let a = 1; a <= Math.min(8, config.aisles); a++) {
     const ax = baseAisleX + (a - 1) * aisleSp;
     const plateTex = getHeaderBannerTexture(
@@ -610,10 +610,10 @@ export function buildTemplateEnvironmentProps(params: {
     propGroup.add(plate);
   }
 
-  const levelHeights = [0.05, 0.85, 1.55, 2.35, 3.15, 3.95];
+  const levelHeights = [0.05, 0.85, 1.61, 2.38, 3.15, 3.95];
   const binHeightCm = config.binHeightCm ?? 70;
   const customPitchM =
-    binHeightCm > 72 ? Number((binHeightCm / 100 + 0.12).toFixed(2)) : null;
+    binHeightCm > 70 ? Number((binHeightCm / 100 + 0.12).toFixed(2)) : null;
   const rulerX = bounds.minX + 0.35;
   const rulerZ = bounds.minZ + 1.8;
   for (let lvl = 1; lvl <= Math.min(8, config.levels); lvl++) {

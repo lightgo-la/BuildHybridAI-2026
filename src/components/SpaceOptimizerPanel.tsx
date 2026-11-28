@@ -73,9 +73,9 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
   lang = 'en',
 }) => {
   const freedBins = baseline.kpis.occupiedBins - optimized.kpis.occupiedBins;
-  const wasteSavedPts = (
-    baseline.kpis.honeycombingWastePct - optimized.kpis.honeycombingWastePct
-  ).toFixed(1);
+  const rawWasteDiff =
+    baseline.kpis.honeycombingWastePct - optimized.kpis.honeycombingWastePct;
+  const snappedWasteDiff = Math.abs(rawWasteDiff) < 0.05 ? 0 : rawWasteDiff;
 
   return (
     <div className="space-y-3.5 text-xs">
@@ -97,7 +97,11 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div className="rounded-lg bg-slate-950/70 p-2">
             <div className="text-[10px] text-slate-400">{t(lang, 'optimizerFreedBins')}</div>
-            <div className="text-base font-bold text-emerald-300">
+            <div
+              className={`text-base font-bold ${
+                freedBins >= 0 ? 'text-emerald-300' : 'text-rose-300'
+              }`}
+            >
               {freedBins >= 0 ? `+${freedBins}` : freedBins} {'bins'}
             </div>
             <div className="text-[10px] text-slate-500">
@@ -106,8 +110,14 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
           </div>
           <div className="rounded-lg bg-slate-950/70 p-2">
             <div className="text-[10px] text-slate-400">{t(lang, 'optimizerWasteCut')}</div>
-            <div className="text-base font-bold text-cyan-300">
-              {Number(wasteSavedPts) >= 0 ? `-${wasteSavedPts}%p` : `+${Math.abs(Number(wasteSavedPts))}%p`}
+            <div
+              className={`text-base font-bold ${
+                snappedWasteDiff >= 0 ? 'text-cyan-300' : 'text-rose-300'
+              }`}
+            >
+              {snappedWasteDiff >= 0
+                ? `-${snappedWasteDiff.toFixed(1)}%p`
+                : `+${Math.abs(snappedWasteDiff).toFixed(1)}%p`}
             </div>
             <div className="text-[10px] text-slate-500">
               {`Unplaced: 2D ${baseline.unplacedUnits} / 3D ${optimized.unplacedUnits}`}
@@ -132,13 +142,13 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
             <div className="flex items-center gap-1.5 font-medium text-white">
               <RotateCw className="h-3.5 w-3.5 text-cyan-400" />
               {simpleMode
-                ? t(lang, 'optimizerSmartFitTitle')
-                : '3D Rotation & Divider Co-Pack'}
+                ? 'Smart Box Rotation & Shared Shelves'
+                : t(lang, 'optimizerSmartFitTitle')}
             </div>
             <p className="mt-0.5 text-[10px] leading-snug text-slate-400">
               {simpleMode
-                ? t(lang, 'optimizerSmartFitDesc')
-                : 'Rotates cartons in 6 axes & shares bins across compatible SKUs to eliminate honeycombing.'}
+                ? 'Automatically turns boxes to fit tighter and groups compatible items on the same shelf.'
+                : t(lang, 'optimizerSmartFitDesc')}
             </p>
           </div>
           <input
@@ -152,7 +162,9 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
         <div>
           <label className="mb-1 flex items-center gap-1 text-[10px] font-medium text-slate-400">
             <Sparkles className="h-3 w-3 text-emerald-400" />
-            {simpleMode ? t(lang, 'optimizerGoldenBandLabel') : 'Golden Zone Elevation Band'}
+            {simpleMode
+              ? 'Easy-Reach Height Range (Golden Zone)'
+              : t(lang, 'optimizerGoldenBandLabel')}
           </label>
           <select
             value={goldenPresetId}
@@ -204,14 +216,14 @@ export const SpaceOptimizerPanel: React.FC<SpaceOptimizerPanelProps> = ({
                 <div className="flex items-center justify-between text-[11px]">
                   <div className="flex items-center gap-1.5">
                     <span className="font-bold text-white">
-                      {simpleMode ? `Z${row.level}` : `Z${row.level}`}
+                      {simpleMode ? `Level ${row.level} (Z${row.level})` : `Z${row.level}`}
                     </span>
                     <span className="text-[10px] text-slate-400">
                       ({row.zMeters}m)
                     </span>
                     {row.isGoldenZone && (
                       <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-300">
-                        {'Golden'}
+                        {simpleMode ? 'Easy Reach' : 'Golden'}
                       </span>
                     )}
                     {row.safetyViolations > 0 && (

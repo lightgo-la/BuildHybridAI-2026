@@ -11,9 +11,13 @@ import type {
 
 interface UseWarehouseShortcutsParams {
   lang: LangCode;
+  appView?: 'workspace' | 'home';
+  canUndo?: boolean;
+  canRedo?: boolean;
   mapEditorOpen: boolean;
   anyModalOpen?: boolean;
   alwaysOptimizedLock?: boolean;
+  onUnlockAlwaysOptimized?: () => void;
   dragMoveMode: boolean;
   dragScope: DragScope;
   selectedBin: BinAllocation | null;
@@ -80,9 +84,13 @@ interface UseWarehouseShortcutsParams {
 
 export function useWarehouseShortcuts({
   lang,
+  appView = 'workspace',
+  canUndo = true,
+  canRedo = true,
   mapEditorOpen,
   anyModalOpen = false,
   alwaysOptimizedLock = false,
+  onUnlockAlwaysOptimized,
   dragMoveMode,
   dragScope,
   selectedBin,
@@ -142,22 +150,34 @@ export function useWarehouseShortcuts({
         return;
       }
 
+      if (appView === 'home') {
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+          if (e.key === 'w' || e.key === 'W') {
+            setAppView('workspace');
+          } else if (e.key === '?' || e.key === '/' || e.key === 'k' || e.key === 'K') {
+            setInteriorInitialTab('shortcuts');
+            setInteriorModalOpen((v) => !v);
+          }
+        }
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey) {
         const lower = e.key.toLowerCase();
         if (lower === 'z' && !e.shiftKey) {
           e.preventDefault();
-          handleWorkspaceUndo();
-          showToast(
-            'Undo 3D Edit'
-          );
+          if (canUndo) {
+            handleWorkspaceUndo();
+            showToast('Undo 3D Edit');
+          }
           return;
         }
         if (lower === 'y' || (lower === 'z' && e.shiftKey)) {
           e.preventDefault();
-          handleWorkspaceRedo();
-          showToast(
-            'Redo 3D Edit'
-          );
+          if (canRedo) {
+            handleWorkspaceRedo();
+            showToast('Redo 3D Edit');
+          }
           return;
         }
       }
@@ -226,18 +246,17 @@ export function useWarehouseShortcuts({
       } else if (key === ' ') {
         e.preventDefault();
         if (alwaysOptimizedLock) {
-          setActiveLayout('optimized_3d');
-          showToast(
-            '🔒 Always-Optimized Lock is active'
-          );
+          onUnlockAlwaysOptimized?.();
+          setActiveLayout('baseline_2d');
+          showToast('[Space] Unlocked 3D Lock & Switched to 2D Baseline');
           return;
         }
         setActiveLayout((prev) => {
           const next = prev === 'optimized_3d' ? 'baseline_2d' : 'optimized_3d';
           showToast(
             next === 'optimized_3d'
-              ? ('[Space] Switched to 3D Optimized')
-              : ('[Space] Switched to 2D Baseline')
+              ? '[Space] Switched to 3D Optimized'
+              : '[Space] Switched to 2D Baseline'
           );
           return next;
         });
@@ -402,9 +421,13 @@ export function useWarehouseShortcuts({
     handleWorkspaceRedo,
     handleWorkspaceUndo,
     lang,
+    appView,
+    canUndo,
+    canRedo,
     mapEditorOpen,
     anyModalOpen,
     alwaysOptimizedLock,
+    onUnlockAlwaysOptimized,
     selectedBin,
     selectedCargo,
     selectedProp,

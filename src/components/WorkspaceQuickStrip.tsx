@@ -32,6 +32,7 @@ interface WorkspaceQuickStripProps {
   onOpenTemplateGallery: () => void;
   onToggleActiveLayout: () => void;
   onSelectRecommendedBin: (alloc: BinAllocation) => void;
+  onDismissFirestoreNotice?: () => void;
 }
 
 export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
@@ -56,6 +57,7 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
   onOpenTemplateGallery,
   onToggleActiveLayout,
   onSelectRecommendedBin,
+  onDismissFirestoreNotice,
 }) => {
   return (
     <>
@@ -111,50 +113,56 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
                 </option>
               ))}
             </select>
-            <div className="flex flex-wrap items-center gap-1">
-              {[...SAMPLE_SCENARIOS, ...customMaps]
-                .filter((sc) => {
-                  const isEvery =
-                    sc.id.startsWith('everyday') || sc.id.startsWith('tpl-life');
-                  if (mapFilter === 'everyday') return isEvery;
-                  if (mapFilter === 'pro') return !isEvery;
-                  return true;
-                })
-                .map((sc) => {
-                  const selected = sc.id === scenarioId;
-                  const isCustom = customMaps.some((c) => c.id === sc.id);
-                  return (
-                    <div
-                      key={sc.id}
-                      className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 transition ${
-                        selected
-                          ? 'bg-cyan-950/35 font-semibold text-white'
-                          : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white'
-                      }`}
-                      style={
-                        selected ? { borderColor: activeTheme.accent } : undefined
-                      }
-                    >
-                      <button
-                        type="button"
-                        onClick={() => onSelectScenario(sc.id)}
+            {(!simpleMode || customMaps.length > 0) && (
+              <div className="flex flex-wrap items-center gap-1">
+                {[...SAMPLE_SCENARIOS, ...customMaps]
+                  .filter((sc) => {
+                    const isEvery =
+                      sc.id.startsWith('everyday') ||
+                      sc.id.startsWith('tpl-life') ||
+                      (sc.config.binLengthCm !== undefined &&
+                        sc.config.binLengthCm <= 100);
+                    if (mapFilter === 'everyday') return isEvery;
+                    if (mapFilter === 'pro') return !isEvery;
+                    return true;
+                  })
+                  .map((sc) => {
+                    const selected = sc.id === scenarioId;
+                    const isCustom = customMaps.some((c) => c.id === sc.id);
+                    if (simpleMode && !isCustom && !selected) return null;
+                    return (
+                      <div
+                        key={sc.id}
+                        className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 transition ${
+                          selected
+                            ? 'bg-cyan-950/35 font-semibold text-white'
+                            : 'border-slate-800 bg-slate-950/60 text-slate-400 hover:text-white'
+                        }`}
+                        style={
+                          selected ? { borderColor: activeTheme.accent } : undefined
+                        }
                       >
-                        {sc.name.replace(/^Map \d+ · |^Everyday \d+ · /, '')}
-                      </button>
-                      {isCustom && (
                         <button
                           type="button"
-                          onClick={() => onDeleteCustomScenario(sc.id)}
-                          className="text-slate-400 hover:text-rose-400"
-                          title="Delete custom map"
+                          onClick={() => onSelectScenario(sc.id)}
                         >
-                          <Trash2 className="h-2.5 w-2.5" />
+                          {sc.name.replace(/^Map \d+ · |^Everyday \d+ · /, '')}
                         </button>
-                      )}
-                    </div>
-                  );
-                })}
-            </div>
+                        {isCustom && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteCustomScenario(sc.id)}
+                            className="text-slate-400 hover:text-rose-400"
+                            title="Delete custom map"
+                          >
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -201,8 +209,18 @@ export const WorkspaceQuickStrip: React.FC<WorkspaceQuickStripProps> = ({
       )}
 
       {firestoreNotice && (
-        <div className="border-b border-slate-800 bg-slate-900 px-4 py-1.5 text-right text-[11px] text-cyan-300">
-          {firestoreNotice}
+        <div className="flex items-center justify-end gap-2 border-b border-slate-800 bg-slate-900 px-4 py-1.5 text-right text-[11px] text-cyan-300">
+          <span>{firestoreNotice}</span>
+          {onDismissFirestoreNotice && (
+            <button
+              type="button"
+              onClick={onDismissFirestoreNotice}
+              className="rounded px-1 text-slate-400 hover:text-white"
+              title="Dismiss notice"
+            >
+              ×
+            </button>
+          )}
         </div>
       )}
 

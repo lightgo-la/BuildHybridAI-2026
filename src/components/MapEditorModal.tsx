@@ -227,6 +227,7 @@ function safeNum(
   min?: number,
   max?: number
 ): number {
+  if (typeof raw !== 'string' || raw.trim() === '') return fallback;
   const parsed = Number(raw);
   if (!Number.isFinite(parsed)) return fallback;
   let val = parsed;
@@ -254,7 +255,7 @@ function groupBinsToCanvasRacks(bins: BinSpec[]): CanvasRackNode[] {
       bay: base.bay,
       xMeters: base.xMeters,
       yMeters: base.yMeters,
-      levels: Math.min(6, Math.max(1, maxLvl)),
+      levels: Math.min(8, Math.max(1, maxLvl)),
       binLengthCm: base.binLengthCm,
       binWidthCm: base.binWidthCm,
       binHeightCm: base.binHeightCm,
@@ -425,6 +426,25 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const inFormField =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
+      if (e.key === 'Escape') {
+        if (ctxMenu) {
+          setCtxMenu(null);
+        } else if (!inFormField) {
+          onClose();
+        }
+        return;
+      }
+
+      if (inFormField) return;
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         handleUndo();
@@ -433,13 +453,11 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         const delSet = new Set(selectedKeys);
         setRacks((prev) => prev.filter((r) => !delSet.has(r.key)));
         setSelectedKeys([]);
-      } else if (e.key === 'Escape') {
-        setCtxMenu(null);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, handleUndo, pushUndo, selectedKeys]);
+  }, [open, ctxMenu, onClose, handleUndo, pushUndo, selectedKeys]);
 
   const totalBins = useMemo(
     () => racks.reduce((acc, r) => acc + r.levels, 0),
@@ -505,15 +523,23 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
   const isEveryday = persona === 'everyday';
   const basePxPerM = 40 * zoom;
-  const minWorldX = -1.5;
-  const minWorldY = -1.5;
+  const minWorldX = Math.min(
+    -1.6,
+    ...racks.map((r) => r.xMeters - 1.5),
+    depotX - 2
+  );
+  const minWorldY = Math.min(
+    -1.6,
+    ...racks.map((r) => r.yMeters - 1.5),
+    depotY - 1.5
+  );
   const maxWorldX = Math.max(
-    floorWidthM - 1.5,
+    floorWidthM - 0.4,
     ...racks.map((r) => r.xMeters + 2),
     depotX + 2
   );
   const maxWorldY = Math.max(
-    floorDepthM - 1.5,
+    floorDepthM - 0.4,
     ...racks.map((r) => r.yMeters + 2),
     depotY + 2
   );
@@ -639,9 +665,11 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
     window.addEventListener('pointermove', onWinMove);
     window.addEventListener('pointerup', onWinUp);
+    window.addEventListener('pointercancel', onWinUp);
     return () => {
       window.removeEventListener('pointermove', onWinMove);
       window.removeEventListener('pointerup', onWinUp);
+      window.removeEventListener('pointercancel', onWinUp);
     };
   }, [open, clientToWorld, pushUndo, snapCoord, aisleSpacingM, baySpacingM, racks]);
 
@@ -762,6 +790,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
     setRacks(nextRacks);
     setObstacles([]);
     setSelectedKeys([]);
+    setRouteBinIds([]);
   };
 
   const buildCustomBins = (): BinSpec[] => {
@@ -769,7 +798,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
     const usedIds = new Set<string>();
     racks.forEach((r, idx) => {
       const shelfPitchM =
-        r.binHeightCm === 70 ? 0.8 : Math.max(0.45, r.binHeightCm / 100 + 0.14);
+        r.binHeightCm <= 70 ? 0.8 : Math.max(0.45, Number((r.binHeightCm / 100 + 0.12).toFixed(2)));
       const existingAllocs = getRackAllocs(r);
       for (let l = 1; l <= r.levels; l++) {
         const matchedExisting = existingAllocs.find((a) => a.bin.level === l);
@@ -779,7 +808,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         }
         usedIds.add(id);
         const zMeters =
-          r.binHeightCm === 70 && l <= LEVEL_HEIGHTS_M.length
+          r.binHeightCm <= 70 && l <= LEVEL_HEIGHTS_M.length
             ? LEVEL_HEIGHTS_M[l - 1]
             : Number((0.05 + (l - 1) * shelfPitchM).toFixed(2));
         result.push({
@@ -793,7 +822,10 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
           binLengthCm: r.binLengthCm,
           binWidthCm: r.binWidthCm,
           binHeightCm: r.binHeightCm,
-          maxWeightKg: LEVEL_MAX_WEIGHTS_KG[l - 1] ?? 200,
+          maxWeightKg:
+            matchedExisting?.bin.maxWeightKg ??
+            LEVEL_MAX_WEIGHTS_KG[l - 1] ??
+            200,
           isGoldenZone:
             zMeters >= config.goldenZoneMinM && zMeters <= config.goldenZoneMaxM,
         });
@@ -942,6 +974,9 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         customBins,
         closeModal: false,
       });
+      setRacks((prev) =>
+        prev.map((r) => ({ ...r, srcX: r.xMeters, srcY: r.yMeters }))
+      );
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -1078,9 +1113,10 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
   const activeRouteStops = useMemo(() => {
     const allocMap = new Map(allocations.map((a) => [a.bin.id, a]));
     if (routeBinIds.length > 0) {
-      return routeBinIds
+      const matched = routeBinIds
         .map((id) => allocMap.get(id))
         .filter((a): a is BinAllocation => Boolean(a));
+      if (matched.length > 0) return matched;
     }
     return [...allocations]
       .filter((a) => a.boxes.length > 0)
@@ -1216,6 +1252,8 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
   const handleApply = () => {
     const customBins = buildCustomBins();
+    const validIds = new Set(customBins.map((b) => b.id));
+    const prunedRoute = routeBinIds.filter((id) => validIds.has(id));
     const maxLvl = customBins.reduce((m, b) => Math.max(m, b.level), levels);
     onApplyMapEdits({
       configPatch: {
@@ -1233,7 +1271,8 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         depotYMeters: depotY,
         obstacles,
         disabledBinIds: [],
-        customRouteBinIds: routeBinIds,
+        customRouteBinIds: prunedRoute.length > 0 ? prunedRoute : undefined,
+        routeReturnToDepot,
       },
       customBins,
     });
@@ -1242,10 +1281,13 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
 
   const handleSaveAsNewMap = () => {
     const customBins = buildCustomBins();
+    const validIds = new Set(customBins.map((b) => b.id));
+    const prunedRoute = routeBinIds.filter((id) => validIds.has(id));
+    const maxLvl = customBins.reduce((m, b) => Math.max(m, b.level), levels);
     const configPatch: Partial<WarehouseConfig> = {
       aisles,
       baysPerAisle,
-      levels,
+      levels: maxLvl,
       aisleSpacingM,
       baySpacingM,
       binLengthCm,
@@ -1257,7 +1299,8 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
       depotYMeters: depotY,
       obstacles,
       disabledBinIds: [],
-      customRouteBinIds: routeBinIds,
+      customRouteBinIds: prunedRoute.length > 0 ? prunedRoute : undefined,
+      routeReturnToDepot,
       mapTag: `${floorWidthM.toFixed(0)}×${floorDepthM.toFixed(0)}m · ${customBins.length} Bins`,
     };
     const customMap: WarehouseScenario = {
@@ -1322,12 +1365,34 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
         if (parsed.floorDepthM) setFloorDepthM(parsed.floorDepthM);
         if (parsed.depotX !== undefined) setDepotX(parsed.depotX);
         if (parsed.depotY !== undefined) setDepotY(parsed.depotY);
-        if (Array.isArray(parsed.racks)) setRacks(parsed.racks);
-        if (Array.isArray(parsed.obstacles)) setObstacles(parsed.obstacles);
+        if (Array.isArray(parsed.racks)) {
+          setRacks(
+            parsed.racks.filter(
+              (r) =>
+                r &&
+                typeof r === 'object' &&
+                Number.isFinite(r.xMeters) &&
+                Number.isFinite(r.yMeters)
+            )
+          );
+        }
+        if (Array.isArray(parsed.obstacles)) {
+          setObstacles(
+            parsed.obstacles.filter(
+              (o) =>
+                o &&
+                typeof o === 'object' &&
+                Number.isFinite(o.xMeters) &&
+                Number.isFinite(o.yMeters)
+            )
+          );
+        }
       } catch {
+        // invalid json
       }
     };
     reader.readAsText(file);
+    e.target.value = '';
   };
 
   const ctxRack = ctxMenu?.rackKey
@@ -3736,7 +3801,7 @@ export const MapEditorModal: React.FC<MapEditorModalProps> = ({
           ) : (
             <>
               <div className="border-b border-[var(--t-border)] px-2 py-1 text-[11px] font-bold">
-                {`Floor @ (${ctxMenu.worldX}m, {ctxMenu.worldY}m)`}
+                {`Floor @ (${ctxMenu.worldX}m, ${ctxMenu.worldY}m)`}
               </div>
               <button
                 type="button"
