@@ -643,5 +643,5 @@ export const RAW_WAREHOUSE_TEMPLATES: WarehouseTemplate[] = [
 export const WAREHOUSE_TEMPLATES: WarehouseTemplate[] =
   RAW_WAREHOUSE_TEMPLATES.map((tpl) => ({
     ...tpl,
-    imageUrl: `/templates/${tpl.id}.png`,
+    imageUrl: `templates/${tpl.id}.png`,
   }));
