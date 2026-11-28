@@ -12,11 +12,14 @@
 ![License Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-D22128?logo=apache&logoColor=white)
 ![Release v1.2.0](https://img.shields.io/badge/Release-v1.2.0-8A2BE2)
 
-<img width="2456" height="1252" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/af8e33dd-0f56-47f5-93c6-d08aaef8cdd8" />
+
 
 > **Google for Developers `#BuildHybridAI 2026` Challenge · Web / Chrome Track**  
 > Open-Source 3D Warehouse Slotting Optimization & Everyday Home Storage Digital Twin powered by **Firebase AI Logic (`firebase/ai`)** Hybrid Inference (**On-Device Chrome Gemini Nano** + **Cloud Gemini Fallback** + **Local Deterministic Action Engine**).
 
+<img width="2456" height="1252" alt="CubiSlot 3D" src="https://github.com/user-attachments/assets/6148c26f-b509-4622-80e3-bd35a09a99f4" />
+
+**(https://youtu.be/VUHSq6-An3o?si=oqS1yGDDfbLso3XG)**
 ---
 
 ## Key Features
@@ -40,7 +43,7 @@
 4. **Interactive 3D Digital Twin Studio & Live 2D Floor Plan Split View (`src/components/Warehouse3DViewport.tsx`, `src/App.tsx`)**
    - **`THREE.InstancedMesh` Draw-Call Batching & LRU Texture Cache**: Batches rack uprights, shelf decks, Golden Zone volume bands, structural pillars, bottle crates, and pallet runners into GPU-instanced meshes with bounded LRU `CanvasTexture` disposal and `requestAnimationFrame`-throttled hover raycasting.
    - **Unobstructed Smart Camera Auto-Zoom (`computeUnobstructedFocusGoal`)**: Evaluates 8 horizontal sightline vectors to avoid neighboring rack occlusion when zooming to a selected shelf bin, cargo box, prop, obstacle, or depot.
-   - **Live Main-Screen 2D Floor Plan, Box & Content Item Inspector Window (`src/components/Plan2DBoxInspectorModal.tsx`)**: View the synchronized 3D Digital Twin alongside the interactive 2D Floor Plan (`3D Only` / `3D + 2D Split` with 4 size presets / `2D Full`). Clicking any 2D shelf opens the dedicated **2D Shelf Box & Content Item Inspector Window** (or standalone browser popup window) without triggering 3D camera zoom, allowing direct control of total box counts and per-SKU content item quantities (`-` / `+` / exact quantity input / custom box packing), while right-clicking on the 2D floor plan cancels/clears the entire pick route (`0 stops`).
+   - **Live Main-Screen 2D Floor Plan & Pop-Out Desktop Blueprint**: View the synchronized 3D Digital Twin alongside the live 2D Floor Plan (`3D Only` / `3D + 2D Split` with 4 height presets / `2D Full`), pop out a standalone desktop window, or lock the viewport to `Always 3D Optimized`.
    - **Single-Item & Batch Cargo 3D Drag-Drop with Auto-Swap & Ghost Preview**: Click or drag individual 3D boxes (`Shift + Drag` for batch transfer) between any shelf bins with live validity ghost previews (`Green: Safe Fit`, `Amber: 1:1 Auto-Swap`, `Red: NIOSH Z3+ Heavy Warning`).
    - **Custom Box & Shelf Dimension Studio (`src/components/BinInspectorPanel.tsx`)**: Resize any shelf bin (`L × W × H cm`, single bin / entire column / all shelves) and insert custom-sized boxes or adjust exact box counts directly in the target bin.
    - **3D Space Interior & Furniture Builder (`src/components/InteriorStudioModal.tsx`)**: Place, drag, rotate, scale, and recolor 12 types of 3D furniture, appliances, doors, and windows + 4 room wall styles.
